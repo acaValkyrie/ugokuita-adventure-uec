@@ -1,0 +1,113 @@
+[gd_scene load_steps=7 format=3 uid="uid://da3c8ktvtj35a"]
+
+[ext_resource type="Script" uid="uid://voefr7qy7ut3" path="res://car.gd" id="1_7822p"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0f027"]
+size = Vector3(0.79306, 0.10202, 1.00049)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_2c62f"]
+top_radius = 0.12
+bottom_radius = 0.12
+height = 0.05
+radial_segments = 12
+
+[sub_resource type="BoxMesh" id="BoxMesh_0f027"]
+size = Vector3(0.6, 0.1, 0.1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7822p"]
+size = Vector3(0.1, 0.1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_uoj53"]
+size = Vector3(0.1, 0.1, 0.8)
+
+[node name="VehicleBody3D" type="VehicleBody3D"]
+mass = 15.0
+script = ExtResource("1_7822p")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00160215, 0.00062561, 0.0583497)
+shape = SubResource("BoxShape3D_0f027")
+
+[node name="VehicleWheel3D_FL" type="VehicleWheel3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.240468, -0.0779496, 0.316979)
+use_as_steering = true
+wheel_radius = 0.12
+suspension_stiffness = 50.0
+suspension_max_force = 15000.0
+damping_compression = 0.3
+damping_relaxation = 0.5
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_FL"]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_2c62f")
+
+[node name="VehicleWheel3D_FR" type="VehicleWheel3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.244157, -0.0779496, 0.316979)
+use_as_steering = true
+wheel_radius = 0.12
+suspension_stiffness = 50.0
+suspension_max_force = 15000.0
+damping_compression = 0.3
+damping_relaxation = 0.5
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_FR"]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_2c62f")
+
+[node name="VehicleWheel3D_BL" type="VehicleWheel3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.240468, -0.0779496, -0.20605)
+use_as_traction = true
+wheel_radius = 0.12
+suspension_stiffness = 50.0
+suspension_max_force = 15000.0
+damping_compression = 0.3
+damping_relaxation = 0.5
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_BL"]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_2c62f")
+
+[node name="VehicleWheel3D_BR" type="VehicleWheel3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.244157, -0.0779496, -0.20605)
+use_as_traction = true
+wheel_radius = 0.12
+suspension_stiffness = 50.0
+suspension_max_force = 15000.0
+damping_compression = 0.3
+damping_relaxation = 0.5
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_BR"]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("CylinderMesh_2c62f")
+
+[node name="Mesh" type="Node3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.503921)
+mesh = SubResource("BoxMesh_0f027")
+skeleton = NodePath("../..")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.390685)
+mesh = SubResource("BoxMesh_0f027")
+skeleton = NodePath("../..")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.35, 0, 0.055)
+mesh = SubResource("BoxMesh_7822p")
+skeleton = NodePath("../..")
+
+[node name="MeshInstance3D5" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.137982, 0, 0.0589574)
+mesh = SubResource("BoxMesh_uoj53")
+skeleton = NodePath("../..")
+
+[node name="MeshInstance3D6" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.125328, 0, 0.0589574)
+mesh = SubResource("BoxMesh_uoj53")
+skeleton = NodePath("../..")
+
+[node name="MeshInstance3D4" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0, 0.055)
+mesh = SubResource("BoxMesh_7822p")
+skeleton = NodePath("../..")
