@@ -6,7 +6,7 @@
 [node name="MainScene" type="Node3D"]
 
 [node name="VehicleBody3D" parent="." instance=ExtResource("1_2c62f")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.606929, -2.90412)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.4131, 0.492352, -112.381)
 
 [node name="Camera3D" type="Camera3D" parent="VehicleBody3D"]
 transform = Transform3D(-0.965408, -0.0909086, 0.244382, -0.00699109, 0.94594, 0.324266, -0.260649, 0.311341, -0.913854, 0.237058, 1.12337, -1.98864)
