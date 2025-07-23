@@ -23,4 +23,4 @@ jobs:
       - name: Export project with Godot
         run: |
           chmod +x Godot_v4.4.1-stable_linux.x86_64
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --export-release "Web" ./web/index.html
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --export-release "Web" ./web/index.html --quit --verbose
