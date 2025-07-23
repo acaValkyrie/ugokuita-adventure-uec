@@ -1,0 +1,24 @@
+name: Export Godot Project on PR Merge to release
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - release
+
+jobs:
+  export:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Export project with Godot Docker
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            godotengine/godot:4.2.2 \
+            --headless --export-release "Web" ./web/index.html
