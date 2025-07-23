@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-        - name: Download and unzip Godot
+      - name: Download and unzip Godot
         run: |
           curl -L -o Godot_v4.4.1-stable_linux.x86_64.zip https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
           unzip Godot_v4.4.1-stable_linux.x86_64.zip
