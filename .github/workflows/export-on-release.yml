@@ -15,10 +15,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Export project with Godot Docker
+        - name: Download and unzip Godot
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            godotengine/godot:4.2.2 \
-            --headless --export-release "Web" ./web/index.html
+          curl -L -o Godot_v4.4.1-stable_linux.x86_64.zip https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip Godot_v4.4.1-stable_linux.x86_64.zip
+
+      - name: Export project with Godot
+        run: |
+          chmod +x Godot_v4.4.1-stable_linux.x86_64
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --export-release "Web" ./web/index.html
