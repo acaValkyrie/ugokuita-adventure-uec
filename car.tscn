@@ -1,9 +1,10 @@
-[gd_scene load_steps=7 format=3 uid="uid://da3c8ktvtj35a"]
+[gd_scene load_steps=8 format=3 uid="uid://da3c8ktvtj35a"]
 
 [ext_resource type="Script" uid="uid://voefr7qy7ut3" path="res://car.gd" id="1_7822p"]
+[ext_resource type="PackedScene" uid="uid://ylkf1vi76cbh" path="res://assets/ugokuita-neo.glb" id="2_uoj53"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_0f027"]
-size = Vector3(0.79306, 0.10202, 1.00049)
+size = Vector3(0.511314, 0.0943527, 0.70813)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_2c62f"]
 top_radius = 0.12
@@ -25,13 +26,13 @@ mass = 15.0
 script = ExtResource("1_7822p")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00160215, 0.00062561, 0.0583497)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.000949897, -0.00846478, -6.06477e-05)
 shape = SubResource("BoxShape3D_0f027")
 
 [node name="VehicleWheel3D_FL" type="VehicleWheel3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.240468, -0.0779496, 0.316979)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.159307, -0.140236, 0.164095)
 use_as_steering = true
-wheel_radius = 0.12
+wheel_radius = 0.08
 suspension_stiffness = 50.0
 suspension_max_force = 15000.0
 damping_compression = 0.3
@@ -39,12 +40,13 @@ damping_relaxation = 0.5
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_FL"]
 transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0, 0)
+visible = false
 mesh = SubResource("CylinderMesh_2c62f")
 
 [node name="VehicleWheel3D_FR" type="VehicleWheel3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.244157, -0.0779496, 0.316979)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.159, -0.14, 0.164)
 use_as_steering = true
-wheel_radius = 0.12
+wheel_radius = 0.08
 suspension_stiffness = 50.0
 suspension_max_force = 15000.0
 damping_compression = 0.3
@@ -52,12 +54,13 @@ damping_relaxation = 0.5
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_FR"]
 transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0, 0)
+visible = false
 mesh = SubResource("CylinderMesh_2c62f")
 
 [node name="VehicleWheel3D_BL" type="VehicleWheel3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.240468, -0.0779496, -0.20605)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.187619, -0.0987116, -0.187175)
 use_as_traction = true
-wheel_radius = 0.12
+wheel_radius = 0.115
 suspension_stiffness = 50.0
 suspension_max_force = 15000.0
 damping_compression = 0.3
@@ -65,12 +68,13 @@ damping_relaxation = 0.5
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_BL"]
 transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0, 0)
+visible = false
 mesh = SubResource("CylinderMesh_2c62f")
 
 [node name="VehicleWheel3D_BR" type="VehicleWheel3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.244157, -0.0779496, -0.20605)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.188, -0.099, -0.187)
 use_as_traction = true
-wheel_radius = 0.12
+wheel_radius = 0.115
 suspension_stiffness = 50.0
 suspension_max_force = 15000.0
 damping_compression = 0.3
@@ -78,9 +82,11 @@ damping_relaxation = 0.5
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_BR"]
 transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0, 0)
+visible = false
 mesh = SubResource("CylinderMesh_2c62f")
 
 [node name="Mesh" type="Node3D" parent="."]
+visible = false
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Mesh"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.503921)
@@ -111,3 +117,6 @@ skeleton = NodePath("../..")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0, 0.055)
 mesh = SubResource("BoxMesh_7822p")
 skeleton = NodePath("../..")
+
+[node name="ugokuita-neo" parent="." instance=ExtResource("2_uoj53")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, -0.211647, 0)
