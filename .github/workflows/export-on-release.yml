@@ -28,4 +28,4 @@ jobs:
           git pull
           git add -A .
           git commit -m "generated"
-          git push
+          git push origin release
