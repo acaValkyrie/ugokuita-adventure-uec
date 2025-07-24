@@ -1,6 +1,7 @@
 name: Export Godot Project on PR Merge to release
 
 on:
+  workflow_dispatch:
   pull_request:
     types: [closed]
     branches:
