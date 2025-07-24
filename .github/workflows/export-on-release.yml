@@ -1,6 +1,7 @@
 name: Run on merge to release
 
 on:
+  workflow_dispatch:
   pull_request:
     types:
       - closed
