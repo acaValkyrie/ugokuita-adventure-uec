@@ -15,12 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download and unzip Godot
-        run: |
-          curl -L -o Godot_v4.4.1-stable_linux.x86_64.zip https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
-          unzip Godot_v4.4.1-stable_linux.x86_64.zip
-
-      - name: Export project with Godot
-        run: |
-          chmod +x Godot_v4.4.1-stable_linux.x86_64
-          ./Godot_v4.4.1-stable_linux.x86_64 --headless --export-release "Web" ./web/index.html --quit --verbose
+      - name: Godot HTML5 export
+        uses: dulvui/godot-4-html-export@v1
+        with:
+          godot-version: 4.2.2
