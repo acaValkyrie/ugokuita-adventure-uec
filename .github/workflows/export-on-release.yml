@@ -1,8 +1,9 @@
-name: Export Godot Project on PR Merge to release
+name: Run on merge to release
 
 on:
   pull_request:
-    types: [closed]
+    types:
+      - closed
     branches:
       - release
 
