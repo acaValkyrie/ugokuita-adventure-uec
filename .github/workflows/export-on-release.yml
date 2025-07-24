@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Godot HTML5 export
-        uses: dulvui/godot-4-html-export@v1
+        uses: dulvui/godot-4-html-export@v1.0.2
         with:
           godot-version: 4.2.2
       
