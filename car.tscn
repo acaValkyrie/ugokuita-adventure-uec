@@ -22,7 +22,7 @@ size = Vector3(0.1, 0.1, 1)
 size = Vector3(0.1, 0.1, 0.8)
 
 [node name="VehicleBody3D" type="VehicleBody3D"]
-mass = 15.0
+mass = 32.317
 script = ExtResource("1_7822p")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
@@ -33,7 +33,7 @@ shape = SubResource("BoxShape3D_0f027")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.159307, -0.140236, 0.164095)
 use_as_steering = true
 wheel_radius = 0.08
-suspension_stiffness = 50.0
+suspension_stiffness = 100.0
 suspension_max_force = 15000.0
 damping_compression = 0.3
 damping_relaxation = 0.5
@@ -47,7 +47,7 @@ mesh = SubResource("CylinderMesh_2c62f")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.159, -0.14, 0.164)
 use_as_steering = true
 wheel_radius = 0.08
-suspension_stiffness = 50.0
+suspension_stiffness = 100.0
 suspension_max_force = 15000.0
 damping_compression = 0.3
 damping_relaxation = 0.5
@@ -61,7 +61,8 @@ mesh = SubResource("CylinderMesh_2c62f")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.187619, -0.0987116, -0.187175)
 use_as_traction = true
 wheel_radius = 0.115
-suspension_stiffness = 50.0
+suspension_travel = 0.1
+suspension_stiffness = 100.0
 suspension_max_force = 15000.0
 damping_compression = 0.3
 damping_relaxation = 0.5
@@ -75,7 +76,8 @@ mesh = SubResource("CylinderMesh_2c62f")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.188, -0.099, -0.187)
 use_as_traction = true
 wheel_radius = 0.115
-suspension_stiffness = 50.0
+suspension_travel = 0.1
+suspension_stiffness = 100.0
 suspension_max_force = 15000.0
 damping_compression = 0.3
 damping_relaxation = 0.5
