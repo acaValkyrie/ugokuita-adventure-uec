@@ -3,7 +3,7 @@ extends Camera3D
 var vehicle
 @export var vehicle_path: NodePath
 
-var radius: float = 5.0
+var radius: float = 3.0
 var theta: float = - 0.5 * PI
 var phi: float = 0.3 * PI
 
