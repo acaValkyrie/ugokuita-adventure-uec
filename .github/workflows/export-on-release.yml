@@ -1,4 +1,4 @@
-name: Run on merge to release
+name: Export Godot4 HTML5 on Release
 
 on:
   workflow_dispatch:
