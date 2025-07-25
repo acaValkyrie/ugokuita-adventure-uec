@@ -16,6 +16,9 @@ jobs:
             
             -   name: Merge main into release
                 run: |
+                    git config --global user.name "github-actions"
+                    git config --global user.email "actions@github.com"
+
                     git fetch origin main
                     git merge origin/main --no-edit || true
             
@@ -27,9 +30,6 @@ jobs:
             
             -   name: Push to release branch
                 run: |
-                    git config --global user.name "github-actions"
-                    git config --global user.email "actions@github.com"
-
                     git add .
                     git commit -m "Deploy HTML5 export $(date + '%Y-%m-%d %H:%M:%S')"
                     git push origin release
