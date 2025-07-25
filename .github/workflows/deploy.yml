@@ -8,11 +8,16 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            -   name: Checkout main branch
+            -   name: Checkout release branch
                 uses: actions/checkout@v4
                 with:
-                    ref: main
+                    ref: release
                     fetch-depth: 0
+            
+            -   name: Merge main into release
+                run: |
+                    git fetch origin main
+                    git merge origin/main --no-edit || true
             
             -   name: Godot HTML5 export
                 uses: acaValkyrie/godot-4-html-export@main
@@ -24,9 +29,6 @@ jobs:
                 run: |
                     git config --global user.name "github-actions"
                     git config --global user.email "actions@github.com"
-
-                    git fetch origin
-                    git switch release || git switch -c release origin/release
 
                     git add .
                     git commit -m "Deploy HTML5 export $(date + '%Y-%m-%d %H:%M:%S')"
