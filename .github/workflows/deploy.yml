@@ -19,6 +19,7 @@ jobs:
                 with:
                     godot-version: 4.2.2
                     godot-channel: stable
+                    import-timeout-seconds: 300
             
             -   name: Push to release branch
                 run: |
