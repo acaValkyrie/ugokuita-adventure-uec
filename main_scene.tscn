@@ -1,8 +1,19 @@
-[gd_scene load_steps=4 format=3 uid="uid://u00qaolam772"]
+[gd_scene load_steps=8 format=3 uid="uid://u00qaolam772"]
 
 [ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://car.tscn" id="1_2c62f"]
 [ext_resource type="PackedScene" uid="uid://dxgc5cf2qo388" path="res://uec.tscn" id="2_2c62f"]
 [ext_resource type="Script" uid="uid://c73kjb0wys46o" path="res://camera_3d.gd" id="3_gyfs4"]
+[ext_resource type="Shader" uid="uid://bko2hadsb4s4k" path="res://main_scene.gdshader" id="4_d5x1h"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8mm7a"]
+shader = ExtResource("4_d5x1h")
+
+[sub_resource type="Sky" id="Sky_hq1ik"]
+sky_material = SubResource("ShaderMaterial_8mm7a")
+
+[sub_resource type="Environment" id="Environment_nfk4m"]
+background_mode = 2
+sky = SubResource("Sky_hq1ik")
 
 [node name="MainScene" type="Node3D"]
 
@@ -12,9 +23,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.4131, 0.492352, -112.381)
 [node name="UEC" parent="." instance=ExtResource("2_2c62f")]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -0.0260375, 0.999661, 0, -0.999661, -0.0260375, -0.200399, 28.8888, 0.00248909)
+transform = Transform3D(1, 0, 0, 0, -0.0260375, 0.999661, 0, -0.999661, -0.0260375, -0.200399, 205.099, 0.00248909)
+sky_mode = 1
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(-0.965408, -0.0909086, 0.244382, -0.00699109, 0.94594, 0.324266, -0.260649, 0.311341, -0.913854, 70.6502, 1.61572, -114.37)
 script = ExtResource("3_gyfs4")
 vehicle_path = NodePath("../VehicleBody3D")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_nfk4m")
