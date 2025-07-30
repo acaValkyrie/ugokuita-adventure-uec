@@ -1,0 +1,30 @@
+[gd_scene load_steps=4 format=3 uid="uid://ksm8g6vnfjt6"]
+
+[ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://car.tscn" id="1_37kl0"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8uh7m"]
+size = Vector3(10, 0.01, 10)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6uqi0"]
+size = Vector3(10, 0.01, 10)
+
+[node name="Test" type="Node3D"]
+
+[node name="VehicleBody3D" parent="." instance=ExtResource("1_37kl0")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.453799, 0)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.945, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+shape = SubResource("BoxShape3D_8uh7m")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
+mesh = SubResource("BoxMesh_6uqi0")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -0.519564, 0.854432, 0, -0.854432, -0.519564, 0, 2.72288, 0)
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-0.0128721, 0.131512, 0.991231, 0.00170768, 0.991315, -0.131501, -0.999916, 3.49217e-10, -0.0129849, 1.60304, -0.927979, -0.314811)
