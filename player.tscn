@@ -1,0 +1,43 @@
+[gd_scene load_steps=6 format=3 uid="uid://car2bj5dqnq7c"]
+
+[ext_resource type="PackedScene" uid="uid://ylkf1vi76cbh" path="res://assets/ugokuita-neo.glb" id="1_4flbx"]
+[ext_resource type="Script" uid="uid://pj7ds0a2mdng" path="res://player.gd" id="1_onrkg"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_onrkg"]
+size = Vector3(0.511314, 0.0943527, 0.70813)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_i3pqv"]
+height = 0.0496826
+radius = 0.0805664
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hqtel"]
+height = 0.0643921
+radius = 0.114258
+
+[node name="CharacterBody3D" type="CharacterBody3D"]
+script = ExtResource("1_onrkg")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.000949897, -0.00846478, -6.06477e-05)
+shape = SubResource("BoxShape3D_onrkg")
+
+[node name="Wheel FR" type="CollisionShape3D" parent="."]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, -0.159355, -0.137641, 0.16485)
+shape = SubResource("CylinderShape3D_i3pqv")
+
+[node name="Wheel FL" type="CollisionShape3D" parent="."]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0.158869, -0.137641, 0.16485)
+shape = SubResource("CylinderShape3D_i3pqv")
+
+[node name="Wheel BR" type="CollisionShape3D" parent="."]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, -0.187311, -0.10083, -0.187256)
+shape = SubResource("CylinderShape3D_hqtel")
+
+[node name="Wheel BL" type="CollisionShape3D" parent="."]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0.188887, -0.10083, -0.187256)
+shape = SubResource("CylinderShape3D_hqtel")
+
+[node name="ugokuita-neo" parent="." instance=ExtResource("1_4flbx")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, -0.211647, 0)
+
+[node name="Player" type="Node3D" parent="."]
