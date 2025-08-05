@@ -1,30 +1,31 @@
-[gd_scene load_steps=8 format=3 uid="uid://u00qaolam772"]
+[gd_scene load_steps=7 format=3 uid="uid://u00qaolam772"]
 
-[ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://car.tscn" id="1_2c62f"]
 [ext_resource type="PackedScene" uid="uid://dxgc5cf2qo388" path="res://uec.tscn" id="2_2c62f"]
+[ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://car.tscn" id="3_d5x1h"]
 [ext_resource type="Script" uid="uid://c73kjb0wys46o" path="res://camera_3d.gd" id="3_gyfs4"]
-[ext_resource type="Shader" uid="uid://bko2hadsb4s4k" path="res://main_scene.gdshader" id="4_d5x1h"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_8mm7a"]
-shader = ExtResource("4_d5x1h")
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_gyfs4"]
+sky_top_color = Color(0.648096, 0.868119, 0.972553, 1)
+sky_horizon_color = Color(0.573749, 0.826927, 1, 1)
 
 [sub_resource type="Sky" id="Sky_hq1ik"]
-sky_material = SubResource("ShaderMaterial_8mm7a")
+sky_material = SubResource("ProceduralSkyMaterial_gyfs4")
 
 [sub_resource type="Environment" id="Environment_nfk4m"]
 background_mode = 2
 sky = SubResource("Sky_hq1ik")
+ambient_light_energy = 16.0
+tonemap_mode = 2
+tonemap_exposure = 0.47
 
 [node name="MainScene" type="Node3D"]
-
-[node name="VehicleBody3D" parent="." instance=ExtResource("1_2c62f")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.4131, 0.492352, -112.381)
 
 [node name="UEC" parent="." instance=ExtResource("2_2c62f")]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -0.0260375, 0.999661, 0, -0.999661, -0.0260375, -0.200399, 205.099, 0.00248909)
-sky_mode = 1
+transform = Transform3D(0.996195, -0.0871557, 3.2468e-10, 0.00471328, 0.0538731, 0.998537, -0.0870282, -0.994737, 0.0540789, 70.2457, 37.7329, -89.4985)
+shadow_enabled = true
+shadow_opacity = 0.5
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(-0.965408, -0.0909086, 0.244382, -0.00699109, 0.94594, 0.324266, -0.260649, 0.311341, -0.913854, 70.6502, 1.61572, -114.37)
@@ -33,3 +34,6 @@ vehicle_path = NodePath("../VehicleBody3D")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_nfk4m")
+
+[node name="VehicleBody3D" parent="." instance=ExtResource("3_d5x1h")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.1656, 0.467455, -112.579)
