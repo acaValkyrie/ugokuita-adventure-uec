@@ -36,4 +36,5 @@ vehicle_path = NodePath("../VehicleBody3D")
 environment = SubResource("Environment_nfk4m")
 
 [node name="VehicleBody3D" parent="." instance=ExtResource("3_d5x1h")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.1656, 0.467455, -112.579)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.1656, 0.259146, -112.579)
+mass = 30.0
