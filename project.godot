@@ -15,6 +15,14 @@ run/main_scene="uid://u00qaolam772"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[autoload]
+
+MCPGameBridge="res://addons/godot_mcp/game_bridge/mcp_game_bridge.gd"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg", "res://addons/godot_mcp_edit/plugin.cfg")
+
 [input]
 
 up={
