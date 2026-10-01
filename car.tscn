@@ -20,6 +20,8 @@ size = Vector3(0.03, 0.06, 0.72)
 
 [node name="VehicleBody3D" type="VehicleBody3D"]
 mass = 32.317
+center_of_mass_mode = 1
+center_of_mass = Vector3(0, -0.18, 0)
 script = ExtResource("1_7822p")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
@@ -32,12 +34,12 @@ use_as_steering = true
 wheel_roll_influence = 0.37
 wheel_radius = 0.08
 wheel_rest_length = 0.1
-wheel_friction_slip = 1.0
+wheel_friction_slip = 3.0
 suspension_travel = 0.08
-suspension_stiffness = 50.0
-suspension_max_force = 120.0
-damping_compression = 0.3
-damping_relaxation = 0.5
+suspension_stiffness = 80.0
+suspension_max_force = 500.0
+damping_compression = 3.6
+damping_relaxation = 5.4
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_FL"]
 transform = Transform3D(-2.84124e-08, -1, 0, 0.65, -4.37114e-08, 0, 0, 0, 0.65, 0, 0.00310722, 0)
@@ -50,12 +52,12 @@ use_as_steering = true
 wheel_roll_influence = 0.37
 wheel_radius = 0.08
 wheel_rest_length = 0.1
-wheel_friction_slip = 1.0
+wheel_friction_slip = 3.0
 suspension_travel = 0.08
-suspension_stiffness = 50.0
-suspension_max_force = 120.0
-damping_compression = 0.3
-damping_relaxation = 0.5
+suspension_stiffness = 80.0
+suspension_max_force = 500.0
+damping_compression = 3.6
+damping_relaxation = 5.4
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_FR"]
 transform = Transform3D(-2.84124e-08, -1, 0, 0.65, -4.37114e-08, 0, 0, 0, 0.65, 0, 0, 0)
@@ -68,12 +70,12 @@ use_as_traction = true
 wheel_roll_influence = 0.37
 wheel_radius = 0.115
 wheel_rest_length = 0.08
-wheel_friction_slip = 1.0
+wheel_friction_slip = 3.0
 suspension_travel = 0.08
-suspension_stiffness = 50.0
-suspension_max_force = 120.0
-damping_compression = 0.3
-damping_relaxation = 0.5
+suspension_stiffness = 80.0
+suspension_max_force = 500.0
+damping_compression = 3.6
+damping_relaxation = 5.4
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_BL"]
 transform = Transform3D(-4.17444e-08, -1, 0, 0.955, -4.37114e-08, 0, 0, 0, 0.955, 0, 0, 0)
@@ -86,12 +88,12 @@ use_as_traction = true
 wheel_roll_influence = 0.37
 wheel_radius = 0.115
 wheel_rest_length = 0.08
-wheel_friction_slip = 1.0
+wheel_friction_slip = 3.0
 suspension_travel = 0.08
-suspension_stiffness = 50.0
-suspension_max_force = 120.0
-damping_compression = 0.3
-damping_relaxation = 0.5
+suspension_stiffness = 80.0
+suspension_max_force = 500.0
+damping_compression = 3.6
+damping_relaxation = 5.4
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="VehicleWheel3D_BR"]
 transform = Transform3D(-4.17444e-08, -1, 0, 0.955, -4.37114e-08, 0, 0, 0, 0.955, 0, 0, 0)
