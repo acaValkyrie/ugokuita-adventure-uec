@@ -1,0 +1,48 @@
+{
+  "mcpServers": {
+    "godot-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@satelliteoflove/godot-mcp"
+      ]
+    },
+    "minimal-godot-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ryanmazzolini/minimal-godot-mcp"
+      ]
+    },
+    "godot-launcher": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@coding-solo/godot-mcp"
+      ],
+      "env": {
+        "GODOT_PATH": "${GODOT_PATH:-/home/canada/Godot/Godot_v4.7.1-stable_mono_linux.x86_64}"
+      }
+    },
+    "godot-mcp-edit": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PROJECT_DIR:-.}/../godot-3d-fantasy/tools/godot-mcp-edit/server/dist/index.js"
+      ],
+      "env": {
+        "MCP_TRANSPORT": "stdio"
+      }
+    },
+    "aseprite": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${CLAUDE_PROJECT_DIR:-.}/../godot-3d-fantasy/tools/aseprite/aseprite-mcp",
+        "run",
+        "-m",
+        "aseprite_mcp"
+      ]
+    }
+  }
+}
