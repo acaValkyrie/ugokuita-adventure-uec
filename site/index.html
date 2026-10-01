@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>動く板アドベンチャー in UEC</title>
+<meta name="description" content="動く板は、電気通信大学の有志の学生が開発している自動運転AGVです。">
+<style>
+:root {
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --text: #1f2937;
+  --muted: #5b6575;
+  --border: #d9dfe9;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --on-accent: #ffffff;
+  --art: #1f2937;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --surface: #1b2438;
+    --text: #e5e9f0;
+    --muted: #9aa5b8;
+    --border: #2d3a54;
+    --accent: #60a5fa;
+    --accent-hover: #93c5fd;
+    --on-accent: #0b1220;
+    --art: #e5e9f0;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+  line-height: 1.7;
+}
+main, footer { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+main { padding-top: 32px; padding-bottom: 16px; text-align: center; }
+.art { width: 100%; max-width: 360px; height: auto; color: var(--art); margin: 0 auto 8px; display: block; }
+h1 { font-size: clamp(1.7rem, 7vw, 2.4rem); line-height: 1.25; margin: 8px 0 4px; }
+.sub { margin: 0 0 20px; color: var(--muted); font-size: 0.95rem; letter-spacing: 0.04em; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0 0 20px; padding: 0; list-style: none; }
+.badges li { background: var(--surface); border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 4px 14px; font-weight: 700; font-size: 0.95rem; }
+.intro { text-align: left; margin: 0 0 28px; }
+.btn { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 700; font-size: 1.3rem; padding: 16px 36px; border-radius: 12px; transition: background 0.15s, transform 0.15s; max-width: 100%; }
+.btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.btn:focus-visible { outline-color: var(--text); }
+.note { color: var(--muted); font-size: 0.85rem; margin: 10px 0 0; }
+h2 { font-size: 1.3rem; margin: 40px 0 16px; }
+.cards { display: grid; grid-template-columns: 1fr; gap: 12px; text-align: left; }
+@media (min-width: 640px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.card h3 { margin: 0 0 6px; font-size: 1rem; color: var(--accent); }
+.card ul { margin: 0; padding: 0; list-style: none; font-size: 0.9rem; }
+.card li { padding: 2px 0; }
+footer { text-align: center; padding-top: 24px; padding-bottom: 40px; font-size: 0.9rem; }
+footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <svg class="art" viewBox="0 0 360 150" role="img" aria-label="車輪のついた板のイラスト" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <g opacity="0.45" stroke="var(--accent)">
+      <line x1="14" y1="62" x2="86" y2="62"/>
+      <line x1="30" y1="82" x2="96" y2="82"/>
+      <line x1="10" y1="102" x2="70" y2="102"/>
+    </g>
+    <polygon points="110,70 300,70 330,92 140,92" fill="var(--accent)" stroke="currentColor"/>
+    <polygon points="140,92 330,92 330,104 140,104" fill="var(--surface)" stroke="currentColor"/>
+    <polygon points="110,70 140,92 140,104 110,82" fill="var(--surface)" stroke="currentColor"/>
+    <g fill="var(--bg)">
+      <circle cx="132" cy="114" r="9"/>
+      <circle cx="318" cy="114" r="9"/>
+      <circle cx="170" cy="114" r="9"/>
+      <circle cx="280" cy="114" r="9"/>
+    </g>
+    <line x1="60" y1="132" x2="340" y2="132" opacity="0.25"/>
+  </svg>
+  <h1>動く板アドベンチャー in UEC</h1>
+  <p class="sub">Ugokuita Adventure in UEC</p>
+  <ul class="badges">
+    <li>ブラウザでそのまま遊べる！</li>
+    <li>舞台は電気通信大学！</li>
+  </ul>
+  <p class="intro">動く板は、電気通信大学の有志の学生が開発している自動運転AGVです。</p>
+  <a class="btn" href="./web/">ブラウザで遊ぶ ▶</a>
+  <p class="note">※ 初回は読み込みに少し時間がかかります。</p>
+
+  <h2>操作方法</h2>
+  <div class="cards">
+    <section class="card">
+      <h3>キーボード</h3>
+      <ul>
+        <li>W / S：前進 / 後退</li>
+        <li>A / D：ハンドル</li>
+        <li>矢印キー：視点移動</li>
+      </ul>
+    </section>
+    <section class="card">
+      <h3>コントローラ</h3>
+      <ul>
+        <li>RT / LT：前進 / 後退</li>
+        <li>左スティック：運転・ハンドル</li>
+        <li>右スティック：視点移動</li>
+      </ul>
+    </section>
+    <section class="card">
+      <h3>スマホ（タッチ）</h3>
+      <ul>
+        <li>1本指スワイプ：運転</li>
+        <li>2本指スワイプ：視点移動</li>
+      </ul>
+    </section>
+  </div>
+</main>
+<footer>
+  <a href="https://github.com/acaValkyrie/ugokuita-adventure-uec">GitHub リポジトリ</a>
+</footer>
+</body>
+</html>
