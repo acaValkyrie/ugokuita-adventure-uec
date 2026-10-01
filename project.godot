@@ -22,6 +22,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 MCPGameBridge="res://addons/godot_mcp/game_bridge/mcp_game_bridge.gd"
+TouchControls="*res://touch_controls.gd"
 
 [dotnet]
 
