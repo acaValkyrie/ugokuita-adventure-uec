@@ -72,6 +72,10 @@ func _post_import(scene: Node) -> Object:
 			merged.owner = scene
 			merged_count += 1
 
+	# ライトマップのベイク対象から外し、ベイクした間接光（プローブ）だけ受けるようにする
+	for mi in scene.find_children("*", "MeshInstance3D", true, false):
+		mi.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
+
 	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個" % [sources.size(), merged_count, kept_count])
 	return scene
 
