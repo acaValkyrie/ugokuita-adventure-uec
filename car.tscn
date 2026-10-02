@@ -124,4 +124,4 @@ mesh = SubResource("BoxMesh_7822p")
 skeleton = NodePath("../..")
 
 [node name="ugokuita-neo" parent="." instance=ExtResource("2_uoj53")]
-transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, -0.211647, 0)
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, -0.240647, 0)
