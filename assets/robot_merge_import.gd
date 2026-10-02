@@ -62,12 +62,18 @@ func _post_import(scene: Node) -> Object:
 
 	# まとめたメッシュをルート直下へ追加する
 	var merged_count := 0
+	var lod_count := 0
 	for material in groups:
 		for format in groups[material]:
 			var st: SurfaceTool = groups[material][format]
 			var merged := MeshInstance3D.new()
 			merged.name = "Merged_%d" % merged_count
-			merged.mesh = st.commit()
+			# ImporterMesh経由でLODを生成する
+			var importer_mesh := ImporterMesh.new()
+			importer_mesh.add_surface(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays(), [], {}, material)
+			importer_mesh.generate_lods(25.0, 60.0, [])
+			lod_count += importer_mesh.get_surface_lod_count(0)
+			merged.mesh = importer_mesh.get_mesh()
 			scene.add_child(merged)
 			merged.owner = scene
 			merged_count += 1
@@ -76,7 +82,7 @@ func _post_import(scene: Node) -> Object:
 	for mi in scene.find_children("*", "MeshInstance3D", true, false):
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 
-	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個" % [sources.size(), merged_count, kept_count])
+	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段" % [sources.size(), merged_count, kept_count, lod_count])
 	return scene
 
 
