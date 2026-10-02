@@ -123,8 +123,8 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 
 | 元マテリアル | 場所 | 割り当て |
 |---|---|---|
-| Steel - Satin | 歩道の大部分 | `paving_brick`（1m周期。2mではロボットに比べて大きかったので縮めた） |
-| Plastic - Matte (Gray) | `Body28`・`Body29` はグラウンド、残りは外周道路沿いの帯 | `dirt`（4m） / `paving_stone` |
+| Steel - Satin | 公道・構内の通路と広場 | 位置で分ける（下の6を参照）。`paving_brick` は1m周期（2mではロボットに比べて大きかったので縮めた） |
+| Plastic - Matte (Gray) | `Body28`・`Body29` はキャンパス外の駐車場と特別支援学校、残りは公道脇の歩道の帯 | `asphalt`（4m） / `paving_stone` |
 | Glass - Heavy Color、Steel - Satin.001 | 縁や区画線など細いもの | `paving_stone` |
 | Plastic - Glossy (Green) 系 | 芝生 | `grass`（4m） |
 | プラスチック - 光沢(緑) (1) | 池 | `water`（6m） |
@@ -136,15 +136,37 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 取り込みスクリプトを変えたら、GLBの再インポートが必要。godot-mcp の `rescan` は失敗したため、godot-mcp-edit の `execute_editor_script` から `EditorInterface.get_resource_filesystem().reimport_files(["res://assets/uec-all-v2.glb"])` で再インポートした。
 - ゲーム内で、レンガ舗装と号館の窓が表示されることを確認した。
 
+### 6. ストリートビューと航空写真で地面の割り当てを判定した（2026-10-02）
+
+- モデル座標と実際の地図の対応: モデルの −Z が北、1単位が約1m。東本館と西門守衛所の位置で確かめた。
+- 灰色系のピースを面積の大きい順に並べて色分けし、Googleマップの航空写真と見比べた。ストリートビューは公道・東の正門・西門の3か所で確認した。
+  - Chromeではストリートビューの画面が黒く写るため、URLに含まれる `streetviewpixels-pa.googleapis.com/v1/thumbnail?...&panoid=...&yaw=...&pitch=...` を直接開いて見た。
+  - 手元の写真84枚にはGPS情報がない。
+- 判定結果:
+
+| 場所 | 根拠 | 割り当て |
+|---|---|---|
+| 公道（`Body19`） | ストリートビュー | `asphalt` |
+| 公道脇の歩道の帯 | ストリートビュー（灰色のコンクリートブロック） | `paving_stone`（変更なし） |
+| 西キャンパスの通路 | 西門のストリートビュー、航空写真 | `asphalt` |
+| 東キャンパスの通路と広場 | 正門のストリートビュー、航空写真の赤茶色、手元の写真 | `paving_brick` |
+| 東5〜9号館まわりの裏道（`Body459`）、東側の敷地外（`東地区敷地外`） | 航空写真（車が停まっている） | `asphalt` |
+| `Body28`・`Body29` | 航空写真（グラウンドではなかった） | `dirt` から `asphalt` に変更 |
+
+- 西と東は、東西キャンパスの間の道路を表す線（`CAMPUS_BORDER_SOUTH`〜`CAMPUS_BORDER_NORTH`）を境に、ピースの中心で機械的に分けている。
+- 結果は、アスファルト109個、レンガ180個、石板63個、芝生103個、池3個、単色50個。真上から見て、西がアスファルト、東がレンガになっていることを確認した。
+- `dirt` は未使用になった。西キャンパス北と東キャンパス北西の工事現場（土）は、モデルに含まれていない。
+- 航空写真では、`Body29`（特別支援学校）は校庭やプールを含むが、ひとまずアスファルトで塗っている。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
 - `roof_concrete` の作り直し（屋上の写真がない。必要なら撮影するか、文章の指示だけで作り直す）
-- `asphalt`・`white_tile` は未使用（車道はモデル上レンガ舗装と同じマテリアルで、分けられていない）
+- `dirt`・`white_tile` は未使用（白タイルは東キャンパスの植え込みの縁に実在するが、モデルでは植え込みの縁が独立したピースになっていない）
 - `main_scene.tscn` に、エディタによる形式の更新（`unique_id` の追加など）が未コミットで残っている
 
 ## 次の候補
 
 1. 号館ごとの外壁の種類を決めて、一覧に書く。
 2. ゲーム内で見て、色味・窓の大きさを調整する。`wall_modern` の描き直し版で質感が浮いていないかも確認する。
-3. 車道を `asphalt` にしたい場合は、モデル側でマテリアルを分けるか、ノード名で指定する。
+3. 割り当てをゲーム内で見て直す。直すときは、取り込みスクリプトのノード名一覧（`ASPHALT_*_NODE_NAMES`）か境界線を編集する。
