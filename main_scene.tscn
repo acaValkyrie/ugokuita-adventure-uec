@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://dxgc5cf2qo388" path="res://uec.tscn" id="2_2c62f"]
 [ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://car.tscn" id="3_d5x1h"]
 [ext_resource type="Script" uid="uid://c73kjb0wys46o" path="res://camera_3d.gd" id="3_gyfs4"]
+[ext_resource type="Script" path="res://static_shadow_off.gd" id="5_shadowoff"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_gyfs4"]
 sky_top_color = Color(0.56, 0.7, 0.84, 1)
@@ -60,3 +61,7 @@ bounces = 2
 directional = false
 shadowmask_mode = 2
 use_denoiser = true
+
+[node name="StaticShadowOff" type="Node" parent="."]
+script = ExtResource("5_shadowoff")
+target_path = NodePath("../UEC")
