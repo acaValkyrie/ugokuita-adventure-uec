@@ -117,7 +117,9 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 		return _material_cache[kind]
 	var material: ShaderMaterial
 	match kind:
-		"paving_brick", "paving_stone":
+		"paving_brick":
+			material = _make_material(kind, kind, 1.0, Vector2(1.0, 1.0))
+		"paving_stone":
 			material = _make_material(kind, kind, 2.0, Vector2(2.0, 2.0))
 		"dirt", "grass":
 			material = _make_material(kind, kind, 4.0, Vector2(4.0, 4.0))
