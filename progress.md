@@ -123,7 +123,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 
 | 元マテリアル | 場所 | 割り当て |
 |---|---|---|
-| Steel - Satin | 歩道の大部分 | `paving_brick`（2m周期） |
+| Steel - Satin | 歩道の大部分 | `paving_brick`（1m周期。2mではロボットに比べて大きかったので縮めた） |
 | Plastic - Matte (Gray) | `Body28`・`Body29` はグラウンド、残りは外周道路沿いの帯 | `dirt`（4m） / `paving_stone` |
 | Glass - Heavy Color、Steel - Satin.001 | 縁や区画線など細いもの | `paving_stone` |
 | Plastic - Glossy (Green) 系 | 芝生 | `grass`（4m） |
@@ -146,5 +146,5 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 ## 次の候補
 
 1. 号館ごとの外壁の種類を決めて、一覧に書く。
-2. ゲーム内で見て、縮尺（レンガがロボットに比べて大きめ）・色味・窓の大きさを調整する。`wall_modern` の描き直し版で質感が浮いていないかも確認する。
+2. ゲーム内で見て、色味・窓の大きさを調整する。`wall_modern` の描き直し版で質感が浮いていないかも確認する。
 3. 車道を `asphalt` にしたい場合は、モデル側でマテリアルを分けるか、ノード名で指定する。
