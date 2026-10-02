@@ -18,45 +18,72 @@ func _physics_process(delta: float) -> void:
     # 入力がないときはブレーキをかけて坂でずり落ちないようにする
     brake = BRAKE_FORCE if is_zero_approx(throttle) else 0.0
 
-# 見た目のタイヤ（ugokuita-neo内）を物理ホイールの回転に合わせて回す
-# 各リストの1つ目がタイヤ、2つ目がハブ
-const WHEEL_PARTS := {
-    "VehicleWheel3D_FL": [
-        "Main Frame III v42/4944825545635 v13_1/4944825545635 v13/Wheel",
-        "Main Frame III v42/4944825545635 v13_1/4944825545635 v13/Body85",
-    ],
-    "VehicleWheel3D_FR": [
-        "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)/Body1_029",
-        "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)/Body2_011",
-    ],
-    "VehicleWheel3D_BL": [
-        "Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body48",
-        "Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body1_001",
-    ],
-    "VehicleWheel3D_BR": [
-        "Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body2_008",
-        "Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body1_024",
-    ],
+
+# 見た目のタイヤ（ugokuita-neo内）を物理ホイールの回転・ステアリング・サスペンションに合わせて動かす
+# group: 上下とステアリングで動かすキャスター部分（前輪のみ。後輪は空で部品を直接動かす）
+# parts: 1つ目がタイヤ、2つ目がハブ（回転する部品）
+const WHEELS := {
+    "VehicleWheel3D_FL": {
+        "group": "Main Frame III v42/4944825545635 v13_1/4944825545635 v13",
+        "parts": [
+            "Main Frame III v42/4944825545635 v13_1/4944825545635 v13/Wheel",
+            "Main Frame III v42/4944825545635 v13_1/4944825545635 v13/Body85",
+        ],
+    },
+    "VehicleWheel3D_FR": {
+        "group": "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)",
+        "parts": [
+            "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)/Body1_029",
+            "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)/Body2_011",
+        ],
+    },
+    "VehicleWheel3D_BL": {
+        "group": "",
+        "parts": [
+            "Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body48",
+            "Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body1_001",
+        ],
+    },
+    "VehicleWheel3D_BR": {
+        "group": "",
+        "parts": [
+            "Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body2_008",
+            "Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body1_024",
+        ],
+    },
 }
 
-# {wheel, parts: [{node, rest}], pivot, axis, angle}
-var _spin_wheels: Array[Dictionary] = []
+# ステアリングの見た目の向き（左入力でsteering > 0）
+const STEER_SIGN := 1.0
+
+# {wheel, group, group_rest, group_pivot, parts: [{node, rest}], pivot, axis, angle, tire_center_body}
+var _visual_wheels: Array[Dictionary] = []
 
 func _ready() -> void:
     var model := get_node_or_null("ugokuita-neo")
     if model == null:
         push_warning("ugokuita-neo が見つからない")
         return
-    for wheel_name in WHEEL_PARTS:
+    var body_inv := global_transform.affine_inverse()
+    for wheel_name in WHEELS:
         var wheel := get_node_or_null(NodePath(wheel_name)) as VehicleWheel3D
         if wheel == null:
             push_warning("%s が見つからない" % wheel_name)
             continue
+        var info: Dictionary = WHEELS[wheel_name]
         var parts: Array[Dictionary] = []
         var pivot := Vector3.ZERO
         var axis := Vector3.RIGHT
-        for i in WHEEL_PARTS[wheel_name].size():
-            var path: String = WHEEL_PARTS[wheel_name][i]
+        var tire_center_body := Vector3.ZERO
+        var group_pivot := Vector3.ZERO
+        var moved_parent: Node3D = null
+        var group: Node3D = null
+        if info["group"] != "":
+            group = model.get_node_or_null(NodePath(info["group"])) as Node3D
+            if group == null:
+                push_warning("キャスターが見つからない: %s" % info["group"])
+        for i in info["parts"].size():
+            var path: String = info["parts"][i]
             var node := model.get_node_or_null(NodePath(path)) as MeshInstance3D
             if node == null:
                 push_warning("タイヤの部品が見つからない: %s" % path)
@@ -67,15 +94,49 @@ func _ready() -> void:
                 var parent := node.get_parent() as Node3D
                 pivot = (node.transform * node.get_aabb()).get_center()
                 axis = (parent.global_basis.inverse() * global_basis.x).normalized()
+                var center_global := (node.global_transform * node.get_aabb()).get_center()
+                tire_center_body = body_inv * center_global
+                if group != null:
+                    group_pivot = group.get_parent().global_transform.affine_inverse() * center_global
         if parts.is_empty():
             continue
-        _spin_wheels.append({"wheel": wheel, "parts": parts, "pivot": pivot, "axis": axis, "angle": 0.0})
+        if group != null:
+            moved_parent = group.get_parent() as Node3D
+        else:
+            moved_parent = parts[0]["node"].get_parent() as Node3D
+        _visual_wheels.append({
+            "wheel": wheel, "group": group, "moved_parent": moved_parent,
+            "group_rest": group.transform if group != null else Transform3D.IDENTITY,
+            "group_pivot": group_pivot, "parts": parts, "pivot": pivot, "axis": axis,
+            "angle": 0.0, "tire_center_body": tire_center_body,
+        })
 
 func _process(delta: float) -> void:
-    for w in _spin_wheels:
-        var angle: float = fposmod(w["angle"] + w["wheel"].get_rpm() / 60.0 * TAU * delta, TAU)
+    var body_inv := global_transform.affine_inverse()
+    for w in _visual_wheels:
+        var wheel: VehicleWheel3D = w["wheel"]
+        # 見た目のタイヤ中心の車体上下位置を物理ホイール中心に合わせる
+        var dy: float = (body_inv * wheel.global_position).y - w["tire_center_body"].y
+        var moved_parent: Node3D = w["moved_parent"]
+        var to_local := moved_parent.global_basis.inverse()
+        var offset_local: Vector3 = to_local * (global_basis * Vector3(0.0, dy, 0.0))
+        var offset := Transform3D(Basis.IDENTITY, offset_local)
+
+        var angle: float = fposmod(w["angle"] + wheel.get_rpm() / 60.0 * TAU * delta, TAU)
         w["angle"] = angle
         var rot := Basis(w["axis"], angle)
         var around := Transform3D(rot, w["pivot"] - rot * w["pivot"])
-        for part in w["parts"]:
-            part["node"].transform = around * part["rest"]
+
+        var group: Node3D = w["group"]
+        if group != null:
+            # 前輪: キャスターを上下させてステアリング方向に向ける（回転はタイヤ中心まわり）
+            var up_axis: Vector3 = (to_local * global_basis.y).normalized()
+            var steer := Basis(up_axis, wheel.steering * STEER_SIGN)
+            var gp: Vector3 = w["group_pivot"]
+            group.transform = offset * Transform3D(steer, gp - steer * gp) * w["group_rest"]
+            for part in w["parts"]:
+                part["node"].transform = around * part["rest"]
+        else:
+            # 後輪: 部品を直接上下させる
+            for part in w["parts"]:
+                part["node"].transform = offset * around * part["rest"]
