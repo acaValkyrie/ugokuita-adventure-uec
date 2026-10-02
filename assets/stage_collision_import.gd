@@ -21,8 +21,13 @@ const GROUND_KIND_BY_MATERIAL := {
 	"ABS(白) (1)": "court",
 }
 
-# 灰色プラスチックのうち、土にするノード名
-const DIRT_NODE_NAMES: Array[String] = ["Body28", "Body29"]
+# 灰色プラスチックのうち、キャンパス外の駐車場・学校の敷地としてアスファルトにするノード名
+const ASPHALT_GRAY_NODE_NAMES: Array[String] = ["Body28", "Body29"]
+# 灰色の金属マテリアルのうち、公道や建物裏の通路としてアスファルトにするノード名
+const ASPHALT_STEEL_NODE_NAMES: Array[String] = ["Body19", "Body459", "東地区敷地外"]
+# 東西キャンパスの間の道路を表す線（ワールドXZ）。これより西の舗装はアスファルト、東はレンガ
+const CAMPUS_BORDER_SOUTH := Vector2(-58.0, 71.0)
+const CAMPUS_BORDER_NORTH := Vector2(14.0, -299.0)
 
 # 外壁を新しめの号館用・緑タイル用にする建物名（"hi_" を除く）。後で埋める
 const MODERN_BUILDINGS: Array[String] = []
@@ -43,7 +48,7 @@ func _post_import(scene: Node) -> Object:
 			scene.remove_child(child)
 			child.free()
 			continue
-		_assign_materials(child)
+		_assign_materials(child, scene)
 		if _is_collidable(child.name):
 			_add_collisions(child)
 	return scene
@@ -68,10 +73,10 @@ func _add_collisions(node: Node) -> void:
 
 
 # トップレベルのノードの種類に応じてマテリアルを割り当てる
-func _assign_materials(node: Node) -> void:
+func _assign_materials(node: Node, scene: Node) -> void:
 	var node_name := String(node.name)
 	if node_name == "ground" or node_name == "UEC敷地" or node_name == "UEC緑地" or node_name == "UEC収集所":
-		_assign_ground_materials(node)
+		_assign_ground_materials(node, scene, node_name == "ground")
 	elif node_name == "UEC縁石":
 		_set_override_recursive(node, _get_ground_material("paving_stone"))
 	elif node_name == "UEC壁":
@@ -81,27 +86,53 @@ func _assign_materials(node: Node) -> void:
 
 
 # 元マテリアル名を見て、サブツリー内の各サーフェスへ地面のマテリアルを割り当てる
-func _assign_ground_materials(node: Node) -> void:
+func _assign_ground_materials(node: Node, scene: Node, under_ground: bool) -> void:
 	for child in node.get_children():
-		_assign_ground_materials(child)
+		_assign_ground_materials(child, scene, under_ground)
 	if not (node is MeshInstance3D) or node.mesh == null:
 		return
 	for i in node.mesh.get_surface_count():
 		var source: Material = node.mesh.surface_get_material(i)
 		if source == null:
 			continue
-		var kind: String = _ground_kind(source.resource_name, String(node.name))
+		var kind: String = _ground_kind(source.resource_name, node, scene, under_ground)
 		if kind != "":
 			node.set_surface_override_material(i, _get_ground_material(kind))
 
 
-# 元マテリアル名とノード名から地面の種類を返す。該当なしは空文字
-func _ground_kind(material_name: String, node_name: String) -> String:
+# 元マテリアル名とノードから地面の種類を返す。該当なしは空文字
+func _ground_kind(material_name: String, node: MeshInstance3D, scene: Node, under_ground: bool) -> String:
 	if not GROUND_KIND_BY_MATERIAL.has(material_name):
 		return ""
-	if material_name == "Plastic - Matte (Gray)" and node_name in DIRT_NODE_NAMES:
-		return "dirt"
+	var node_name := String(node.name)
+	if material_name == "Plastic - Matte (Gray)" and node_name in ASPHALT_GRAY_NODE_NAMES:
+		return "asphalt"
+	if material_name == "Steel - Satin" and under_ground:
+		if node_name in ASPHALT_STEEL_NODE_NAMES:
+			return "asphalt"
+		var aabb := _scene_transform(node, scene) * node.mesh.get_aabb()
+		var center := aabb.get_center()
+		if _is_west_of_border(Vector2(center.x, center.z)):
+			return "asphalt"
+		return "paving_brick"
 	return GROUND_KIND_BY_MATERIAL[material_name]
+
+
+# 境界線より西側かを返す。cross < 0 が西（P=(-200,0) で負、P=(150,-100) で正）
+func _is_west_of_border(point: Vector2) -> bool:
+	var border := CAMPUS_BORDER_NORTH - CAMPUS_BORDER_SOUTH
+	return border.cross(point - CAMPUS_BORDER_SOUTH) < 0.0
+
+
+# 取り込み中はSceneTree外でglobal_transformが使えないため、rootの手前まで親のtransformを掛け合わせる
+func _scene_transform(node: Node3D, root: Node) -> Transform3D:
+	var result := Transform3D.IDENTITY
+	var current: Node = node
+	while current != null and current != root:
+		if current is Node3D:
+			result = current.transform * result
+		current = current.get_parent()
+	return result
 
 
 func _set_override_recursive(node: Node, material: Material) -> void:
@@ -121,7 +152,7 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 			material = _make_material(kind, kind, 1.0, Vector2(1.0, 1.0))
 		"paving_stone":
 			material = _make_material(kind, kind, 2.0, Vector2(2.0, 2.0))
-		"dirt", "grass":
+		"asphalt", "dirt", "grass":
 			material = _make_material(kind, kind, 4.0, Vector2(4.0, 4.0))
 		"water":
 			material = _make_material(kind, kind, 6.0, Vector2(6.0, 6.0))
