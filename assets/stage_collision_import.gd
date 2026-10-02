@@ -37,6 +37,9 @@ const GREEN_TILE_BUILDINGS: Array[String] = []
 const ROOF_TILE_SIZE := 4.0
 const WALL_TILE_SIZE := Vector2(7.0, 3.5)
 
+# ライトマップ1ピクセルが覆う長さ（メートル）
+const LIGHTMAP_TEXEL_SIZE := 0.5
+
 # 同じ種類のマテリアルを取り込み中に使い回すためのキャッシュ
 var _material_cache := {}
 
@@ -51,7 +54,46 @@ func _post_import(scene: Node) -> Object:
 		_assign_materials(child, scene)
 		if _is_collidable(child.name):
 			_add_collisions(child)
+	_set_lightmap_hints(scene)
 	return scene
+
+
+# 残ったメッシュのUV2用に、面積から決めたライトマップのサイズを設定する
+func _set_lightmap_hints(scene: Node) -> void:
+	var sides := {}
+	_collect_lightmap_sides(scene, scene, sides)
+	var min_texels := 0
+	var max_texels := 0
+	var sum_texels := 0
+	for mesh: ArrayMesh in sides:
+		var side: int = sides[mesh]
+		mesh.lightmap_size_hint = Vector2i(side, side)
+		var texels := side * side
+		min_texels = texels if sum_texels == 0 else mini(min_texels, texels)
+		max_texels = maxi(max_texels, texels)
+		sum_texels += texels
+	print("ライトマップのサイズを設定: メッシュ数=%d 最小=%d 最大=%d 合計=%d texel" % [sides.size(), min_texels, max_texels, sum_texels])
+
+
+# メッシュごとに最も大きい面積から辺の長さを求めて辞書へ入れる（メッシュは複数ノードで共有される）
+func _collect_lightmap_sides(node: Node, root: Node, sides: Dictionary) -> void:
+	for child in node.get_children():
+		_collect_lightmap_sides(child, root, sides)
+	if not (node is MeshInstance3D) or not (node.mesh is ArrayMesh):
+		return
+	var mesh: ArrayMesh = node.mesh
+	if mesh.get_surface_count() == 0 or not (mesh.surface_get_format(0) & Mesh.ARRAY_FORMAT_TEX_UV2):
+		return
+	var xform := _scene_transform(node, root)
+	var faces := mesh.get_faces()
+	var area := 0.0
+	for i in range(0, faces.size() - 2, 3):
+		var a := xform * faces[i]
+		var b := xform * faces[i + 1]
+		var c := xform * faces[i + 2]
+		area += 0.5 * (b - a).cross(c - a).length()
+	var side := clampi(int(ceil(sqrt(area) / LIGHTMAP_TEXEL_SIZE * 1.3)), 8, 2048)
+	sides[mesh] = maxi(side, sides.get(mesh, 0))
 
 
 func _is_low_poly(node_name: String) -> bool:
