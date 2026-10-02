@@ -6,6 +6,8 @@ var vehicle
 @export var follow_speed: float = 4.0
 # 視点操作をやめたあと、真後ろへ戻る速さ [rad/s]
 @export var offset_return_speed: float = 2.0
+# この速さ [m/s] を超えて走っているときだけ真後ろへ戻す
+@export var return_min_speed: float = 0.3
 
 var radius: float = 2.0
 var theta: float = - 0.5 * PI
@@ -44,7 +46,9 @@ func _physics_process(delta: float) -> void:
     var input_LR = Input.get_axis("view_left", "view_right")
     var input_UD = Input.get_axis("view_up", "view_down")
     if is_zero_approx(input_LR):
-        theta_offset = move_toward(theta_offset, 0.0, offset_return_speed * delta)
+        # 止まっているときは視点を動かした位置のまま残す
+        if vehicle.linear_velocity.length() > return_min_speed:
+            theta_offset = move_toward(theta_offset, 0.0, offset_return_speed * delta)
     else:
         theta_offset = wrapf(theta_offset + input_LR * theta_speed * delta, -PI, PI)
     phi += -input_UD * phi_speed * delta
