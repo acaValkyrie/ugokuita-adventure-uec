@@ -76,7 +76,7 @@ func _assign_materials(node: Node) -> void:
 		_set_override_recursive(node, _get_ground_material("paving_stone"))
 	elif node_name == "UEC壁":
 		_set_override_recursive(node, _get_ground_material("wall_top_concrete"))
-	elif node_name.begins_with("hi_") or node_name == "本館Bボディ114.001":
+	elif node_name.begins_with("hi_") or node_name.begins_with("本館B"):
 		_set_override_recursive(node, _get_building_material(node_name))
 
 
