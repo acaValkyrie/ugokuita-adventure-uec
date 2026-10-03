@@ -1,7 +1,8 @@
-[gd_scene load_steps=7 format=3 uid="uid://da3c8ktvtj35a"]
+[gd_scene load_steps=8 format=3 uid="uid://da3c8ktvtj35a"]
 
 [ext_resource type="Script" uid="uid://voefr7qy7ut3" path="res://car.gd" id="1_7822p"]
 [ext_resource type="PackedScene" uid="uid://ylkf1vi76cbh" path="res://assets/ugokuita-neo.glb" id="2_uoj53"]
+[ext_resource type="AudioStream" path="res://assets/audio/running_loop.wav" id="3_runsnd"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_0f027"]
 size = Vector3(0.511314, 0.0943527, 0.70813)
@@ -125,3 +126,8 @@ skeleton = NodePath("../..")
 
 [node name="ugokuita-neo" parent="." instance=ExtResource("2_uoj53")]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, -0.240647, 0)
+
+[node name="RunningSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3_runsnd")
+unit_size = 3.0
+max_db = 0.0
