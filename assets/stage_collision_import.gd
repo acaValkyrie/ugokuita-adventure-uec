@@ -4,8 +4,10 @@ extends EditorScenePostImport
 # ステージ用GLBの取り込み時に、ローポリ版の建物を取り除き、建物・地面・オブジェクトのメッシュへ当たり判定を自動で付ける
 const COLLIDABLE_PREFIXES := ["hi_", "ground", "object", "UEC", "本館B"]
 
-# 木は機体とぶつからないが、機体の日なた判定の光線だけを遮る。そのための物理レイヤー（レイヤー3）
+# 木の日なた判定の光線を遮る物理レイヤー（レイヤー3）。幹は機体ともぶつかり、葉は日なた判定の光線だけを遮る
 const SUN_OCCLUDER_LAYER := 1 << 2
+# 機体ともぶつからせる木の幹のノード名の先頭
+const TRUNK_PREFIX := "幹"
 
 # キャンパス用テクスチャのシェーダーとテクスチャの置き場所
 const SHADER_PATH := "res://assets/shaders/campus_triplanar.gdshader"
@@ -119,7 +121,7 @@ func _add_collisions(node: Node) -> void:
 		node.create_trimesh_collision()
 
 
-# 木のメッシュへ、日なた判定の光線だけに当たる当たり判定を付ける
+# 木のメッシュへ当たり判定を付ける。幹は機体ともぶつかり、葉は日なた判定の光線だけを遮る
 func _add_sun_occluders(node: Node) -> void:
 	for child in node.get_children():
 		if child is StaticBody3D:
@@ -130,6 +132,8 @@ func _add_sun_occluders(node: Node) -> void:
 		var body := node.get_child(node.get_child_count() - 1)
 		if body is StaticBody3D:
 			body.collision_layer = SUN_OCCLUDER_LAYER
+			if String(node.name).begins_with(TRUNK_PREFIX):
+				body.collision_layer |= 1
 			body.collision_mask = 0
 
 
