@@ -236,6 +236,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 取り込みスクリプトで、地面のメッシュに `surface_kind` の印（`grass`・`water`・`paving_brick` など）を付ける。
 - `surface_sounds.gd`（機体の `SurfaceSounds` ノード）: 機体の真下へ光線を飛ばして地面の種類を調べる。後輪のモーターの速さで進んだ距離を数え、草は約0.35m、水は約0.6mごとに、ランダムに選んだ音を高さを少し変えて鳴らす。モーターの速さで数えるので、空転中も鳴る。
 - 確認: 芝生を約2秒走ると40回、池では16回鳴り、レンガでは鳴らなかった。音の聞こえ方そのものは、まだ人の耳で確かめていない。
+- 全体の音量: `default_bus_layout.tres` で Master バスを−6dB（振幅で半分）にした。走行音・草・水のすべてにかかる。音を個別に調整するときは、各プレイヤーの `volume_db` か `surface_sounds.gd` の `volume_db` を変える。
 
 ## まだやっていないこと
 
