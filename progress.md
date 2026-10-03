@@ -1,6 +1,6 @@
 # 進捗メモ: キャンパスの見た目・軽量化・機体まわり
 
-最終更新: 2026-10-03（レンガの色まで）
+最終更新: 2026-10-03（草と水の効果音まで）
 
 1〜6はテクスチャ作成、7以降は光・処理の重さ・機体の影・走行音の作業。
 
@@ -225,6 +225,16 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - 変換は元のテクスチャからやり直す（変換済みの画像にかけ直すと、ばらつきが二重に縮む）。元の画像は `git show 3470ece:assets/textures/campus/paving_brick.png` で取り出せる。
 - UV2を作るBlenderスクリプトを `tools/add_uv2.py`、照合スクリプトを `tools/compare_glb.py` としてリポジトリに入れた。
   - 使い方: `blender --background --factory-startup --python tools/add_uv2.py -- <入力.glb> <出力.glb>`。そのあと `python tools/compare_glb.py <入力.glb> <出力.glb>` でノード・形・マテリアルが一致するか確かめる。
+
+### 13. 草と水の効果音（2026-10-03）
+
+- 素材はCC0のものだけを使い、出典を `assets/audio/CREDITS.md` にまとめた。
+  - 草: Kenney「Impact Sounds」の `footstep_grass_000`〜`004`（`assets/audio/grass/`）
+  - 水: rubberduck「40 CC0 water / splash / slime SFX」（OpenGameArt）の短い水しぶき5種類（`assets/audio/water/`）
+  - Pixabayの素材は、ライセンスがCC0ではなく、素材の単体配布に制限があるので使わない。Freesoundはダウンロードにログインが必要。
+- 取り込みスクリプトで、地面のメッシュに `surface_kind` の印（`grass`・`water`・`paving_brick` など）を付ける。
+- `surface_sounds.gd`（機体の `SurfaceSounds` ノード）: 機体の真下へ光線を飛ばして地面の種類を調べる。後輪のモーターの速さで進んだ距離を数え、草は約0.35m、水は約0.6mごとに、ランダムに選んだ音を高さを少し変えて鳴らす。モーターの速さで数えるので、空転中も鳴る。
+- 確認: 芝生を約2秒走ると40回、池では16回鳴り、レンガでは鳴らなかった。音の聞こえ方そのものは、まだ人の耳で確かめていない。
 
 ## まだやっていないこと
 
