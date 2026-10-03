@@ -10,6 +10,8 @@ extends CanvasLayer
 # 表示用のノブの半径（px）
 @export var KNOB_RADIUS: float = 30.0
 
+const RESET_ICON := preload("res://assets/ui/controls/reset.png")
+
 enum Mode { NONE, DRIVE, VIEW, LOCKED }
 
 const DRIVE_ACTIONS := ["up", "down", "left", "right"]
@@ -22,6 +24,9 @@ var _origin: Vector2 = Vector2.ZERO
 # VIEW の中点計算に使っている2本の指のindex
 var _pair: Array = []
 var _overlay: Control
+var _reset_button: TextureButton
+# リセットボタンの上で始まった指のindex（運転に使わない）
+var _button_touches: Dictionary = {}
 
 
 func _ready() -> void:
@@ -30,6 +35,32 @@ func _ready() -> void:
     _overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
     _overlay.draw.connect(_on_overlay_draw)
     add_child(_overlay)
+    _setup_reset_button()
+
+
+# 右上のリセットボタン（タッチ端末のみ表示）
+func _setup_reset_button() -> void:
+    _reset_button = TextureButton.new()
+    _reset_button.texture_normal = RESET_ICON
+    _reset_button.ignore_texture_size = true
+    _reset_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+    _reset_button.mouse_filter = Control.MOUSE_FILTER_PASS
+    _reset_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+    _reset_button.offset_left = -16 - 72
+    _reset_button.offset_right = -16
+    _reset_button.offset_top = 16
+    _reset_button.offset_bottom = 16 + 72
+    _reset_button.visible = OS.has_feature("web_android") or OS.has_feature("web_ios") \
+        or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
+    _reset_button.pressed.connect(_on_reset_pressed)
+    add_child(_reset_button)
+
+
+func _on_reset_pressed() -> void:
+    # 次のフレームで離して is_action_just_pressed を成立させる
+    Input.action_press("respawn")
+    await get_tree().process_frame
+    Input.action_release("respawn")
 
 
 func _notification(what: int) -> void:
@@ -40,11 +71,16 @@ func _notification(what: int) -> void:
 func _input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         if event.pressed:
+            if _reset_button.visible and _reset_button.get_global_rect().has_point(event.position):
+                _button_touches[event.index] = true
+                return
             _touches[event.index] = event.position
         else:
+            if _button_touches.erase(event.index):
+                return
             _touches.erase(event.index)
     elif event is InputEventScreenDrag:
-        if not _touches.has(event.index):
+        if _button_touches.has(event.index) or not _touches.has(event.index):
             return
         _touches[event.index] = event.position
     else:
@@ -152,6 +188,7 @@ func _release_all() -> void:
 # フォーカス喪失時など：全指と全アクションをリセット
 func _reset() -> void:
     _touches.clear()
+    _button_touches.clear()
     _pair = []
     _mode = Mode.NONE
     _release_all()
