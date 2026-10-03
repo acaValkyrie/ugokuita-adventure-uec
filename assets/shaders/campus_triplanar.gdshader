@@ -8,6 +8,9 @@ uniform sampler2D side_texture : source_color, filter_linear_mipmap, repeat_enab
 // false のときはテクスチャを使わず albedo_color だけで塗る
 uniform bool use_textures = true;
 uniform vec4 albedo_color : source_color = vec4(1.0);
+// true のとき、頂点カラーの赤が0の部分（窓）を window_color で塗る。頂点カラーがないメッシュは白なので影響しない
+uniform bool use_window_mask = false;
+uniform vec4 window_color : source_color = vec4(0.32, 0.38, 0.45, 1.0);
 // 上向きの面でテクスチャ1枚が覆う長さ（メートル、ワールドXZ）
 uniform float top_tile_size = 2.0;
 // 側面でテクスチャ1枚が覆う長さ（メートル、x が水平、y が垂直）
@@ -32,7 +35,8 @@ void fragment() {
 		vec2 uv = vec2(horizontal / side_tile_size.x, -world_pos.y / side_tile_size.y);
 		tex = texture(side_texture, uv);
 	}
-	ALBEDO = (use_textures ? tex.rgb : vec3(1.0)) * albedo_color.rgb;
+	vec3 albedo = (use_textures ? tex.rgb : vec3(1.0)) * albedo_color.rgb;
+	ALBEDO = mix(albedo, window_color.rgb, use_window_mask ? 1.0 - COLOR.r : 0.0);
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 }
