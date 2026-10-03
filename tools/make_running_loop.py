@@ -1,27 +1,35 @@
-import sys
+import argparse
+import subprocess
 import wave
 import numpy as np
 
-SEG_START = 4.50
-SEG_END = 7.40
-FADE = 0.25
-TARGET_RMS_DB = -20.0
+SR = 48000
 PEAK_LIMIT_DB = -1.0
 
 
-def main():
-    src, dst = sys.argv[1], sys.argv[2]
-    with wave.open(src, "rb") as w:
-        sr = w.getframerate()
-        ch = w.getnchannels()
-        assert w.getsampwidth() == 2, "16-bit only"
-        raw = np.frombuffer(w.readframes(w.getnframes()), dtype="<i2")
-    data = raw.reshape(-1, ch).astype(np.float64) / 32768.0
-    mono = data.mean(axis=1)
+def decode_mono(src):
+    # ffmpegで任意の形式をモノラル・48kHzの16bit PCMにデコードする
+    cmd = ["ffmpeg", "-v", "error", "-i", src, "-ac", "1", "-ar", str(SR), "-f", "s16le", "-"]
+    raw = subprocess.run(cmd, check=True, capture_output=True).stdout
+    return np.frombuffer(raw, dtype="<i2").astype(np.float64) / 32768.0
 
-    seg = mono[int(round(SEG_START * sr)):int(round(SEG_END * sr))]
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("src")
+    ap.add_argument("dst")
+    ap.add_argument("--start", type=float, required=True)
+    ap.add_argument("--end", type=float, required=True)
+    ap.add_argument("--fade", type=float, default=0.25)
+    ap.add_argument("--rms-db", type=float, default=-20.0)
+    args = ap.parse_args()
+
+    sr = SR
+    mono = decode_mono(args.src)
+
+    seg = mono[int(round(args.start * sr)):int(round(args.end * sr))]
     n = len(seg)
-    f = int(round(FADE * sr))
+    f = int(round(args.fade * sr))
     t = np.linspace(0.0, 1.0, f)
     fade_in = np.sin(t * np.pi / 2)
     fade_out = np.cos(t * np.pi / 2)
@@ -29,13 +37,13 @@ def main():
     out[:f] = seg[:f] * fade_in + seg[n - f:] * fade_out
 
     rms = np.sqrt(np.mean(out ** 2))
-    out *= 10 ** (TARGET_RMS_DB / 20) / rms
+    out *= 10 ** (args.rms_db / 20) / rms
     limit = 10 ** (PEAK_LIMIT_DB / 20)
     clipped = int(np.sum(np.abs(out) > limit))
     out = np.clip(out, -limit, limit)
 
     pcm = np.round(out * 32767.0).astype("<i2")
-    with wave.open(dst, "wb") as w:
+    with wave.open(args.dst, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(sr)
