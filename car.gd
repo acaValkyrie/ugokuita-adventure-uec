@@ -9,9 +9,13 @@ extends VehicleBody3D
 @export var RUN_SOUND_MAX_PITCH := 1.4
 # 走行音の音量の追従の速さ [1/s]
 @export var RUN_SOUND_FADE := 6.0
+# モーター（後輪の外周）の速さの変化の速さ [m/s²]
+@export var MOTOR_ACCEL = 12.0
 
 var _run_sound: AudioStreamPlayer3D
 var _run_volume := 0.0
+# 後輪の外周の速さ [m/s]、前進が正
+var _motor_speed := 0.0
 
 func _physics_process(delta: float) -> void:
     steering = move_toward(steering, Input.get_axis("right", "left") * MAX_STEER, delta * 10)
@@ -25,6 +29,20 @@ func _physics_process(delta: float) -> void:
     engine_force = throttle * ENGINE_POWER * limit
     # 入力がないときはブレーキをかけて坂でずり落ちないようにする
     brake = BRAKE_FORCE if is_zero_approx(throttle) else 0.0
+
+    # アクセル中はモーターの指令に、離したら実際の回転に合わせる（乗り上げて空転しても回り、音も鳴るようにする）
+    var wheel_bl := get_node_or_null("VehicleWheel3D_BL") as VehicleWheel3D
+    var wheel_br := get_node_or_null("VehicleWheel3D_BR") as VehicleWheel3D
+    if wheel_bl != null and wheel_br != null:
+        var rpm := (wheel_bl.get_rpm() + wheel_br.get_rpm()) * 0.5
+        var measured := rpm / 60.0 * TAU * wheel_bl.wheel_radius
+        # 機体が固定されているときなどに回転数がNaNになることがあるので、そのときは0として扱う
+        if is_nan(measured):
+            measured = 0.0
+        var target := measured
+        if not is_zero_approx(throttle):
+            target = throttle * MAX_SPEED
+        _motor_speed = move_toward(_motor_speed, target, MOTOR_ACCEL * delta)
 
 
 # 見た目のタイヤ（ugokuita-neo内）を物理ホイールの回転・ステアリング・サスペンションに合わせて動かす
@@ -135,12 +153,7 @@ func _setup_run_sound() -> void:
 func _update_run_sound(delta: float) -> void:
     if _run_sound == null:
         return
-    var wheel_bl := get_node_or_null("VehicleWheel3D_BL") as VehicleWheel3D
-    var wheel_br := get_node_or_null("VehicleWheel3D_BR") as VehicleWheel3D
-    if wheel_bl == null or wheel_br == null:
-        return
-    var rpm := (absf(wheel_bl.get_rpm()) + absf(wheel_br.get_rpm())) * 0.5
-    var wheel_speed := rpm / 60.0 * TAU * wheel_bl.wheel_radius
+    var wheel_speed := absf(_motor_speed)
     var ratio := clampf(wheel_speed / MAX_SPEED, 0.0, 1.0)
     var target := smoothstep(0.02, 0.25, ratio)
     _run_volume = move_toward(_run_volume, target, RUN_SOUND_FADE * delta)
@@ -159,7 +172,10 @@ func _process(delta: float) -> void:
         var offset_local: Vector3 = to_local * (global_basis * Vector3(0.0, dy, 0.0))
         var offset := Transform3D(Basis.IDENTITY, offset_local)
 
-        var angle: float = fposmod(w["angle"] + wheel.get_rpm() / 60.0 * TAU * delta, TAU)
+        var spin := wheel.get_rpm() / 60.0 * TAU
+        if wheel.use_as_traction:
+            spin = _motor_speed / wheel.wheel_radius
+        var angle: float = fposmod(w["angle"] + spin * delta, TAU)
         w["angle"] = angle
         var rot := Basis(w["axis"], angle)
         var around := Transform3D(rot, w["pivot"] - rot * w["pivot"])
