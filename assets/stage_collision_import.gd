@@ -42,6 +42,8 @@ const WINDOW_COLOR := Color(0.32, 0.38, 0.45)
 const WINDOW_MIN_DEPTH := 0.05
 const WINDOW_MAX_DEPTH := 0.8
 const WINDOW_MAX_SIZE := Vector2(12.0, 4.0)
+# 窓とみなす領域が、その範囲（外接する長方形）を埋める割合の下限。X字の筋かいなどを除く
+const WINDOW_MIN_FILL_RATIO := 0.9
 # 同じ平面上の三角形どうしを同じ領域とみなすときに、範囲を広げて重なりを見る幅（メートル）
 const WINDOW_REGION_JOIN_MARGIN := 0.002
 # 窓の周りを調べる点を、面の外側へずらす距離（メートル）
@@ -442,7 +444,7 @@ func _tri_rect(tri: WindowTri, tangent: Vector3) -> Rect2:
 	return Rect2(u_min, y_min, float(u_values.max()) - u_min, float(y_values.max()) - y_min)
 
 
-# 領域の範囲が窓の大きさ以下で、範囲の周りの4点すべての手前に同じ向きの外壁があれば窓とみなす
+# 領域の範囲が窓の大きさ以下で、領域が範囲をほぼ埋めていて、範囲の周りの4点すべての手前に同じ向きの外壁があれば窓とみなす
 func _is_window_region(region: Array, grid: Dictionary) -> bool:
 	var first: WindowTri = region[0]
 	var tangent := Vector3.UP.cross(first.n_h).normalized()
@@ -450,6 +452,11 @@ func _is_window_region(region: Array, grid: Dictionary) -> bool:
 	for tri: WindowTri in region:
 		rect = rect.merge(_tri_rect(tri, tangent))
 	if rect.size.x > WINDOW_MAX_SIZE.x or rect.size.y > WINDOW_MAX_SIZE.y:
+		return false
+	var area := 0.0
+	for tri: WindowTri in region:
+		area += (tri.b - tri.a).cross(tri.c - tri.a).length() * 0.5
+	if area < rect.get_area() * WINDOW_MIN_FILL_RATIO:
 		return false
 	var center := rect.get_center()
 	var probes := [
