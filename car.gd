@@ -4,6 +4,14 @@ extends VehicleBody3D
 @export var ENGINE_POWER = 80.0
 @export var MAX_SPEED = 6.0
 @export var BRAKE_FORCE = 1.0
+# 走行音のピッチ（停止時〜最高速度）
+@export var RUN_SOUND_MIN_PITCH := 0.8
+@export var RUN_SOUND_MAX_PITCH := 1.4
+# 走行音の音量の追従の速さ [1/s]
+@export var RUN_SOUND_FADE := 6.0
+
+var _run_sound: AudioStreamPlayer3D
+var _run_volume := 0.0
 
 func _physics_process(delta: float) -> void:
     steering = move_toward(steering, Input.get_axis("right", "left") * MAX_STEER, delta * 10)
@@ -60,6 +68,7 @@ const STEER_SIGN := 1.0
 var _visual_wheels: Array[Dictionary] = []
 
 func _ready() -> void:
+    _setup_run_sound()
     var model := get_node_or_null("ugokuita-neo")
     if model == null:
         push_warning("ugokuita-neo が見つからない")
@@ -111,7 +120,35 @@ func _ready() -> void:
             "angle": 0.0, "tire_center_body": tire_center_body,
         })
 
+func _setup_run_sound() -> void:
+    _run_sound = get_node_or_null("RunningSound") as AudioStreamPlayer3D
+    if _run_sound == null:
+        return
+    var wav := _run_sound.stream as AudioStreamWAV
+    if wav != null:
+        wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+        wav.loop_begin = 0
+        wav.loop_end = wav.data.size() / 2
+    _run_sound.volume_db = -80.0
+    _run_sound.play()
+
+func _update_run_sound(delta: float) -> void:
+    if _run_sound == null:
+        return
+    var wheel_bl := get_node_or_null("VehicleWheel3D_BL") as VehicleWheel3D
+    var wheel_br := get_node_or_null("VehicleWheel3D_BR") as VehicleWheel3D
+    if wheel_bl == null or wheel_br == null:
+        return
+    var rpm := (absf(wheel_bl.get_rpm()) + absf(wheel_br.get_rpm())) * 0.5
+    var wheel_speed := rpm / 60.0 * TAU * wheel_bl.wheel_radius
+    var ratio := clampf(wheel_speed / MAX_SPEED, 0.0, 1.0)
+    var target := smoothstep(0.02, 0.25, ratio)
+    _run_volume = move_toward(_run_volume, target, RUN_SOUND_FADE * delta)
+    _run_sound.volume_db = linear_to_db(maxf(_run_volume, 0.0001))
+    _run_sound.pitch_scale = lerpf(RUN_SOUND_MIN_PITCH, RUN_SOUND_MAX_PITCH, ratio)
+
 func _process(delta: float) -> void:
+    _update_run_sound(delta)
     var body_inv := global_transform.affine_inverse()
     for w in _visual_wheels:
         var wheel: VehicleWheel3D = w["wheel"]
