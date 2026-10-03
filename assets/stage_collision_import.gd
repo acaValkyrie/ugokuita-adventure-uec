@@ -41,7 +41,9 @@ const WINDOW_COLOR := Color(0.32, 0.38, 0.45)
 # 窓とみなす面の条件: 周りの外壁からの奥行き（メートル）と、面の最大の幅・高さ（メートル）
 const WINDOW_MIN_DEPTH := 0.05
 const WINDOW_MAX_DEPTH := 0.8
-const WINDOW_MAX_SIZE := Vector2(5.0, 4.0)
+const WINDOW_MAX_SIZE := Vector2(12.0, 4.0)
+# 同じ平面上の三角形どうしを同じ領域とみなすときに、範囲を広げて重なりを見る幅（メートル）
+const WINDOW_REGION_JOIN_MARGIN := 0.002
 # 窓の周りを調べる点を、面の外側へずらす距離（メートル）
 const WINDOW_PROBE_OFFSET := 0.1
 # 同じ向きの面とみなす水平化した法線の内積の下限
@@ -289,8 +291,10 @@ func _mark_windows(building: Node, scene: Node) -> void:
 			vertical_count += 1
 	var window_count := 0
 	var meshes_with_windows := {}
-	for tri in tris:
-		if tri.n_h != Vector3.ZERO and _is_window(tri, grid):
+	for region in _collect_window_regions(tris):
+		if not _is_window_region(region, grid):
+			continue
+		for tri: WindowTri in region:
 			tri.is_window = true
 			window_count += 1
 			meshes_with_windows[tri.mesh] = true
@@ -387,31 +391,76 @@ func _register_in_grid(grid: Dictionary, tri: WindowTri) -> void:
 				grid[key].append(tri)
 
 
-# 面の周りの4点すべてで、手前に同じ向きの外壁があれば窓とみなす
-func _is_window(tri: WindowTri, grid: Dictionary) -> bool:
-	var tangent := Vector3.UP.cross(tri.n_h).normalized()
-	var u_values: Array[float] = []
-	var y_values: Array[float] = []
-	for p in [tri.a, tri.b, tri.c]:
-		u_values.append(p.dot(tangent))
-		y_values.append(p.y)
+# 鉛直な三角形を、同じ平面（向きと奥行きが同じ）上でつながったまとまり（領域）に分けて返す
+func _collect_window_regions(tris: Array[WindowTri]) -> Array:
+	var groups := {}
+	for tri in tris:
+		if tri.n_h == Vector3.ZERO:
+			continue
+		var angle := roundi(rad_to_deg(atan2(tri.n_h.x, tri.n_h.z)) / 0.5)
+		var key := Vector2i(angle, roundi(tri.depth * 100.0))
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(tri)
+	var regions := []
+	for group: Array in groups.values():
+		var tangent := Vector3.UP.cross((group[0] as WindowTri).n_h).normalized()
+		var rects: Array[Rect2] = []
+		for tri: WindowTri in group:
+			rects.append(_tri_rect(tri, tangent).grow(WINDOW_REGION_JOIN_MARGIN))
+		var parent := range(group.size())
+		for i in group.size():
+			for j in range(i + 1, group.size()):
+				if rects[i].intersects(rects[j], true):
+					var root_i := _find_root(parent, i)
+					var root_j := _find_root(parent, j)
+					if root_i != root_j:
+						parent[root_j] = root_i
+		var by_root := {}
+		for i in group.size():
+			var root := _find_root(parent, i)
+			if not by_root.has(root):
+				by_root[root] = []
+			by_root[root].append(group[i])
+		regions.append_array(by_root.values())
+	return regions
+
+
+func _find_root(parent: Array, index: int) -> int:
+	while parent[index] != index:
+		parent[index] = parent[parent[index]]
+		index = parent[index]
+	return index
+
+
+# 三角形の (u, y) 平面での範囲を返す。u は tangent 方向の座標
+func _tri_rect(tri: WindowTri, tangent: Vector3) -> Rect2:
+	var u_values := [tri.a.dot(tangent), tri.b.dot(tangent), tri.c.dot(tangent)]
+	var y_values := [tri.a.y, tri.b.y, tri.c.y]
 	var u_min: float = u_values.min()
-	var u_max: float = u_values.max()
 	var y_min: float = y_values.min()
-	var y_max: float = y_values.max()
-	if u_max - u_min > WINDOW_MAX_SIZE.x or y_max - y_min > WINDOW_MAX_SIZE.y:
+	return Rect2(u_min, y_min, float(u_values.max()) - u_min, float(y_values.max()) - y_min)
+
+
+# 領域の範囲が窓の大きさ以下で、範囲の周りの4点すべての手前に同じ向きの外壁があれば窓とみなす
+func _is_window_region(region: Array, grid: Dictionary) -> bool:
+	var first: WindowTri = region[0]
+	var tangent := Vector3.UP.cross(first.n_h).normalized()
+	var rect := _tri_rect(first, tangent)
+	for tri: WindowTri in region:
+		rect = rect.merge(_tri_rect(tri, tangent))
+	if rect.size.x > WINDOW_MAX_SIZE.x or rect.size.y > WINDOW_MAX_SIZE.y:
 		return false
-	var u_mid := (u_min + u_max) * 0.5
-	var y_mid := (y_min + y_max) * 0.5
+	var center := rect.get_center()
 	var probes := [
-		Vector2(u_min - WINDOW_PROBE_OFFSET, y_mid),
-		Vector2(u_max + WINDOW_PROBE_OFFSET, y_mid),
-		Vector2(u_mid, y_min - WINDOW_PROBE_OFFSET),
-		Vector2(u_mid, y_max + WINDOW_PROBE_OFFSET),
+		Vector2(rect.position.x - WINDOW_PROBE_OFFSET, center.y),
+		Vector2(rect.end.x + WINDOW_PROBE_OFFSET, center.y),
+		Vector2(center.x, rect.position.y - WINDOW_PROBE_OFFSET),
+		Vector2(center.x, rect.end.y + WINDOW_PROBE_OFFSET),
 	]
 	for probe: Vector2 in probes:
-		var point := tangent * probe.x + Vector3.UP * probe.y + tri.n_h * tri.depth
-		if not _has_wall_in_front(point, tri, grid):
+		var point := tangent * probe.x + Vector3.UP * probe.y + first.n_h * first.depth
+		if not _has_wall_in_front(point, first, grid):
 			return false
 	return true
 
