@@ -133,7 +133,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 | ABS(白) (1) / ABS (White) | テニスコートの面 / ライン | 単色（くすんだ緑 / 白） |
 
 - `UEC縁石` には `paving_stone`、`UEC壁` には `roof_concrete` を貼った。
-- 建物は、屋根が `roof_concrete`（4m）、外壁は既定で `wall_classic`（横7m×縦3.5m＝1階分）。`wall_modern`・`wall_green_tile` にする号館は、スクリプトの `MODERN_BUILDINGS`・`GREEN_TILE_BUILDINGS` に号館名（`hi_` を除く）を書く。**今はどちらも空**。
+- 建物は、屋根・外壁ともテクスチャを使わず乳白色の単色（`BUILDING_COLOR` = `wall_classic.png` の地の色の平均、sRGB (0.77, 0.703, 0.621)）で塗る。外壁テクスチャの窓がモデルの窓の位置と合わず不自然だったため、2026-10-04 にやめた。`wall_*.png` は使っていないが残してある。
 - 注意: 取り込み後のノード名は `.` が `_` に変わる（`本館Bボディ114.001` → `本館Bボディ114_001`）。名前で判定するときは前方一致にする。
 - 取り込みスクリプトを変えたら、GLBの再インポートが必要。godot-mcp の `rescan` は失敗したため、godot-mcp-edit の `execute_editor_script` から `EditorInterface.get_resource_filesystem().reimport_files(["res://assets/uec-all-v2.glb"])` で再インポートした。
 - ゲーム内で、レンガ舗装と号館の窓が表示されることを確認した。
