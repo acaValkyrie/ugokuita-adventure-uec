@@ -44,6 +44,8 @@ func _ready() -> void:
     shadow_enabled = false
     light_bake_mode = Light3D.BAKE_DISABLED
     light_cull_mask = robot_layer
+    # 明るさを0にすると空の太陽が黒く描かれるので、空には描かない
+    sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 
     for node in _vehicle.find_children("*", "GeometryInstance3D", true, false):
         (node as GeometryInstance3D).layers = robot_layer
