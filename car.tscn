@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://da3c8ktvtj35a"]
+[gd_scene load_steps=21 format=3 uid="uid://da3c8ktvtj35a"]
 
 [ext_resource type="Script" uid="uid://voefr7qy7ut3" path="res://car.gd" id="1_7822p"]
 [ext_resource type="PackedScene" uid="uid://ylkf1vi76cbh" path="res://assets/ugokuita-neo.glb" id="2_uoj53"]
@@ -13,6 +13,9 @@
 [ext_resource type="AudioStream" path="res://assets/audio/grass/rustle18.ogg" id="g6_rustle18"]
 [ext_resource type="AudioStream" path="res://assets/audio/grass/rustle19.ogg" id="g7_rustle19"]
 [ext_resource type="AudioStream" path="res://assets/audio/water/splash_14.ogg" id="13_w3"]
+[ext_resource type="Script" path="res://bump_sounds.gd" id="5_bump"]
+[ext_resource type="AudioStream" path="res://assets/audio/bump/bump_a.ogg" id="b0_bumpa"]
+[ext_resource type="AudioStream" path="res://assets/audio/bump/bump_b.ogg" id="b1_bumpb"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_0f027"]
 size = Vector3(0.511314, 0.0943527, 0.70813)
@@ -141,6 +144,10 @@ transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, -0.
 script = ExtResource("4_surf")
 grass_sounds = Array[AudioStream]([ExtResource("g0_rustle02"), ExtResource("g1_rustle05"), ExtResource("g2_rustle09"), ExtResource("g3_rustle11"), ExtResource("g4_rustle16"), ExtResource("g5_rustle17"), ExtResource("g6_rustle18"), ExtResource("g7_rustle19")])
 water_sounds = Array[AudioStream]([ExtResource("13_w3")])
+
+[node name="BumpSounds" type="Node3D" parent="."]
+script = ExtResource("5_bump")
+sounds = Array[AudioStream]([ExtResource("b0_bumpa"), ExtResource("b1_bumpb")])
 
 [node name="RunningSound" type="AudioStreamPlayer3D" parent="."]
 stream = ExtResource("3_runsnd")
