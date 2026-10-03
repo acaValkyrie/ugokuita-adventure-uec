@@ -12,18 +12,22 @@ const ICON_TRIGGER_LT := preload("res://assets/ui/controls/trigger_lt.png")
 const ICON_TRIGGER_RT := preload("res://assets/ui/controls/trigger_rt.png")
 const ICON_SWIPE_ONE := preload("res://assets/ui/controls/swipe_one_finger.png")
 const ICON_SWIPE_TWO := preload("res://assets/ui/controls/swipe_two_fingers.png")
+const ICON_KEY_R := preload("res://assets/ui/controls/key_r.png")
+const ICON_BUTTON_BACK := preload("res://assets/ui/controls/button_back.png")
 
-# モードごとの表示項目 [アイコン, ラベル]
+# モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
 const ITEMS := {
     Mode.KEYBOARD: [
         [ICON_KEYS_WASD, "Drive"],
         [ICON_KEYS_ARROWS, "Camera"],
+        [ICON_KEY_R, "Reset", 0.6],
     ],
     Mode.GAMEPAD: [
         [ICON_STICK_LEFT, "Steer"],
         [ICON_TRIGGER_RT, "Accelerate"],
         [ICON_TRIGGER_LT, "Reverse"],
         [ICON_STICK_RIGHT, "Camera"],
+        [ICON_BUTTON_BACK, "Reset", 0.8],
     ],
     Mode.TOUCH: [
         [ICON_SWIPE_ONE, "Drive"],
@@ -96,14 +100,15 @@ func _rebuild() -> void:
         _hbox.remove_child(child)
         child.queue_free()
     for item in ITEMS[_mode]:
-        _hbox.add_child(_make_item(item[0], item[1]))
+        var icon_scale: float = item[2] if item.size() > 2 else 1.0
+        _hbox.add_child(_make_item(item[0], item[1], icon_scale))
 
 
-# アイコンとラベルを縦に並べた1項目を作る
-func _make_item(icon: Texture2D, text: String) -> VBoxContainer:
+# アイコンとラベルを縦に並べた1項目を作る（下端を揃えてラベルを同じ高さにする）
+func _make_item(icon: Texture2D, text: String, icon_scale: float) -> VBoxContainer:
     var box := VBoxContainer.new()
     box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    box.alignment = BoxContainer.ALIGNMENT_CENTER
+    box.alignment = BoxContainer.ALIGNMENT_END
     box.add_theme_constant_override("separation", 2)
 
     var rect := TextureRect.new()
@@ -112,7 +117,8 @@ func _make_item(icon: Texture2D, text: String) -> VBoxContainer:
     rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     var aspect := float(icon.get_width()) / float(icon.get_height())
-    rect.custom_minimum_size = Vector2(roundf(ICON_HEIGHT * aspect), ICON_HEIGHT)
+    var height := roundf(ICON_HEIGHT * icon_scale)
+    rect.custom_minimum_size = Vector2(roundf(height * aspect), height)
     box.add_child(rect)
 
     var label := Label.new()
