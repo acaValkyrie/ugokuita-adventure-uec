@@ -229,8 +229,9 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 ### 13. 草と水の効果音（2026-10-03）
 
 - 素材はCC0のものだけを使い、出典を `assets/audio/CREDITS.md` にまとめた。
-  - 草: Kenney「Impact Sounds」の `footstep_grass_000`〜`004`（`assets/audio/grass/`）
-  - 水: rubberduck「40 CC0 water / splash / slime SFX」（OpenGameArt）の短い水しぶき5種類（`assets/audio/water/`）
+  - 草: qubodup「20 Rustles of dry leaves」（OpenGameArt）から8種類（`assets/audio/grass/rustle*.ogg`）。`tools/convert_rustles.py` でモノラル化し、平均音量を約−24dBにそろえてOGGに変換した。
+    - 最初はKenney「Impact Sounds」の草の足音を使ったが、聞いてみてよくなかったので替えた。雑草が揺れる音（Spring Spring「Various Sound Effects」の `rustling_of_the_weeds.wav`）も候補だったが、ユーザーが枯れ葉の音を選んだ。
+  - 水: rubberduck「40 CC0 water / splash / slime SFX」（OpenGameArt）の `splash_14` だけを使う（聞き比べて決めた）。ほかの4種類（`splash_06`・`08`・`10`・`15`）もフォルダに残してある。
   - Pixabayの素材は、ライセンスがCC0ではなく、素材の単体配布に制限があるので使わない。Freesoundはダウンロードにログインが必要。
 - 取り込みスクリプトで、地面のメッシュに `surface_kind` の印（`grass`・`water`・`paving_brick` など）を付ける。
 - `surface_sounds.gd`（機体の `SurfaceSounds` ノード）: 機体の真下へ光線を飛ばして地面の種類を調べる。後輪のモーターの速さで進んだ距離を数え、草は約0.35m、水は約0.6mごとに、ランダムに選んだ音を高さを少し変えて鳴らす。モーターの速さで数えるので、空転中も鳴る。
