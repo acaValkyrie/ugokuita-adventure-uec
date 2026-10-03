@@ -36,16 +36,51 @@ const CAMPUS_BORDER_NORTH := Vector2(14.0, -299.0)
 
 # 建物の屋根・外壁の色（もとの外壁テクスチャの地の色）
 const BUILDING_COLOR := Color(0.77, 0.703, 0.621)
+# 窓ガラスの色
+const WINDOW_COLOR := Color(0.32, 0.38, 0.45)
+# 窓とみなす面の条件: 周りの外壁からの奥行き（メートル）と、面の最大の幅・高さ（メートル）
+const WINDOW_MIN_DEPTH := 0.05
+const WINDOW_MAX_DEPTH := 0.8
+const WINDOW_MAX_SIZE := Vector2(5.0, 4.0)
+# 窓の周りを調べる点を、面の外側へずらす距離（メートル）
+const WINDOW_PROBE_OFFSET := 0.1
+# 同じ向きの面とみなす水平化した法線の内積の下限
+const WINDOW_SAME_FACING_DOT := 0.995
+# 鉛直な面とみなす法線のYの絶対値の上限
+const WINDOW_VERTICAL_MAX_Y := 0.05
+# 窓の検出に使う空間グリッドのセルの大きさ（メートル）
+const WINDOW_GRID_CELL := 1.0
+# LOD生成時に法線をまとめる角度・分ける角度（Godotのインポート既定値）
+const LOD_NORMAL_MERGE_ANGLE := deg_to_rad(60.0)
+const LOD_NORMAL_SPLIT_ANGLE := deg_to_rad(25.0)
 
 # ライトマップ1ピクセルが覆う長さ（メートル）
 const LIGHTMAP_TEXEL_SIZE := 0.5
 
 # 同じ種類のマテリアルを取り込み中に使い回すためのキャッシュ
 var _material_cache := {}
+# 窓の検出数の合計（全建物）
+var _window_tri_total := 0
+
+# 窓の検出に使う三角形（シーン座標）
+class WindowTri:
+	var mesh: ArrayMesh
+	var surface: int
+	var index: int
+	var a: Vector3
+	var b: Vector3
+	var c: Vector3
+	var normal: Vector3
+	var n_h: Vector3
+	var center: Vector3
+	var depth: float
+	var is_window := false
 
 
 func _post_import(scene: Node) -> Object:
+	var start_msec := Time.get_ticks_msec()
 	_material_cache.clear()
+	_window_tri_total = 0
 	for child in scene.get_children():
 		if _is_low_poly(child.name):
 			scene.remove_child(child)
@@ -57,6 +92,7 @@ func _post_import(scene: Node) -> Object:
 		elif child.name == "tree":
 			_add_sun_occluders(child)
 	_set_lightmap_hints(scene)
+	print("窓の検出の合計: 窓の三角形=%d 取り込み時間=%d ms" % [_window_tri_total, Time.get_ticks_msec() - start_msec])
 	return scene
 
 
@@ -143,6 +179,7 @@ func _assign_materials(node: Node, scene: Node) -> void:
 		_set_override_recursive(node, _get_ground_material("wall_top_concrete"))
 	elif node_name.begins_with("hi_") or node_name.begins_with("本館B"):
 		_set_override_recursive(node, _get_building_material())
+		_mark_windows(node, scene)
 
 
 # 元マテリアル名を見て、サブツリー内の各サーフェスへ地面のマテリアルを割り当てる
@@ -232,8 +269,272 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 # 建物の屋根・外壁をまとめて塗る単色のマテリアルを返す（なければ作る）
 func _get_building_material() -> ShaderMaterial:
 	if not _material_cache.has("building"):
-		_material_cache["building"] = _make_color_material(BUILDING_COLOR)
+		var material := _make_color_material(BUILDING_COLOR)
+		material.set_shader_parameter("use_window_mask", true)
+		material.set_shader_parameter("window_color", WINDOW_COLOR)
+		_material_cache["building"] = material
 	return _material_cache["building"]
+
+
+# 外壁より奥にへこんだ小さな鉛直の面を窓とみなし、その頂点カラーを黒にしたメッシュへ差し替える
+func _mark_windows(building: Node, scene: Node) -> void:
+	var tris: Array[WindowTri] = []
+	var nodes_by_mesh := {}
+	_collect_window_tris(building, scene, tris, nodes_by_mesh)
+	var grid := {}
+	var vertical_count := 0
+	for tri in tris:
+		if tri.n_h != Vector3.ZERO:
+			_register_in_grid(grid, tri)
+			vertical_count += 1
+	var window_count := 0
+	var meshes_with_windows := {}
+	for tri in tris:
+		if tri.n_h != Vector3.ZERO and _is_window(tri, grid):
+			tri.is_window = true
+			window_count += 1
+			meshes_with_windows[tri.mesh] = true
+	if window_count == 0:
+		print("窓を検出: %s 0/%d" % [building.name, vertical_count])
+		return
+	var tris_by_mesh := {}
+	for tri in tris:
+		if meshes_with_windows.has(tri.mesh):
+			if not tris_by_mesh.has(tri.mesh):
+				tris_by_mesh[tri.mesh] = []
+			tris_by_mesh[tri.mesh].append(tri)
+	for mesh: ArrayMesh in tris_by_mesh:
+		var new_mesh := _rebuild_mesh_with_window_colors(mesh, tris_by_mesh[mesh])
+		for node: MeshInstance3D in nodes_by_mesh[mesh]:
+			node.mesh = new_mesh
+	_window_tri_total += window_count
+	print("窓を検出: %s %d/%d" % [building.name, window_count, vertical_count])
+
+
+# 建物配下の全三角形をシーン座標で集める（共有されたメッシュは最初のノードの変換だけを使う）
+func _collect_window_tris(node: Node, scene: Node, tris: Array[WindowTri], nodes_by_mesh: Dictionary) -> void:
+	for child in node.get_children():
+		_collect_window_tris(child, scene, tris, nodes_by_mesh)
+	if not (node is MeshInstance3D) or not (node.mesh is ArrayMesh):
+		return
+	var mesh: ArrayMesh = node.mesh
+	if nodes_by_mesh.has(mesh):
+		nodes_by_mesh[mesh].append(node)
+		return
+	nodes_by_mesh[mesh] = [node]
+	var xform := _scene_transform(node, scene)
+	for surface in mesh.get_surface_count():
+		if mesh.surface_get_primitive_type(surface) != Mesh.PRIMITIVE_TRIANGLES:
+			continue
+		var arrays := mesh.surface_get_arrays(surface)
+		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var normals = arrays[Mesh.ARRAY_NORMAL]
+		var indices = arrays[Mesh.ARRAY_INDEX]
+		var corner_count: int = vertices.size() if indices == null else indices.size()
+		for i in range(0, corner_count - 2, 3):
+			var ids := [i, i + 1, i + 2]
+			if indices != null:
+				ids = [indices[i], indices[i + 1], indices[i + 2]]
+			var tri := _make_window_tri(xform, vertices, normals, ids)
+			if tri == null:
+				continue
+			tri.mesh = mesh
+			tri.surface = surface
+			tri.index = i / 3
+			tris.append(tri)
+
+
+# 頂点番号3つから三角形を作る。つぶれた三角形は null を返す。鉛直でないときは n_h を零ベクトルにする
+func _make_window_tri(xform: Transform3D, vertices: PackedVector3Array, normals, ids: Array) -> WindowTri:
+	var tri := WindowTri.new()
+	tri.a = xform * vertices[ids[0]]
+	tri.b = xform * vertices[ids[1]]
+	tri.c = xform * vertices[ids[2]]
+	var cross := (tri.b - tri.a).cross(tri.c - tri.a)
+	if cross.length_squared() < 1e-12:
+		return null
+	# Godotは時計回りが表なので外向きは逆向き
+	tri.normal = -cross.normalized()
+	if normals != null:
+		var average := Vector3.ZERO
+		for id in ids:
+			average += xform.basis * (normals as PackedVector3Array)[id]
+		if average.dot(tri.normal) < 0.0:
+			tri.normal = -tri.normal
+	tri.center = (tri.a + tri.b + tri.c) / 3.0
+	if absf(tri.normal.y) < WINDOW_VERTICAL_MAX_Y:
+		tri.n_h = Vector3(tri.normal.x, 0.0, tri.normal.z).normalized()
+		tri.depth = tri.n_h.dot(tri.center)
+	return tri
+
+
+func _grid_cell(point: Vector3) -> Vector3i:
+	return Vector3i((point / WINDOW_GRID_CELL).floor())
+
+
+# 三角形のAABBが覆う全セルへ登録する
+func _register_in_grid(grid: Dictionary, tri: WindowTri) -> void:
+	var low := tri.a.min(tri.b).min(tri.c)
+	var high := tri.a.max(tri.b).max(tri.c)
+	var cell_low := _grid_cell(low)
+	var cell_high := _grid_cell(high)
+	for x in range(cell_low.x, cell_high.x + 1):
+		for y in range(cell_low.y, cell_high.y + 1):
+			for z in range(cell_low.z, cell_high.z + 1):
+				var key := Vector3i(x, y, z)
+				if not grid.has(key):
+					grid[key] = []
+				grid[key].append(tri)
+
+
+# 面の周りの4点すべてで、手前に同じ向きの外壁があれば窓とみなす
+func _is_window(tri: WindowTri, grid: Dictionary) -> bool:
+	var tangent := Vector3.UP.cross(tri.n_h).normalized()
+	var u_values: Array[float] = []
+	var y_values: Array[float] = []
+	for p in [tri.a, tri.b, tri.c]:
+		u_values.append(p.dot(tangent))
+		y_values.append(p.y)
+	var u_min: float = u_values.min()
+	var u_max: float = u_values.max()
+	var y_min: float = y_values.min()
+	var y_max: float = y_values.max()
+	if u_max - u_min > WINDOW_MAX_SIZE.x or y_max - y_min > WINDOW_MAX_SIZE.y:
+		return false
+	var u_mid := (u_min + u_max) * 0.5
+	var y_mid := (y_min + y_max) * 0.5
+	var probes := [
+		Vector2(u_min - WINDOW_PROBE_OFFSET, y_mid),
+		Vector2(u_max + WINDOW_PROBE_OFFSET, y_mid),
+		Vector2(u_mid, y_min - WINDOW_PROBE_OFFSET),
+		Vector2(u_mid, y_max + WINDOW_PROBE_OFFSET),
+	]
+	for probe: Vector2 in probes:
+		var point := tangent * probe.x + Vector3.UP * probe.y + tri.n_h * tri.depth
+		if not _has_wall_in_front(point, tri, grid):
+			return false
+	return true
+
+
+# 点より手前方向（WINDOW_MIN_DEPTH〜WINDOW_MAX_DEPTH）に、同じ向きの三角形が重なっているかを返す
+func _has_wall_in_front(point: Vector3, tri: WindowTri, grid: Dictionary) -> bool:
+	var near_point := point + tri.n_h * WINDOW_MIN_DEPTH
+	var far_point := point + tri.n_h * WINDOW_MAX_DEPTH
+	var cell_low := _grid_cell(near_point.min(far_point))
+	var cell_high := _grid_cell(near_point.max(far_point))
+	for x in range(cell_low.x, cell_high.x + 1):
+		for y in range(cell_low.y, cell_high.y + 1):
+			for z in range(cell_low.z, cell_high.z + 1):
+				var key := Vector3i(x, y, z)
+				if not grid.has(key):
+					continue
+				for other: WindowTri in grid[key]:
+					if _is_wall_over_point(other, point, tri):
+						return true
+	return false
+
+
+func _is_wall_over_point(other: WindowTri, point: Vector3, tri: WindowTri) -> bool:
+	if other.n_h.dot(tri.n_h) < WINDOW_SAME_FACING_DOT:
+		return false
+	var depth_diff := other.n_h.dot(other.center) - tri.depth
+	if depth_diff < WINDOW_MIN_DEPTH or depth_diff > WINDOW_MAX_DEPTH:
+		return false
+	var facing := other.normal.dot(tri.n_h)
+	if absf(facing) < 1e-6:
+		return false
+	# 点を n_h 方向に other の平面まで投影する
+	var projected := point + tri.n_h * (other.normal.dot(other.a - point) / facing)
+	return _is_inside_triangle(projected, other)
+
+
+# 点が三角形の平面上にあるとして、重心座標で内側にあるかを返す（許容誤差 1e-4）
+func _is_inside_triangle(point: Vector3, tri: WindowTri) -> bool:
+	var v0 := tri.b - tri.a
+	var v1 := tri.c - tri.a
+	var v2 := point - tri.a
+	var d00 := v0.dot(v0)
+	var d01 := v0.dot(v1)
+	var d11 := v1.dot(v1)
+	var d20 := v2.dot(v0)
+	var d21 := v2.dot(v1)
+	var denom := d00 * d11 - d01 * d01
+	if absf(denom) < 1e-12:
+		return false
+	var v := (d11 * d20 - d01 * d21) / denom
+	var w := (d00 * d21 - d01 * d20) / denom
+	var tolerance := 1e-4
+	return v >= -tolerance and w >= -tolerance and v + w <= 1.0 + tolerance
+
+
+# 窓の三角形の頂点を黒、それ以外を白にした頂点カラーを付けたメッシュをLOD付きで作り直す
+func _rebuild_mesh_with_window_colors(mesh: ArrayMesh, tris: Array) -> ArrayMesh:
+	var window_flags := {}
+	for tri: WindowTri in tris:
+		window_flags[Vector2i(tri.surface, tri.index)] = tri.is_window
+	var importer_mesh := ImporterMesh.new()
+	importer_mesh.set_lightmap_size_hint(mesh.lightmap_size_hint)
+	for surface in mesh.get_surface_count():
+		var arrays := mesh.surface_get_arrays(surface)
+		if mesh.surface_get_primitive_type(surface) == Mesh.PRIMITIVE_TRIANGLES:
+			_apply_window_colors(arrays, surface, window_flags)
+		importer_mesh.add_surface(mesh.surface_get_primitive_type(surface), arrays, [], {},
+				mesh.surface_get_material(surface), mesh.surface_get_name(surface))
+	importer_mesh.generate_lods(LOD_NORMAL_MERGE_ANGLE, LOD_NORMAL_SPLIT_ANGLE, [])
+	var new_mesh := importer_mesh.get_mesh()
+	new_mesh.resource_name = mesh.resource_name
+	return new_mesh
+
+
+# arrays に頂点カラーを付ける。窓と窓以外の両方で使う頂点だけを窓側用に複製してインデックスを付け替える（窓だけで使う頂点は複製せず黒にする）
+func _apply_window_colors(arrays: Array, surface: int, window_flags: Dictionary) -> void:
+	var vertex_count: int = (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+	var old_indices = arrays[Mesh.ARRAY_INDEX]
+	var corner_count: int = vertex_count if old_indices == null else old_indices.size()
+	var colors := PackedColorArray()
+	colors.resize(vertex_count)
+	colors.fill(Color.WHITE)
+	var new_indices := PackedInt32Array()
+	new_indices.resize(corner_count)
+	# 1周目: 頂点ごとに、窓の三角形で使われるか・窓以外の三角形で使われるかを集める
+	var used_by_window := PackedByteArray()
+	used_by_window.resize(vertex_count)
+	var used_by_other := PackedByteArray()
+	used_by_other.resize(vertex_count)
+	for i in corner_count:
+		var vertex: int = i if old_indices == null else old_indices[i]
+		if window_flags.get(Vector2i(surface, i / 3), false):
+			used_by_window[vertex] = 1
+		else:
+			used_by_other[vertex] = 1
+	# 2周目: 窓用に複製した頂点: 元の頂点番号 -> 新しい頂点番号
+	var window_copies := {}
+	for i in corner_count:
+		var vertex: int = i if old_indices == null else old_indices[i]
+		if window_flags.get(Vector2i(surface, i / 3), false):
+			if used_by_other[vertex] == 1:
+				if not window_copies.has(vertex):
+					window_copies[vertex] = _duplicate_vertex(arrays, vertex, colors, vertex_count)
+				vertex = window_copies[vertex]
+			else:
+				colors[vertex] = Color(0.0, 0.0, 0.0)
+		new_indices[i] = vertex
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_INDEX] = new_indices
+
+
+# 頂点の全属性を末尾へ複製し、窓用の黒い頂点カラーを付けて新しい頂点番号を返す
+func _duplicate_vertex(arrays: Array, vertex: int, colors: PackedColorArray, original_count: int) -> int:
+	var new_vertex := colors.size()
+	for kind in Mesh.ARRAY_MAX:
+		if kind == Mesh.ARRAY_INDEX or kind == Mesh.ARRAY_COLOR or arrays[kind] == null:
+			continue
+		var data = arrays[kind]
+		var stride: int = data.size() / original_count
+		data.append_array(data.slice(vertex * stride, (vertex + 1) * stride))
+		arrays[kind] = data
+	colors.append(Color(0.0, 0.0, 0.0))
+	return new_vertex
 
 
 # 上面と側面のテクスチャ名を指定してテクスチャ付きマテリアルを作る
