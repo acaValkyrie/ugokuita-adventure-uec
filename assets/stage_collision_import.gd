@@ -4,6 +4,9 @@ extends EditorScenePostImport
 # ステージ用GLBの取り込み時に、ローポリ版の建物を取り除き、建物・地面・オブジェクトのメッシュへ当たり判定を自動で付ける
 const COLLIDABLE_PREFIXES := ["hi_", "ground", "object", "UEC", "本館B"]
 
+# 木は機体とぶつからないが、機体の日なた判定の光線だけを遮る。そのための物理レイヤー（レイヤー3）
+const SUN_OCCLUDER_LAYER := 1 << 2
+
 # キャンパス用テクスチャのシェーダーとテクスチャの置き場所
 const SHADER_PATH := "res://assets/shaders/campus_triplanar.gdshader"
 const TEXTURE_DIR := "res://assets/textures/campus/"
@@ -54,6 +57,8 @@ func _post_import(scene: Node) -> Object:
 		_assign_materials(child, scene)
 		if _is_collidable(child.name):
 			_add_collisions(child)
+		elif child.name == "tree":
+			_add_sun_occluders(child)
 	_set_lightmap_hints(scene)
 	return scene
 
@@ -112,6 +117,20 @@ func _add_collisions(node: Node) -> void:
 		_add_collisions(child)
 	if node is MeshInstance3D:
 		node.create_trimesh_collision()
+
+
+# 木のメッシュへ、日なた判定の光線だけに当たる当たり判定を付ける
+func _add_sun_occluders(node: Node) -> void:
+	for child in node.get_children():
+		if child is StaticBody3D:
+			continue
+		_add_sun_occluders(child)
+	if node is MeshInstance3D:
+		node.create_trimesh_collision()
+		var body := node.get_child(node.get_child_count() - 1)
+		if body is StaticBody3D:
+			body.collision_layer = SUN_OCCLUDER_LAYER
+			body.collision_mask = 0
 
 
 # トップレベルのノードの種類に応じてマテリアルを割り当てる
