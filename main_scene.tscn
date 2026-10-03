@@ -61,6 +61,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.1656, 0.259146, -112.579)
 mass = 30.0
 
 [node name="LightmapGI" type="LightmapGI" parent="." unique_id=1345145907]
+quality = 2
 bounces = 2
 shadowmask_mode = 2
 light_data = ExtResource("4_8mm7a")
