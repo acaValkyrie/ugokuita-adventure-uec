@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://dxgc5cf2qo388" path="res://uec.tscn" id="2_2c62f"]
 [ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://car.tscn" id="3_d5x1h"]
 [ext_resource type="Script" uid="uid://c73kjb0wys46o" path="res://camera_3d.gd" id="3_gyfs4"]
+[ext_resource type="LightmapGIData" uid="uid://tojgoxeni2do" path="res://main_scene.lmbake" id="4_8mm7a"]
 [ext_resource type="Script" uid="uid://dhomfjn5v0vbg" path="res://robot_sun.gd" id="6_robotsun"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_gyfs4"]
@@ -41,7 +42,7 @@ light_energy = 1.3
 shadow_enabled = true
 shadow_opacity = 0.85
 
-[node name="RobotSun" type="DirectionalLight3D" parent="."]
+[node name="RobotSun" type="DirectionalLight3D" parent="." unique_id=1425039023]
 light_bake_mode = 0
 script = ExtResource("6_robotsun")
 sun_path = NodePath("../DirectionalLight3D")
@@ -59,9 +60,7 @@ environment = SubResource("Environment_nfk4m")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.1656, 0.259146, -112.579)
 mass = 30.0
 
-[node name="LightmapGI" type="LightmapGI" parent="."]
-quality = 1
+[node name="LightmapGI" type="LightmapGI" parent="." unique_id=1345145907]
 bounces = 2
-directional = false
 shadowmask_mode = 2
-use_denoiser = true
+light_data = ExtResource("4_8mm7a")
