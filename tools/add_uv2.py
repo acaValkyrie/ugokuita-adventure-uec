@@ -17,6 +17,7 @@ for ob in bpy.data.objects:
         users[ob.data] = ob
 
 processed = skipped = 0
+merged_verts = 0
 used = {"lightmap_pack": 0, "smart_project": 0}
 failed = []
 view_layer = bpy.context.view_layer
@@ -42,9 +43,13 @@ for i, me in enumerate(list(bpy.data.meshes)):
         o.select_set(False)
     ob.select_set(True)
     view_layer.objects.active = ob
+    before = len(me.vertices)
     try:
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='SELECT')
+        # CAD由来のメッシュは同じ平面の三角形でも頂点を共有せず、UV2の島が細かく分かれるため、重なった頂点をまとめる。
+        # 法線の折れ目はシャープな辺として残し、陰影は変えない
+        bpy.ops.mesh.remove_doubles(threshold=0.0001, use_sharp_edge_from_normals=True)
         bpy.ops.uv.smart_project(angle_limit=math.radians(66), margin_method='SCALED',
                                  island_margin=0.02, area_weight=0.0,
                                  correct_aspect=True, scale_to_bounds=False)
@@ -55,6 +60,7 @@ for i, me in enumerate(list(bpy.data.meshes)):
     finally:
         if ob.mode != 'OBJECT':
             bpy.ops.object.mode_set(mode='OBJECT')
+    merged_verts += before - len(me.vertices)
     me.uv_layers.active = uv2
     first.active_render = True
     uv2.active_render = False
@@ -68,5 +74,5 @@ print("exporting...", flush=True)
 bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', export_texcoords=True,
                           export_normals=True, export_materials='EXPORT', export_yup=True,
                           export_apply=False, export_extras=False, export_animations=False)
-print("SUMMARY processed=%d skipped=%d used=%s failed=%d time=%.1fs" %
-      (processed, skipped, used, len(failed), time.time() - t0))
+print("SUMMARY processed=%d skipped=%d used=%s failed=%d merged_verts=%d time=%.1fs" %
+      (processed, skipped, used, len(failed), merged_verts, time.time() - t0))
