@@ -34,13 +34,8 @@ const ASPHALT_STEEL_NODE_NAMES: Array[String] = ["Body19", "Body459", "東地区
 const CAMPUS_BORDER_SOUTH := Vector2(-58.0, 71.0)
 const CAMPUS_BORDER_NORTH := Vector2(14.0, -299.0)
 
-# 外壁を新しめの号館用・緑タイル用にする建物名（"hi_" を除く）。後で埋める
-const MODERN_BUILDINGS: Array[String] = []
-const GREEN_TILE_BUILDINGS: Array[String] = []
-
-# 建物の屋根・外壁の寸法（メートル）
-const ROOF_TILE_SIZE := 4.0
-const WALL_TILE_SIZE := Vector2(7.0, 3.5)
+# 建物の屋根・外壁の色（もとの外壁テクスチャの地の色）
+const BUILDING_COLOR := Color(0.77, 0.703, 0.621)
 
 # ライトマップ1ピクセルが覆う長さ（メートル）
 const LIGHTMAP_TEXEL_SIZE := 0.5
@@ -147,7 +142,7 @@ func _assign_materials(node: Node, scene: Node) -> void:
 	elif node_name == "UEC壁":
 		_set_override_recursive(node, _get_ground_material("wall_top_concrete"))
 	elif node_name.begins_with("hi_") or node_name.begins_with("本館B"):
-		_set_override_recursive(node, _get_building_material(node_name))
+		_set_override_recursive(node, _get_building_material())
 
 
 # 元マテリアル名を見て、サブツリー内の各サーフェスへ地面のマテリアルを割り当てる
@@ -234,18 +229,11 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 	return material
 
 
-# 建物名から屋根と外壁のマテリアルを返す（なければ作る）
-func _get_building_material(node_name: String) -> ShaderMaterial:
-	var building := node_name.trim_prefix("hi_")
-	var wall := "wall_classic"
-	if building in MODERN_BUILDINGS:
-		wall = "wall_modern"
-	elif building in GREEN_TILE_BUILDINGS:
-		wall = "wall_green_tile"
-	var key := "building_" + wall
-	if not _material_cache.has(key):
-		_material_cache[key] = _make_material("roof_concrete", wall, ROOF_TILE_SIZE, WALL_TILE_SIZE)
-	return _material_cache[key]
+# 建物の屋根・外壁をまとめて塗る単色のマテリアルを返す（なければ作る）
+func _get_building_material() -> ShaderMaterial:
+	if not _material_cache.has("building"):
+		_material_cache["building"] = _make_color_material(BUILDING_COLOR)
+	return _material_cache["building"]
 
 
 # 上面と側面のテクスチャ名を指定してテクスチャ付きマテリアルを作る
