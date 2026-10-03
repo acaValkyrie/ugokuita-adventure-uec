@@ -1,20 +1,47 @@
 extends CanvasLayer
-# 最後に使った入力方式に合わせた操作説明を画面左下に表示する。
+# 最後に使った入力方式に合わせた操作説明を、アイコン付きで画面左下に表示する。
 # キーボード・コントローラ・タッチの3モードを入力イベントで自動切替する。
 
 enum Mode { KEYBOARD, GAMEPAD, TOUCH }
 
-const TEXTS := {
-    Mode.KEYBOARD: "W / S : Accelerate / Reverse\nA / D : Steer\nArrow keys : Camera",
-    Mode.GAMEPAD: "RT / LT : Accelerate / Reverse\nLeft stick : Drive & Steer\nRight stick : Camera",
-    Mode.TOUCH: "Swipe with 1 finger : Drive\nSwipe with 2 fingers : Camera",
+const ICON_KEYS_WASD := preload("res://assets/ui/controls/keys_wasd.png")
+const ICON_KEYS_ARROWS := preload("res://assets/ui/controls/keys_arrows.png")
+const ICON_STICK_LEFT := preload("res://assets/ui/controls/stick_left.png")
+const ICON_STICK_RIGHT := preload("res://assets/ui/controls/stick_right.png")
+const ICON_TRIGGER_LT := preload("res://assets/ui/controls/trigger_lt.png")
+const ICON_TRIGGER_RT := preload("res://assets/ui/controls/trigger_rt.png")
+const ICON_SWIPE_ONE := preload("res://assets/ui/controls/swipe_one_finger.png")
+const ICON_SWIPE_TWO := preload("res://assets/ui/controls/swipe_two_fingers.png")
+
+# モードごとの表示項目 [アイコン, ラベル]
+const ITEMS := {
+    Mode.KEYBOARD: [
+        [ICON_KEYS_WASD, "Drive"],
+        [ICON_KEYS_ARROWS, "Camera"],
+    ],
+    Mode.GAMEPAD: [
+        [ICON_STICK_LEFT, "Steer"],
+        [ICON_TRIGGER_RT, "Accelerate"],
+        [ICON_TRIGGER_LT, "Reverse"],
+        [ICON_STICK_RIGHT, "Camera"],
+    ],
+    Mode.TOUCH: [
+        [ICON_SWIPE_ONE, "Drive"],
+        [ICON_SWIPE_TWO, "Camera"],
+    ],
 }
 
 # 画面端からの余白（px）
 const MARGIN := 16
+# アイコンの表示高さ（px）。幅は元画像の縦横比から決める
+const ICON_HEIGHT := 72
+# ラベルの文字サイズ
+const FONT_SIZE := 16
+# ラベルの縁取りの太さ（px）
+const OUTLINE_SIZE := 6
 
 var _mode: Mode = Mode.KEYBOARD
-var _label: Label
+var _hbox: HBoxContainer
 
 
 func _ready() -> void:
@@ -22,26 +49,17 @@ func _ready() -> void:
     if OS.has_feature("web_android") or OS.has_feature("web_ios") or OS.has_feature("mobile"):
         _mode = Mode.TOUCH
 
-    var panel := PanelContainer.new()
-    panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    # 左下に固定し、内容に合わせて上方向へ伸ばす
-    panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-    panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-    panel.offset_left = MARGIN
-    panel.offset_bottom = -MARGIN
+    _hbox = HBoxContainer.new()
+    _hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _hbox.add_theme_constant_override("separation", 20)
+    # 左下に固定し、内容に合わせて上・右方向へ伸ばす
+    _hbox.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+    _hbox.grow_vertical = Control.GROW_DIRECTION_BEGIN
+    _hbox.offset_left = MARGIN
+    _hbox.offset_bottom = -MARGIN
+    add_child(_hbox)
 
-    var style := StyleBoxFlat.new()
-    style.bg_color = Color(0, 0, 0, 0.5)
-    style.set_corner_radius_all(6)
-    style.set_content_margin_all(10)
-    panel.add_theme_stylebox_override("panel", style)
-    add_child(panel)
-
-    _label = Label.new()
-    _label.add_theme_font_size_override("font_size", 16)
-    _label.add_theme_color_override("font_color", Color.WHITE)
-    _label.text = TEXTS[_mode]
-    panel.add_child(_label)
+    _rebuild()
 
 
 func _input(event: InputEvent) -> void:
@@ -69,4 +87,41 @@ func _set_mode(mode: Mode) -> void:
     if mode == _mode:
         return
     _mode = mode
-    _label.text = TEXTS[_mode]
+    _rebuild()
+
+
+# 現在のモードの項目で HBox の中身を作り直す
+func _rebuild() -> void:
+    for child in _hbox.get_children():
+        _hbox.remove_child(child)
+        child.queue_free()
+    for item in ITEMS[_mode]:
+        _hbox.add_child(_make_item(item[0], item[1]))
+
+
+# アイコンとラベルを縦に並べた1項目を作る
+func _make_item(icon: Texture2D, text: String) -> VBoxContainer:
+    var box := VBoxContainer.new()
+    box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    box.alignment = BoxContainer.ALIGNMENT_CENTER
+    box.add_theme_constant_override("separation", 2)
+
+    var rect := TextureRect.new()
+    rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    rect.texture = icon
+    rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    var aspect := float(icon.get_width()) / float(icon.get_height())
+    rect.custom_minimum_size = Vector2(roundf(ICON_HEIGHT * aspect), ICON_HEIGHT)
+    box.add_child(rect)
+
+    var label := Label.new()
+    label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    label.text = text
+    label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    label.add_theme_font_size_override("font_size", FONT_SIZE)
+    label.add_theme_color_override("font_color", Color.WHITE)
+    label.add_theme_color_override("font_outline_color", Color.BLACK)
+    label.add_theme_constant_override("outline_size", OUTLINE_SIZE)
+    box.add_child(label)
+    return box
