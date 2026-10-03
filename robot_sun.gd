@@ -4,8 +4,8 @@ extends DirectionalLight3D
 @export var sun_path: NodePath
 # 機体
 @export var vehicle_path: NodePath
-# 木のノード（当たり判定がないので箱で影を判定する）
-@export var trees_path: NodePath
+# 日なた判定の光線を遮る物理レイヤー（建物・地面の1と、木の3）
+@export_flags_3d_physics var occluder_mask: int = 1 | 4
 # 機体だけを置く表示レイヤー
 @export_flags_3d_render var robot_layer: int = 2
 # 機体の影を描く範囲 [m]
@@ -14,8 +14,6 @@ extends DirectionalLight3D
 @export var fade_speed: float = 4.0
 
 const RAY_LENGTH := 200.0
-# これより水平方向に離れた木の箱は判定しない [m]
-const TREE_MAX_DISTANCE := 80.0
 const SAMPLE_OFFSETS := [
     Vector3(0.0, 0.15, 0.0),
     Vector3(0.2, 0.15, 0.25),
@@ -26,8 +24,6 @@ const SAMPLE_OFFSETS := [
 
 var _sun: DirectionalLight3D
 var _vehicle: VehicleBody3D
-var _tree_boxes: Array[AABB] = []
-var _tree_centers: Array[Vector3] = []
 var _lit := 1.0
 
 func _ready() -> void:
@@ -56,13 +52,6 @@ func _ready() -> void:
     _sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
     _sun.directional_shadow_max_distance = shadow_distance
 
-    var trees := get_node_or_null(trees_path)
-    if trees != null:
-        for node in trees.find_children("*", "MeshInstance3D", true, false):
-            var mi := node as MeshInstance3D
-            var box := mi.global_transform * mi.get_aabb()
-            _tree_boxes.append(box)
-            _tree_centers.append(box.get_center())
     _lit = 1.0
 
 func _physics_process(delta: float) -> void:
@@ -81,12 +70,5 @@ func _physics_process(delta: float) -> void:
 func _is_occluded(space: PhysicsDirectSpaceState3D, from: Vector3, to: Vector3) -> bool:
     var query := PhysicsRayQueryParameters3D.create(from, to)
     query.exclude = [_vehicle.get_rid()]
-    if not space.intersect_ray(query).is_empty():
-        return true
-    for i in _tree_boxes.size():
-        var c := _tree_centers[i]
-        if Vector2(c.x - from.x, c.z - from.z).length() > TREE_MAX_DISTANCE:
-            continue
-        if _tree_boxes[i].intersects_segment(from, to):
-            return true
-    return false
+    query.collision_mask = occluder_mask
+    return not space.intersect_ray(query).is_empty()
