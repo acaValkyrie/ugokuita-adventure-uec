@@ -163,6 +163,9 @@ func _assign_ground_materials(node: Node, scene: Node, under_ground: bool) -> vo
 		var kind: String = _ground_kind(source.resource_name, node, scene, under_ground)
 		if kind != "":
 			node.set_surface_override_material(i, _get_ground_material(kind))
+			# 機体の下の地面の種類（走行時の効果音の切り替えに使う）
+			if not node.has_meta("surface_kind"):
+				node.set_meta("surface_kind", kind)
 
 
 # 元マテリアル名とノードから地面の種類を返す。該当なしは空文字
