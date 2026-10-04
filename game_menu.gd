@@ -1,5 +1,5 @@
 extends CanvasLayer
-# 右上のメニューボタンと、ESC/STARTで開く一時停止メニュー。
+# 左上のメニューボタンと、ESC/STARTで開く一時停止メニュー。
 # メニュー内で全体音量を調整できる。
 
 # Master バスの既定音量（default_bus_layout.tres）
@@ -70,13 +70,13 @@ func _input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
 
 
-# 右上のメニューボタン（三本線アイコン）
+# 左上のメニューボタン（三本線アイコン）
 func _build_button() -> void:
     _menu_button = Button.new()
     _menu_button.focus_mode = Control.FOCUS_NONE
-    _menu_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-    _menu_button.offset_left = -MARGIN - BUTTON_SIZE
-    _menu_button.offset_right = -MARGIN
+    _menu_button.set_anchors_preset(Control.PRESET_TOP_LEFT)
+    _menu_button.offset_left = MARGIN
+    _menu_button.offset_right = MARGIN + BUTTON_SIZE
     _menu_button.offset_top = MARGIN
     _menu_button.offset_bottom = MARGIN + BUTTON_SIZE
     _menu_button.add_theme_stylebox_override("normal", _make_style(Color(0, 0, 0, 0.45), 12))
