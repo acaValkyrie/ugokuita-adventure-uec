@@ -42,8 +42,9 @@ main { padding-top: 32px; padding-bottom: 16px; text-align: center; }
 @media (prefers-color-scheme: dark) { .art { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18)); } }
 h1 { font-size: clamp(1.7rem, 7vw, 2.4rem); line-height: 1.25; margin: 8px 0 4px; }
 .sub { margin: 0 0 20px; color: var(--muted); font-size: 0.95rem; letter-spacing: 0.04em; }
-.badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0 0 28px; padding: 0; list-style: none; }
-.badges li { background: var(--surface); border: 1px solid var(--accent); color: var(--accent); border-radius: 999px; padding: 4px 14px; font-weight: 700; font-size: 0.95rem; }
+.badges { display: flex; flex-wrap: wrap; gap: 4px 20px; justify-content: center; margin: 0 0 28px; padding: 0; list-style: none; }
+.badges li { color: var(--text); font-weight: 700; font-size: 1rem; }
+.badges li::before { content: "✓ "; color: var(--accent); }
 .btn { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 700; font-size: 1.3rem; padding: 16px 36px; border-radius: 12px; transition: background 0.15s, transform 0.15s; max-width: 100%; }
 .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
 a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
