@@ -40,8 +40,7 @@ main, footer { max-width: 720px; margin: 0 auto; padding: 0 16px; }
 main { padding-top: 32px; padding-bottom: 16px; text-align: center; }
 .art { width: 100%; max-width: 360px; height: auto; margin: 0 auto 8px; display: block; }
 @media (prefers-color-scheme: dark) { .art { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18)); } }
-h1 { font-size: clamp(1.7rem, 7vw, 2.4rem); line-height: 1.25; margin: 8px 0 4px; }
-.sub { margin: 0 0 20px; color: var(--muted); font-size: 0.95rem; letter-spacing: 0.04em; }
+h1 { font-size: clamp(1.7rem, 7vw, 2.4rem); line-height: 1.25; margin: 8px 0 16px; }
 .badges { display: flex; flex-wrap: wrap; gap: 4px 20px; justify-content: center; margin: 0 0 28px; padding: 0; list-style: none; }
 .badges li { color: var(--text); font-weight: 700; font-size: 1rem; }
 .badges li::before { content: "✓ "; color: var(--accent); }
@@ -65,7 +64,6 @@ footer a { color: var(--accent); }
 <main>
   <img class="art" src="./ugokuita.png" width="820" height="484" alt="動く板の機体">
   <h1>動く板アドベンチャー in UEC</h1>
-  <p class="sub">Ugokuita Adventure in UEC</p>
   <ul class="badges">
     <li>ブラウザでそのまま遊べる！</li>
     <li>舞台は電気通信大学！</li>
