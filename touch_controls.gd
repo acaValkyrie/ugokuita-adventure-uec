@@ -25,7 +25,7 @@ var _origin: Vector2 = Vector2.ZERO
 var _pair: Array = []
 var _overlay: Control
 var _reset_button: TextureButton
-# リセットボタンの上で始まった指のindex（運転に使わない）
+# ボタンの上で始まった指のindex（運転に使わない）
 var _button_touches: Dictionary = {}
 
 
@@ -46,8 +46,9 @@ func _setup_reset_button() -> void:
     _reset_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
     _reset_button.mouse_filter = Control.MOUSE_FILTER_PASS
     _reset_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-    _reset_button.offset_left = -16 - 72
-    _reset_button.offset_right = -16
+    # メニューボタンの左隣に置く
+    _reset_button.offset_left = -16 - 72 - 16 - 72
+    _reset_button.offset_right = -16 - 72 - 16
     _reset_button.offset_top = 16
     _reset_button.offset_bottom = 16 + 72
     _reset_button.visible = OS.has_feature("web_android") or OS.has_feature("web_ios") \
@@ -64,14 +65,23 @@ func _on_reset_pressed() -> void:
 
 
 func _notification(what: int) -> void:
-    if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+    # フォーカス喪失や一時停止のときは全部離す
+    if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT \
+            or what == NOTIFICATION_PAUSED:
         _reset()
+
+
+# 指がボタンの上にあるか（リセット／メニュー）
+func _is_on_button(pos: Vector2) -> bool:
+    if _reset_button.visible and _reset_button.get_global_rect().has_point(pos):
+        return true
+    return GameMenu.get_button_rect().has_point(pos)
 
 
 func _input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         if event.pressed:
-            if _reset_button.visible and _reset_button.get_global_rect().has_point(event.position):
+            if _is_on_button(event.position):
                 _button_touches[event.index] = true
                 return
             _touches[event.index] = event.position
