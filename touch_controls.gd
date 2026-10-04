@@ -46,9 +46,8 @@ func _setup_reset_button() -> void:
     _reset_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
     _reset_button.mouse_filter = Control.MOUSE_FILTER_PASS
     _reset_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-    # メニューボタンの左隣に置く
-    _reset_button.offset_left = -16 - 72 - 16 - 72
-    _reset_button.offset_right = -16 - 72 - 16
+    _reset_button.offset_left = -16 - 72
+    _reset_button.offset_right = -16
     _reset_button.offset_top = 16
     _reset_button.offset_bottom = 16 + 72
     _reset_button.visible = OS.has_feature("web_android") or OS.has_feature("web_ios") \
