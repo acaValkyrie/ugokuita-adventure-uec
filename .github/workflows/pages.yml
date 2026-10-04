@@ -49,6 +49,7 @@ jobs:
           $HOME/godot/godot --headless --export-release "Web" build/web/index.html
           test -f build/web/index.html
           cp site/index.html build/index.html
+          cp site/ugokuita.png build/ugokuita.png
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

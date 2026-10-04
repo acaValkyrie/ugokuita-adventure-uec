@@ -15,7 +15,6 @@
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --on-accent: #ffffff;
-  --art: #1f2937;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -27,7 +26,6 @@
     --accent: #60a5fa;
     --accent-hover: #93c5fd;
     --on-accent: #0b1220;
-    --art: #e5e9f0;
   }
 }
 * { box-sizing: border-box; }
@@ -40,7 +38,8 @@ body {
 }
 main, footer { max-width: 720px; margin: 0 auto; padding: 0 16px; }
 main { padding-top: 32px; padding-bottom: 16px; text-align: center; }
-.art { width: 100%; max-width: 360px; height: auto; color: var(--art); margin: 0 auto 8px; display: block; }
+.art { width: 100%; max-width: 360px; height: auto; margin: 0 auto 8px; display: block; }
+@media (prefers-color-scheme: dark) { .art { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18)); } }
 h1 { font-size: clamp(1.7rem, 7vw, 2.4rem); line-height: 1.25; margin: 8px 0 4px; }
 .sub { margin: 0 0 20px; color: var(--muted); font-size: 0.95rem; letter-spacing: 0.04em; }
 .badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0 0 20px; padding: 0; list-style: none; }
@@ -64,23 +63,7 @@ footer a { color: var(--accent); }
 </head>
 <body>
 <main>
-  <svg class="art" viewBox="0 0 360 150" role="img" aria-label="車輪のついた板のイラスト" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-    <g opacity="0.45" stroke="var(--accent)">
-      <line x1="14" y1="62" x2="86" y2="62"/>
-      <line x1="30" y1="82" x2="96" y2="82"/>
-      <line x1="10" y1="102" x2="70" y2="102"/>
-    </g>
-    <polygon points="110,70 300,70 330,92 140,92" fill="var(--accent)" stroke="currentColor"/>
-    <polygon points="140,92 330,92 330,104 140,104" fill="var(--surface)" stroke="currentColor"/>
-    <polygon points="110,70 140,92 140,104 110,82" fill="var(--surface)" stroke="currentColor"/>
-    <g fill="var(--bg)">
-      <circle cx="132" cy="114" r="9"/>
-      <circle cx="318" cy="114" r="9"/>
-      <circle cx="170" cy="114" r="9"/>
-      <circle cx="280" cy="114" r="9"/>
-    </g>
-    <line x1="60" y1="132" x2="340" y2="132" opacity="0.25"/>
-  </svg>
+  <img class="art" src="./ugokuita.png" width="820" height="484" alt="動く板の機体">
   <h1>動く板アドベンチャー in UEC</h1>
   <p class="sub">Ugokuita Adventure in UEC</p>
   <ul class="badges">
