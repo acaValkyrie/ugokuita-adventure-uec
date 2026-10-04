@@ -63,7 +63,9 @@ func _input(event: InputEvent) -> void:
     if event.is_action_pressed("menu") and not event.is_echo():
         toggle()
         get_viewport().set_input_as_handled()
-    elif is_open and event.is_action_pressed("ui_cancel"):
+    # ESC は上の menu で処理済み。コントローラは B ボタンでも閉じる
+    elif is_open and (event.is_action_pressed("ui_cancel") \
+            or (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B)):
         close()
         get_viewport().set_input_as_handled()
 
