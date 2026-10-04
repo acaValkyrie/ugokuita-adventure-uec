@@ -7,6 +7,9 @@ const BASE_DB := -6.0206
 const SETTINGS_PATH := "user://settings.cfg"
 const BUTTON_SIZE := 72
 const MARGIN := 16
+# ボタンの色（リセットボタンのアイコンに合わせる）
+const RING_COLOR := Color(0.12, 0.12, 0.12)
+const FACE_COLOR := Color(0.94, 0.94, 0.93)
 const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
 
 var is_open: bool = false
@@ -79,9 +82,10 @@ func _build_button() -> void:
     _menu_button.offset_right = MARGIN + BUTTON_SIZE
     _menu_button.offset_top = MARGIN
     _menu_button.offset_bottom = MARGIN + BUTTON_SIZE
-    _menu_button.add_theme_stylebox_override("normal", _make_style(Color(0, 0, 0, 0.45), 12))
-    _menu_button.add_theme_stylebox_override("hover", _make_style(Color(0, 0, 0, 0.6), 12))
-    _menu_button.add_theme_stylebox_override("pressed", _make_style(Color(0, 0, 0, 0.75), 12))
+    # 見た目はアイコン側で描くので、ボタン自体の枠は空にする
+    var empty := StyleBoxEmpty.new()
+    for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+        _menu_button.add_theme_stylebox_override(state, empty)
     _menu_button.pressed.connect(toggle)
     add_child(_menu_button)
 
@@ -91,12 +95,24 @@ func _build_button() -> void:
     icon.draw.connect(_on_icon_draw.bind(icon))
     _menu_button.add_child(icon)
 
+    # 押している間は少し暗くする
+    _menu_button.button_down.connect(func() -> void: icon.modulate = Color(0.8, 0.8, 0.8))
+    _menu_button.button_up.connect(func() -> void: icon.modulate = Color.WHITE)
+
 
 func _on_icon_draw(icon: Control) -> void:
     var center := icon.size * 0.5
+    var r := minf(icon.size.x, icon.size.y) * 0.5 - 2.0
+    icon.draw_circle(center, r, RING_COLOR, true, -1.0, true)
+    icon.draw_circle(center, r - 6.0, FACE_COLOR, true, -1.0, true)
+    # 三本線（両端は丸める）
     for i in range(-1, 2):
-        var y := center.y + i * 15.0
-        icon.draw_line(Vector2(center.x - 18.0, y), Vector2(center.x + 18.0, y), Color.WHITE, 5.0)
+        var y := center.y + i * 10.0
+        var from := Vector2(center.x - 14.0, y)
+        var to := Vector2(center.x + 14.0, y)
+        icon.draw_line(from, to, RING_COLOR, 6.0, true)
+        icon.draw_circle(from, 3.0, RING_COLOR, true, -1.0, true)
+        icon.draw_circle(to, 3.0, RING_COLOR, true, -1.0, true)
 
 
 func _make_style(color: Color, radius: int) -> StyleBoxFlat:
