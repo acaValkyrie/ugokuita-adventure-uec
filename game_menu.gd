@@ -7,7 +7,7 @@ const BASE_DB := -6.0206
 const SETTINGS_PATH := "user://settings.cfg"
 const BUTTON_SIZE := 72
 const MARGIN := 16
-# ボタンの色（リセットボタンのアイコンに合わせる）
+# ボタンの色（操作説明のアイコンに合わせる）
 const RING_COLOR := Color(0.12, 0.12, 0.12)
 const FACE_COLOR := Color(0.94, 0.94, 0.93)
 const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
@@ -102,9 +102,14 @@ func _build_button() -> void:
 
 func _on_icon_draw(icon: Control) -> void:
     var center := icon.size * 0.5
-    var r := minf(icon.size.x, icon.size.y) * 0.5 - 2.0
-    icon.draw_circle(center, r, RING_COLOR, true, -1.0, true)
-    icon.draw_circle(center, r - 6.0, FACE_COLOR, true, -1.0, true)
+    # 角を丸めた四角（操作説明のキーアイコンに合わせる）
+    var face := StyleBoxFlat.new()
+    face.bg_color = FACE_COLOR
+    face.border_color = RING_COLOR
+    face.set_border_width_all(6)
+    face.set_corner_radius_all(14)
+    face.anti_aliasing = true
+    icon.draw_style_box(face, Rect2(Vector2(2.0, 2.0), icon.size - Vector2(4.0, 4.0)))
     # 三本線（両端は丸める）
     for i in range(-1, 2):
         var y := center.y + i * 10.0
