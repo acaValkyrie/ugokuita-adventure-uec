@@ -283,6 +283,12 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - アイコン `key_r.png`・`button_back.png`・`reset.png` を、これまでのアイコンを参考画像にしてCodexで作った。
 - 確認: 走ると約2mごとに地点が増え、横に10mずらしてから戻ると最新の地点へ、続けて押すと1つ前の地点へ戻った。スマホの画面ボタンと実際のコントローラのBackボタンでは、まだ試していない。
 
+### 16. 紹介ページの機体の絵を実際のモデルの画像にした（2026-10-04）
+
+- `site/index.html` の手描きSVGが実物と違っていたので、`assets/ugokuita-neo.glb` をGodotでレンダリングした `site/ugokuita.png`（820×484、背景透過、斜め前上から）に差し替えた。機体が黒いので、ダークモードでは白いぼかしの影を付けて背景から浮かせている。
+- レンダリングは、エディタを使わずに `Godot_v4.7.1-stable_win64.exe --path . --script <capture.gd> -- <出力.png> <向きの角度>` で行った（スクリプトはSubViewportに機体・光・カメラを置き、透過で撮って余白を切り取るだけ。リポジトリには入れていない）。
+- 公開用のワークフロー（`.github/workflows/pages.yml`）は `index.html` しかコピーしていなかったので、`ugokuita.png` もコピーするようにした。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
