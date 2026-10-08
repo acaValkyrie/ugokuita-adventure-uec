@@ -363,6 +363,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - `robot_merge_import.gd` に `MATERIAL_OVERRIDES`（取り込み元のファイル名 → マテリアルの名前 → 差し替え先）を追加し、Classic の `Oak` を取り込み時に差し替える。
 - 確認: 取り込み直すと `Merged_46` の Oak が差し替わった。日なたでは木目が見える。日陰では機体用の光が消えて環境光だけになるため、灰色っぽく見える。
 - Livox Mid-70 の視野（FOV）を示す形状（`Body342`）は、取り込み時に取り除く（`REMOVE_NODES`）。センサー本体は残す。試しに使った OBJ と `.mtl` は削除した。
+- 後方の板の下に付いている3Dプリント部品（`Version_2_Complete v11` の3つ）の色を、黄色からオレンジ（#ff7f00）に変えた（`NODE_COLORS`）。マテリアル名が白い部品と同じ「ABS (White)」なので、名前ではなくノードのパスで指定し、マテリアルを複製して色だけ変える。
 
 ## まだやっていないこと
 
