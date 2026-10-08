@@ -1,7 +1,8 @@
 extends CanvasLayer
 # スマホ用タッチ操作。
 # 一本指スワイプで運転（既存アクション up/down/left/right）、
-# 二本指スワイプで視点移動（既存アクション view_*）を行う。
+# 二本指スワイプで視点移動（既存アクション view_*）、
+# ダブルタップでジャンプ（アクション jump）を行う。
 
 # この距離（px）ドラッグしたときの強さが1.0
 @export var STICK_RADIUS: float = 80.0
@@ -9,6 +10,10 @@ extends CanvasLayer
 @export var DEADZONE: float = 0.15
 # 表示用のノブの半径（px）
 @export var KNOB_RADIUS: float = 30.0
+# ダブルタップとみなす、1回目と2回目のタッチ開始の間隔（秒）
+@export var DOUBLE_TAP_TIME: float = 0.3
+# ダブルタップとみなす、1回目と2回目のタッチ開始位置の距離（px）
+@export var DOUBLE_TAP_DISTANCE: float = 60.0
 
 const RESET_ICON := preload("res://assets/ui/controls/reset.png")
 
@@ -27,6 +32,9 @@ var _overlay: Control
 var _reset_button: TextureButton
 # ボタンの上で始まった指のindex（運転に使わない）
 var _button_touches: Dictionary = {}
+# 直前の1本指タッチの開始時刻（ミリ秒、-1は無し）と位置
+var _last_tap_msec: int = -1
+var _last_tap_pos: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -63,6 +71,26 @@ func _on_reset_pressed() -> void:
     Input.action_release("respawn")
 
 
+# 何も触れていない状態から始まったタッチが、直前のタッチの近くで素早く続いたらジャンプする
+func _check_double_tap(pos: Vector2) -> void:
+    var now := Time.get_ticks_msec()
+    if _last_tap_msec >= 0 and now - _last_tap_msec <= DOUBLE_TAP_TIME * 1000.0 \
+            and pos.distance_to(_last_tap_pos) <= DOUBLE_TAP_DISTANCE:
+        # 3回目のタップで再びジャンプしないよう記録を消す
+        _last_tap_msec = -1
+        _press_jump()
+        return
+    _last_tap_msec = now
+    _last_tap_pos = pos
+
+
+func _press_jump() -> void:
+    # 次のフレームで離して is_action_just_pressed を成立させる
+    Input.action_press("jump")
+    await get_tree().process_frame
+    Input.action_release("jump")
+
+
 func _notification(what: int) -> void:
     # フォーカス喪失や一時停止のときは全部離す
     if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT \
@@ -83,6 +111,8 @@ func _input(event: InputEvent) -> void:
             if _is_on_button(event.position):
                 _button_touches[event.index] = true
                 return
+            if _touches.is_empty():
+                _check_double_tap(event.position)
             _touches[event.index] = event.position
         else:
             if _button_touches.erase(event.index):
@@ -198,6 +228,7 @@ func _release_all() -> void:
 func _reset() -> void:
     _touches.clear()
     _button_touches.clear()
+    _last_tap_msec = -1
     _pair = []
     _mode = Mode.NONE
     _release_all()
