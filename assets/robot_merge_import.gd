@@ -30,6 +30,14 @@ const MATERIAL_OVERRIDES := {
 	},
 }
 
+# 取り込み元のファイル名 → 取り除くノードのパス（ゲームで見せない部品）
+const REMOVE_NODES := {
+	"ugokuita-classic.fbx": [
+		# Livox Mid-70 の視野（FOV）を示す形状。センサー本体は残す
+		"MainFrame - Reverse Prototype v12/Livox Mid-70 3D Model and FOV Shape v4_1/Livox Mid-70 3D Model and FOV Shape v4/Body342",
+	],
+}
+
 # 残すノード（サブツリー全体と、その祖先）
 var _keep := {}
 # マテリアルの名前 → 差し替え先として読み込んだマテリアル
@@ -53,6 +61,16 @@ func _post_import(scene: Node) -> Object:
 	if not KEEP_SUBTREES.has(source_name):
 		push_error("robot_merge_import: 残すノードの設定が無いためまとめを中止する: %s" % source_name)
 		return scene
+	# ゲームで見せない部品を取り除く
+	var removed_count := 0
+	for path in REMOVE_NODES.get(source_name, []):
+		var target := scene.get_node_or_null(NodePath(path))
+		if target == null:
+			push_warning("robot_merge_import: 取り除くノードが見つからないため飛ばす: %s" % path)
+			continue
+		target.get_parent().remove_child(target)
+		target.free()
+		removed_count += 1
 	# 残すノードのパスが取り込み後のシーンに存在するか確かめる。1つでも無ければ何も変えない
 	for path in KEEP_SUBTREES[source_name]:
 		var node := scene.get_node_or_null(NodePath(path))
@@ -116,7 +134,7 @@ func _post_import(scene: Node) -> Object:
 	for mi in scene.find_children("*", "MeshInstance3D", true, false):
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 
-	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、差し替えたマテリアル %d 面" % [sources.size(), merged_count, kept_count, lod_count, _override_count])
+	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、差し替えたマテリアル %d 面、取り除いた部品 %d 個" % [sources.size(), merged_count, kept_count, lod_count, _override_count, removed_count])
 	return scene
 
 
