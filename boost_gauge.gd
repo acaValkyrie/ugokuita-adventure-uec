@@ -7,6 +7,9 @@ const RADIUS := 40.0
 const RING_WIDTH := 8.0
 # 画面端からの余白（px）
 const MARGIN := 16.0
+# ゲージの横に出すボタンのアイコンの高さ [px]
+const HINT_HEIGHT := 44.0
+const HINT_GAP := 8.0
 const FONT_SIZE := 14
 # 文字の縁取りの太さ（px）
 const OUTLINE_SIZE := 6
@@ -15,6 +18,7 @@ const COLOR_CHARGING := Color(1, 1, 1, 0.85)
 const COLOR_FULL := Color(1.0, 0.6, 0.1)
 
 var _view: Control
+var _hint: TextureRect
 var _gauge := 0.0
 var _touch_enabled := false
 
@@ -31,6 +35,13 @@ func _ready() -> void:
     _view.offset_top = -(MARGIN + diameter)
     _view.draw.connect(_on_view_draw)
     add_child(_view)
+    # ブーストのボタンのアイコン（入力方式とコントローラの表記に合わせる）
+    _hint = TextureRect.new()
+    _hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _hint.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    _hint.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    _hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+    add_child(_hint)
     _touch_enabled = OS.has_feature("web_android") or OS.has_feature("web_ios") \
             or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
 
@@ -40,6 +51,19 @@ func _process(_delta: float) -> void:
     _view.visible = car != null
     if car:
         _gauge = car.boost_gauge
+    var icon: Texture2D = ControlsHelp.get_boost_icon() if car != null else null
+    _hint.visible = icon != null
+    if icon:
+        _hint.texture = icon
+        # リングの左に、リングと縦の中心をそろえて置く
+        var width := HINT_HEIGHT * icon.get_width() / icon.get_height()
+        var diameter := 2.0 * (RADIUS + RING_WIDTH / 2.0)
+        _hint.offset_right = -(MARGIN + diameter + HINT_GAP)
+        _hint.offset_left = _hint.offset_right - width
+        _hint.offset_bottom = -(MARGIN + (diameter - HINT_HEIGHT) / 2.0)
+        _hint.offset_top = _hint.offset_bottom - HINT_HEIGHT
+        # ゲージが満タンになるまでは薄くして、まだ使えないことを示す
+        _hint.modulate.a = 1.0 if _gauge >= 1.0 else 0.4
     _view.queue_redraw()
 
 

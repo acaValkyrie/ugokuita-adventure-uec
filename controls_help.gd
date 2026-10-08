@@ -36,7 +36,6 @@ const ITEMS := {
         [ICON_KEYS_WASD, "Drive"],
         [ICON_KEYS_ARROWS, "Camera"],
         [ICON_KEY_SPACE, "Jump", 0.6],
-        [ICON_KEY_SHIFT, "Boost", 0.6],
         [ICON_KEY_R, "Reset", 0.6],
     ],
     Mode.TOUCH: [
@@ -146,9 +145,18 @@ func _items_for(mode: Mode) -> Array:
         [icons.lt, "Reverse"],
         [ICON_STICK_RIGHT, "Camera"],
         [icons.jump, "Jump", 0.8],
-        [icons.boost, "Boost", 0.8],
         [icons.reset, "Reset", 0.8],
     ]
+
+
+# ブーストのボタンのアイコン（ブーストのゲージの横に出す）。タッチはゲージ自体がボタンなので null
+func get_boost_icon() -> Texture2D:
+    match _mode:
+        Mode.KEYBOARD:
+            return ICON_KEY_SHIFT
+        Mode.GAMEPAD:
+            return PAD_ICONS[GameMenu.pad_layout]["boost"]
+    return null
 
 
 # 現在のモードの項目で HBox の中身を作り直す
