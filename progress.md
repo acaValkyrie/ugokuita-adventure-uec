@@ -362,6 +362,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - Poly Haven の `oak_veneer_03`（CC0、1k の色・法線・粗さ）を `assets/textures/oak_veneer_03/` に置いた。マテリアル `oak_veneer_03.tres` は3方向投影（triplanar）で、実寸どおり1mに1枚の割合で貼る。
 - `robot_merge_import.gd` に `MATERIAL_OVERRIDES`（取り込み元のファイル名 → マテリアルの名前 → 差し替え先）を追加し、Classic の `Oak` を取り込み時に差し替える。
 - 確認: 取り込み直すと `Merged_46` の Oak が差し替わった。日なたでは木目が見える。日陰では機体用の光が消えて環境光だけになるため、灰色っぽく見える。
+- Livox Mid-70 の視野（FOV）を示す形状（`Body342`）は、取り込み時に取り除く（`REMOVE_NODES`）。センサー本体は残す。試しに使った OBJ と `.mtl` は削除した。
 
 ## まだやっていないこと
 
