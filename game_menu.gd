@@ -26,12 +26,15 @@ var _slider: HSlider
 var _volume_label: Label
 var _pad_buttons: Array[Button] = []
 var _player: AudioStreamPlayer
+# メニューを閉じたときの物理フレーム番号
+var _closed_physics_frame: int = -100
 
 
 func _ready() -> void:
     layer = 20
     process_mode = Node.PROCESS_MODE_ALWAYS
     _load_settings()
+    _apply_pad_buttons()
     _apply_volume()
     _build_button()
     _build_menu()
@@ -61,6 +64,7 @@ func close() -> void:
     is_open = false
     _dimmer.visible = false
     get_tree().paused = false
+    _closed_physics_frame = Engine.get_physics_frames()
 
 
 func toggle() -> void:
@@ -70,13 +74,17 @@ func toggle() -> void:
         open()
 
 
+# 閉じた直後か。閉じるのに使ったボタンがジャンプ・ブーストと同じとき、再開した瞬間に発動させないために使う
+func is_just_closed() -> bool:
+    return Engine.get_physics_frames() - _closed_physics_frame <= 1
+
+
 func _input(event: InputEvent) -> void:
     if event.is_action_pressed("menu") and not event.is_echo():
         toggle()
         get_viewport().set_input_as_handled()
-    # ESC は上の menu で処理済み。コントローラは B ボタンでも閉じる
-    elif is_open and (event.is_action_pressed("ui_cancel") \
-            or (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B)):
+    # ESC は上の menu で処理済み。コントローラはキャンセルのボタン（表記ごとに違う）で閉じる
+    elif is_open and event.is_action_pressed("ui_cancel"):
         close()
         get_viewport().set_input_as_handled()
 
@@ -236,8 +244,28 @@ func _on_pad_layout_pressed(layout: String) -> void:
     if layout == pad_layout:
         return
     pad_layout = layout
+    _apply_pad_buttons()
     _save_settings()
     pad_layout_changed.emit(pad_layout)
+
+
+# 決定・キャンセルのボタンを表記に合わせる（任天堂・PSは右が決定で下がキャンセル、Xboxは下が決定で右がキャンセル）
+func _apply_pad_buttons() -> void:
+    var confirm := JOY_BUTTON_A if pad_layout == "xbox" else JOY_BUTTON_B
+    var cancel := JOY_BUTTON_B if pad_layout == "xbox" else JOY_BUTTON_A
+    _set_joy_button("ui_accept", confirm)
+    _set_joy_button("ui_cancel", cancel)
+
+
+# アクションのゲームパッドのボタン割り当てを1つに置き換える（キーボードの割り当ては残す）
+func _set_joy_button(action: StringName, button: JoyButton) -> void:
+    for event in InputMap.action_get_events(action):
+        if event is InputEventJoypadButton:
+            InputMap.action_erase_event(action, event)
+    var joy := InputEventJoypadButton.new()
+    joy.device = -1
+    joy.button_index = button
+    InputMap.action_add_event(action, joy)
 
 
 func _on_volume_changed(value: float) -> void:
