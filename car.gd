@@ -82,64 +82,158 @@ func _is_on_ground() -> bool:
     return false
 
 
-# 見た目のタイヤ（ugokuita-neo内）を物理ホイールの回転・ステアリング・サスペンションに合わせて動かす
-# group: 上下とステアリングで動かすキャスター部分（前輪のみ。後輪は空で部品を直接動かす）
-# parts: 1つ目がタイヤ、2つ目がハブ（回転する部品）
-const WHEELS := {
-    "VehicleWheel3D_FL": {
-        "group": "Main Frame III v42/4944825545635 v13_1/4944825545635 v13",
-        "parts": [
-            "Main Frame III v42/4944825545635 v13_1/4944825545635 v13/Wheel",
-            "Main Frame III v42/4944825545635 v13_1/4944825545635 v13/Body85",
-        ],
+# 機体ごとの設定。見た目のタイヤを物理ホイールの回転・ステアリング・サスペンションに合わせて動かす
+# node: 機体のノード名（neo は car.tscn に最初から置いてある）
+# scene / transform: 初めて選ばれたときに読み込んで add_child する機体のシーンと位置
+# wheels の group: 上下とステアリングで動かすキャスター部分（前輪のみ。後輪は空で部品を直接動かす）
+# wheels の parts: 1つ目がタイヤ、残りはタイヤと一緒に動く部品
+const MODELS := {
+    "neo": {
+        "node": "ugokuita-neo",
+        "wheels": {
+            "VehicleWheel3D_FL": {
+                "group": "Main Frame III v42/4944825545635 v13_1/4944825545635 v13",
+                "parts": [
+                    "Main Frame III v42/4944825545635 v13_1/4944825545635 v13/Wheel",
+                    "Main Frame III v42/4944825545635 v13_1/4944825545635 v13/Body85",
+                ],
+            },
+            "VehicleWheel3D_FR": {
+                "group": "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)",
+                "parts": [
+                    "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)/Body1_029",
+                    "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)/Body2_011",
+                ],
+            },
+            "VehicleWheel3D_BL": {
+                "group": "",
+                "parts": [
+                    "Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body48",
+                    "Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body1_001",
+                ],
+            },
+            "VehicleWheel3D_BR": {
+                "group": "",
+                "parts": [
+                    "Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body2_008",
+                    "Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body1_024",
+                ],
+            },
+        },
     },
-    "VehicleWheel3D_FR": {
-        "group": "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)",
-        "parts": [
-            "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)/Body1_029",
-            "Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)/Body2_011",
-        ],
-    },
-    "VehicleWheel3D_BL": {
-        "group": "",
-        "parts": [
-            "Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body48",
-            "Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body1_001",
-        ],
-    },
-    "VehicleWheel3D_BR": {
-        "group": "",
-        "parts": [
-            "Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body2_008",
-            "Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body1_024",
-        ],
+    "classic": {
+        "node": "ugokuita-classic",
+        "scene": "res://assets/ugokuita-classic.fbx",
+        # 前がモデルの -Z なので Y 軸まわりに180度回し、車体の中心とタイヤの接地高さを Neo に合わせる
+        "transform": Transform3D(Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(0.17, -0.240647, -0.2527)),
+        "wheels": {
+            "VehicleWheel3D_FL": {
+                "group": "MainFrame - Reverse Prototype v12/STM-100 VS v4_1/STM-100 VS v4",
+                "parts": ["MainFrame - Reverse Prototype v12/STM-100 VS v4_1/STM-100 VS v4/2_PART_100VS100VS_in_ASM_STM_100_VS_1/2_PART_100VS100VS_in_ASM_STM_100_VS/Body149"],
+            },
+            "VehicleWheel3D_FR": {
+                "group": "MainFrame - Reverse Prototype v12/STM-100 VS v4_2/STM-100 VS v42",
+                "parts": ["MainFrame - Reverse Prototype v12/STM-100 VS v4_2/STM-100 VS v42/2_PART_100VS100VS_in_ASM_STM_100_VS_12/2_PART_100VS100VS_in_ASM_STM_100_VS2/Body153"],
+            },
+            "VehicleWheel3D_BL": {
+                "group": "",
+                "parts": [
+                    "MainFrame - Reverse Prototype v12/350W Hub Motor v10_1/350W Hub Motor v10/Body32",
+                    "MainFrame - Reverse Prototype v12/350W Hub Motor v10_1/350W Hub Motor v10/Body62",
+                    "MainFrame - Reverse Prototype v12/350W Hub Motor v10_1/350W Hub Motor v10/Body9",
+                    "MainFrame - Reverse Prototype v12/350W Hub Motor v10_1/350W Hub Motor v10/Body102",
+                ],
+            },
+            "VehicleWheel3D_BR": {
+                "group": "",
+                "parts": [
+                    "MainFrame - Reverse Prototype v12/350W Hub Motor v10_2/350W Hub Motor v102/Body34",
+                    "MainFrame - Reverse Prototype v12/350W Hub Motor v10_2/350W Hub Motor v102/Body63",
+                    "MainFrame - Reverse Prototype v12/350W Hub Motor v10_2/350W Hub Motor v102/Body92",
+                    "MainFrame - Reverse Prototype v12/350W Hub Motor v10_2/350W Hub Motor v102/Body103",
+                ],
+            },
+        },
     },
 }
 
 # ステアリングの見た目の向き（左入力でsteering > 0）
 const STEER_SIGN := 1.0
 
-# {wheel, group, group_rest, group_pivot, parts: [{node, rest}], pivot, axis, angle, tire_center_body}
+# 今表示している機体のキー（MODELS）と、読み込み済みの機体（キー → Node3D）
+var _model_key: String = ""
+var _models: Dictionary = {}
+# {wheel, group, group_rest, group_pivot, parts: [{node, rest}], pivot, axis, angle, tire_center_body, tire_radius}
 var _visual_wheels: Array[Dictionary] = []
 
 func _ready() -> void:
     add_to_group("player")
     _setup_run_sound()
-    var model := get_node_or_null("ugokuita-neo")
-    if model == null:
-        push_warning("ugokuita-neo が見つからない")
+    _models["neo"] = get_node_or_null("ugokuita-neo")
+    set_robot_model(GameMenu.robot_model)
+    # 選んだ機体を読み込めなかったときは Neo で表示する
+    if _model_key == "":
+        set_robot_model("neo")
+    GameMenu.robot_model_changed.connect(set_robot_model)
+
+
+# 見た目の機体を切り替える。初めて選ばれた機体はこのときに読み込む
+func set_robot_model(key: String) -> void:
+    if not MODELS.has(key):
+        push_warning("未知の機体: %s" % key)
         return
+    if key == _model_key:
+        return
+    var config: Dictionary = MODELS[key]
+    if not _models.has(key) or _models[key] == null:
+        var packed := load(config["scene"]) as PackedScene
+        if packed == null:
+            push_warning("機体を読み込めない: %s" % config["scene"])
+            return
+        var instance := packed.instantiate() as Node3D
+        instance.name = config["node"]
+        instance.transform = config["transform"]
+        add_child(instance)
+        _models[key] = instance
+    var model: Node3D = _models[key]
+    if _model_key == "":
+        # 最初の呼び出し。選ばれなかった機体（car.tscn に置いてある neo など）を隠す
+        for other_key in _models:
+            if other_key != key and _models[other_key] != null:
+                _models[other_key].visible = false
+    else:
+        # 今の機体の車輪を元の位置に戻してから隠す（再表示のときに rest を取り直す）
+        _reset_visual_wheels()
+        (_models[_model_key] as Node3D).visible = false
+    model.visible = true
+    _setup_visual_wheels(model, config["wheels"])
+    _model_key = key
+
+
+# 動かした見た目のタイヤを記録済みの rest の位置に戻す
+func _reset_visual_wheels() -> void:
+    for w in _visual_wheels:
+        var group: Node3D = w["group"]
+        if group != null:
+            group.transform = w["group_rest"]
+        for part in w["parts"]:
+            part["node"].transform = part["rest"]
+
+
+func _setup_visual_wheels(model: Node3D, wheels: Dictionary) -> void:
+    _visual_wheels.clear()
     var body_inv := global_transform.affine_inverse()
-    for wheel_name in WHEELS:
+    for wheel_name in wheels:
         var wheel := get_node_or_null(NodePath(wheel_name)) as VehicleWheel3D
         if wheel == null:
             push_warning("%s が見つからない" % wheel_name)
             continue
-        var info: Dictionary = WHEELS[wheel_name]
+        var info: Dictionary = wheels[wheel_name]
         var parts: Array[Dictionary] = []
         var pivot := Vector3.ZERO
         var axis := Vector3.RIGHT
         var tire_center_body := Vector3.ZERO
+        var tire_radius := 0.0
         var group_pivot := Vector3.ZERO
         var moved_parent: Node3D = null
         var group: Node3D = null
@@ -161,6 +255,8 @@ func _ready() -> void:
                 axis = (parent.global_basis.inverse() * global_basis.x).normalized()
                 var center_global := (node.global_transform * node.get_aabb()).get_center()
                 tire_center_body = body_inv * center_global
+                # 見た目のタイヤの半径（AABBの高さの半分）。下端を物理ホイールの下端に合わせるのに使う
+                tire_radius = (node.global_transform * node.get_aabb()).size.y * 0.5
                 if group != null:
                     group_pivot = group.get_parent().global_transform.affine_inverse() * center_global
         if parts.is_empty():
@@ -174,6 +270,7 @@ func _ready() -> void:
             "group_rest": group.transform if group != null else Transform3D.IDENTITY,
             "group_pivot": group_pivot, "parts": parts, "pivot": pivot, "axis": axis,
             "angle": 0.0, "tire_center_body": tire_center_body,
+            "tire_radius": tire_radius,
         })
 
 func _setup_run_sound() -> void:
@@ -203,8 +300,8 @@ func _process(delta: float) -> void:
     var body_inv := global_transform.affine_inverse()
     for w in _visual_wheels:
         var wheel: VehicleWheel3D = w["wheel"]
-        # 見た目のタイヤ中心の車体上下位置を物理ホイール中心に合わせる
-        var dy: float = (body_inv * wheel.global_position).y - w["tire_center_body"].y
+        # 見た目のタイヤの下端を物理ホイールの下端に合わせる（タイヤの半径が違っても浮かない）
+        var dy: float = (body_inv * wheel.global_position).y - wheel.wheel_radius + w["tire_radius"] - w["tire_center_body"].y
         var moved_parent: Node3D = w["moved_parent"]
         var to_local := moved_parent.global_basis.inverse()
         var offset_local: Vector3 = to_local * (global_basis * Vector3(0.0, dy, 0.0))
