@@ -19,6 +19,16 @@ const ICON_BUTTON_A := preload("res://assets/ui/controls/button_a.png")
 const ICON_DOUBLE_TAP := preload("res://assets/ui/controls/double_tap.png")
 const ICON_KEY_SHIFT := preload("res://assets/ui/controls/key_shift.png")
 const ICON_BUTTON_X := preload("res://assets/ui/controls/button_x.png")
+const ICON_BUTTON_B := preload("res://assets/ui/controls/button_b.png")
+const ICON_BUTTON_Y := preload("res://assets/ui/controls/button_y.png")
+const ICON_TRIGGER_ZR := preload("res://assets/ui/controls/trigger_zr.png")
+const ICON_TRIGGER_ZL := preload("res://assets/ui/controls/trigger_zl.png")
+const ICON_BUTTON_MINUS := preload("res://assets/ui/controls/button_minus.png")
+const ICON_BUTTON_CROSS := preload("res://assets/ui/controls/button_cross.png")
+const ICON_BUTTON_SQUARE := preload("res://assets/ui/controls/button_square.png")
+const ICON_TRIGGER_R2 := preload("res://assets/ui/controls/trigger_r2.png")
+const ICON_TRIGGER_L2 := preload("res://assets/ui/controls/trigger_l2.png")
+const ICON_BUTTON_CREATE := preload("res://assets/ui/controls/button_create.png")
 
 # モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
 const ITEMS := {
@@ -29,20 +39,29 @@ const ITEMS := {
         [ICON_KEY_SHIFT, "Boost", 0.6],
         [ICON_KEY_R, "Reset", 0.6],
     ],
-    Mode.GAMEPAD: [
-        [ICON_STICK_LEFT, "Steer"],
-        [ICON_TRIGGER_RT, "Accelerate"],
-        [ICON_TRIGGER_LT, "Reverse"],
-        [ICON_STICK_RIGHT, "Camera"],
-        [ICON_BUTTON_A, "Jump", 0.8],
-        [ICON_BUTTON_X, "Boost", 0.8],
-        [ICON_BUTTON_BACK, "Reset", 0.8],
-    ],
     Mode.TOUCH: [
         [ICON_SWIPE_ONE, "Drive"],
         [ICON_SWIPE_TWO, "Camera"],
         [ICON_DOUBLE_TAP, "Jump"],
     ],
+}
+
+# コントローラのボタン表記ごとのアイコン。
+# Godot のボタン番号は位置で決まるため（下のボタン＝ジャンプ、左のボタン＝ブースト、
+# 左側の小さいボタン＝リセット）、表記が変わっても操作は同じでアイコンだけが変わる。
+const PAD_ICONS := {
+    "nintendo": {
+        "rt": ICON_TRIGGER_ZR, "lt": ICON_TRIGGER_ZL,
+        "jump": ICON_BUTTON_B, "boost": ICON_BUTTON_Y, "reset": ICON_BUTTON_MINUS,
+    },
+    "playstation": {
+        "rt": ICON_TRIGGER_R2, "lt": ICON_TRIGGER_L2,
+        "jump": ICON_BUTTON_CROSS, "boost": ICON_BUTTON_SQUARE, "reset": ICON_BUTTON_CREATE,
+    },
+    "xbox": {
+        "rt": ICON_TRIGGER_RT, "lt": ICON_TRIGGER_LT,
+        "jump": ICON_BUTTON_A, "boost": ICON_BUTTON_X, "reset": ICON_BUTTON_BACK,
+    },
 }
 
 # 画面端からの余白（px）
@@ -74,6 +93,18 @@ func _ready() -> void:
     add_child(_hbox)
 
     _rebuild()
+    # GameMenu はこのノードより後に追加される Autoload なので、全 Autoload の準備後に接続する
+    _connect_menu.call_deferred()
+
+
+func _connect_menu() -> void:
+    GameMenu.pad_layout_changed.connect(_on_pad_layout_changed)
+    # 読み込んだ設定を反映する
+    _rebuild()
+
+
+func _on_pad_layout_changed(_layout: String) -> void:
+    _rebuild()
 
 
 func _input(event: InputEvent) -> void:
@@ -104,12 +135,28 @@ func _set_mode(mode: Mode) -> void:
     _rebuild()
 
 
+# モードごとの表示項目を返す。コントローラは選択中のボタン表記で組み立てる
+func _items_for(mode: Mode) -> Array:
+    if mode != Mode.GAMEPAD:
+        return ITEMS[mode]
+    var icons: Dictionary = PAD_ICONS[GameMenu.pad_layout]
+    return [
+        [ICON_STICK_LEFT, "Steer"],
+        [icons.rt, "Accelerate"],
+        [icons.lt, "Reverse"],
+        [ICON_STICK_RIGHT, "Camera"],
+        [icons.jump, "Jump", 0.8],
+        [icons.boost, "Boost", 0.8],
+        [icons.reset, "Reset", 0.8],
+    ]
+
+
 # 現在のモードの項目で HBox の中身を作り直す
 func _rebuild() -> void:
     for child in _hbox.get_children():
         _hbox.remove_child(child)
         child.queue_free()
-    for item in ITEMS[_mode]:
+    for item in _items_for(_mode):
         var icon_scale: float = item[2] if item.size() > 2 else 1.0
         _hbox.add_child(_make_item(item[0], item[1], icon_scale))
 
