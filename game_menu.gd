@@ -1,6 +1,8 @@
 extends CanvasLayer
 # 左上のメニューボタンと、ESC/STARTで開く一時停止メニュー。
-# メニュー内で全体音量を調整できる。
+# メニュー内で全体音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）を選べる。
+
+signal pad_layout_changed(layout: String)
 
 # Master バスの既定音量（default_bus_layout.tres）
 const BASE_DB := -6.0206
@@ -11,13 +13,18 @@ const MARGIN := 16
 const RING_COLOR := Color(0.12, 0.12, 0.12)
 const FACE_COLOR := Color(0.94, 0.94, 0.93)
 const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
+# 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
+const PAD_LAYOUTS := ["nintendo", "playstation", "xbox"]
+const PAD_LAYOUT_NAMES := ["Nintendo", "PlayStation", "Xbox"]
 
 var is_open: bool = false
+var pad_layout: String = "nintendo"
 var _volume: int = 100
 var _menu_button: Button
 var _dimmer: ColorRect
 var _slider: HSlider
 var _volume_label: Label
+var _pad_buttons: Array[Button] = []
 var _player: AudioStreamPlayer
 
 
@@ -31,6 +38,7 @@ func _ready() -> void:
     # 起動時の初期表示では保存を走らせない
     _slider.set_value_no_signal(_volume)
     _volume_label.text = "%d%%" % _volume
+    _pad_buttons[PAD_LAYOUTS.find(pad_layout)].set_pressed_no_signal(true)
 
 
 func get_button_rect() -> Rect2:
@@ -186,6 +194,26 @@ func _build_menu() -> void:
     test_button.pressed.connect(_on_test_pressed)
     row.add_child(test_button)
 
+    var pad_title := Label.new()
+    pad_title.text = "Controller"
+    pad_title.add_theme_font_size_override("font_size", 20)
+    vbox.add_child(pad_title)
+
+    var pad_row := HBoxContainer.new()
+    pad_row.add_theme_constant_override("separation", 12)
+    vbox.add_child(pad_row)
+
+    var pad_group := ButtonGroup.new()
+    for i in PAD_LAYOUTS.size():
+        var pad_button := Button.new()
+        pad_button.text = PAD_LAYOUT_NAMES[i]
+        pad_button.toggle_mode = true
+        pad_button.button_group = pad_group
+        pad_button.add_theme_font_size_override("font_size", 20)
+        pad_button.pressed.connect(_on_pad_layout_pressed.bind(PAD_LAYOUTS[i]))
+        pad_row.add_child(pad_button)
+        _pad_buttons.append(pad_button)
+
     var close_button := Button.new()
     close_button.text = "Close"
     close_button.add_theme_font_size_override("font_size", 20)
@@ -202,6 +230,14 @@ func _build_menu() -> void:
 func _on_test_pressed() -> void:
     _player.stop()
     _player.play()
+
+
+func _on_pad_layout_pressed(layout: String) -> void:
+    if layout == pad_layout:
+        return
+    pad_layout = layout
+    _save_settings()
+    pad_layout_changed.emit(pad_layout)
 
 
 func _on_volume_changed(value: float) -> void:
@@ -226,9 +262,13 @@ func _load_settings() -> void:
     if config.load(SETTINGS_PATH) != OK:
         return
     _volume = clampi(int(config.get_value("audio", "volume", 100)), 0, 100)
+    var layout := str(config.get_value("controls", "pad_layout", "nintendo"))
+    if layout in PAD_LAYOUTS:
+        pad_layout = layout
 
 
 func _save_settings() -> void:
     var config := ConfigFile.new()
     config.set_value("audio", "volume", _volume)
+    config.set_value("controls", "pad_layout", pad_layout)
     config.save(SETTINGS_PATH)
