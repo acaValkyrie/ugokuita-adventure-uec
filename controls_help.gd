@@ -17,6 +17,8 @@ const ICON_BUTTON_BACK := preload("res://assets/ui/controls/button_back.png")
 const ICON_KEY_SPACE := preload("res://assets/ui/controls/key_space.png")
 const ICON_BUTTON_A := preload("res://assets/ui/controls/button_a.png")
 const ICON_DOUBLE_TAP := preload("res://assets/ui/controls/double_tap.png")
+const ICON_KEY_SHIFT := preload("res://assets/ui/controls/key_shift.png")
+const ICON_BUTTON_X := preload("res://assets/ui/controls/button_x.png")
 
 # モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
 const ITEMS := {
@@ -24,6 +26,7 @@ const ITEMS := {
         [ICON_KEYS_WASD, "Drive"],
         [ICON_KEYS_ARROWS, "Camera"],
         [ICON_KEY_SPACE, "Jump", 0.6],
+        [ICON_KEY_SHIFT, "Boost", 0.6],
         [ICON_KEY_R, "Reset", 0.6],
     ],
     Mode.GAMEPAD: [
@@ -32,6 +35,7 @@ const ITEMS := {
         [ICON_TRIGGER_LT, "Reverse"],
         [ICON_STICK_RIGHT, "Camera"],
         [ICON_BUTTON_A, "Jump", 0.8],
+        [ICON_BUTTON_X, "Boost", 0.8],
         [ICON_BUTTON_BACK, "Reset", 0.8],
     ],
     Mode.TOUCH: [
