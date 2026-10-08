@@ -22,13 +22,34 @@ const KEEP_SUBTREES := {
 	],
 }
 
+# 取り込み元のファイル名 → {差し替えるマテリアルの名前: 差し替え先のマテリアルのパス}
+# Fusion から書き出すと木目などの外観の画像が含まれず、色も黒になるため
+const MATERIAL_OVERRIDES := {
+	"ugokuita-classic.fbx": {
+		"Oak": "res://assets/textures/oak_veneer_03/oak_veneer_03.tres",
+	},
+}
+
 # 残すノード（サブツリー全体と、その祖先）
 var _keep := {}
+# マテリアルの名前 → 差し替え先として読み込んだマテリアル
+var _overrides := {}
+# 差し替えたサーフェスの数
+var _override_count := 0
 
 
 func _post_import(scene: Node) -> Object:
 	_keep.clear()
 	var source_name := get_source_file().get_file()
+	_overrides.clear()
+	_override_count = 0
+	var override_paths: Dictionary = MATERIAL_OVERRIDES.get(source_name, {})
+	for material_name in override_paths:
+		var loaded := load(override_paths[material_name]) as Material
+		if loaded == null:
+			push_error("robot_merge_import: 差し替え先のマテリアルを読み込めないため飛ばす: %s" % override_paths[material_name])
+			continue
+		_overrides[material_name] = loaded
 	if not KEEP_SUBTREES.has(source_name):
 		push_error("robot_merge_import: 残すノードの設定が無いためまとめを中止する: %s" % source_name)
 		return scene
@@ -95,7 +116,7 @@ func _post_import(scene: Node) -> Object:
 	for mi in scene.find_children("*", "MeshInstance3D", true, false):
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 
-	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段" % [sources.size(), merged_count, kept_count, lod_count])
+	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、差し替えたマテリアル %d 面" % [sources.size(), merged_count, kept_count, lod_count, _override_count])
 	return scene
 
 
@@ -127,6 +148,10 @@ func _surface_material(mi: MeshInstance3D, surface: int) -> Material:
 		material = mi.material_override
 	if material == null:
 		material = mi.mesh.surface_get_material(surface)
+	# 差し替えはまとめる対象のメッシュにだけ効く（KEEP_SUBTREES で残すメッシュには効かない。Oak は残す対象に含まれない）
+	if material != null and _overrides.has(material.resource_name):
+		_override_count += 1
+		return _overrides[material.resource_name]
 	return material
 
 
