@@ -1,17 +1,26 @@
 @tool
 extends EditorScenePostImport
 
-# 機体GLBの取り込み時に、部品のメッシュをマテリアルごとに1つへまとめて描画回数を減らす
+# 機体の取り込み時に、部品のメッシュをマテリアルごとに1つへまとめて描画回数を減らす
 # car.gd がタイヤを回すために使うノードはまとめずそのまま残す
-# 次のパスは car.gd の WHEELS（parts）と一致させること
-const KEEP_SUBTREES: Array[String] = [
-	"Main Frame III v42/4944825545635 v13_1/4944825545635 v13",
-	"Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)",
-	"Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body48",
-	"Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body1_001",
-	"Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body2_008",
-	"Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body1_024",
-]
+# 次のパスは car.gd の MODELS の wheels と一致させること
+# 取り込み元のファイル名 → 残すノードのパス
+const KEEP_SUBTREES := {
+	"ugokuita-neo.glb": [
+		"Main Frame III v42/4944825545635 v13_1/4944825545635 v13",
+		"Main Frame III v42/4944825545635 v7(Mirror)_1/4944825545635 v7(Mirror)",
+		"Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body48",
+		"Main Frame III v42/VGEBY M365 1s v6_1/VGEBY M365 1s v6/Body1_001",
+		"Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body2_008",
+		"Main Frame III v42/VGEBY M365 1s v6(Mirror)_1/VGEBY M365 1s v6(Mirror)/Body1_024",
+	],
+	"ugokuita-classic.fbx": [
+		"MainFrame - Reverse Prototype v12/350W Hub Motor v10_1/350W Hub Motor v10",
+		"MainFrame - Reverse Prototype v12/350W Hub Motor v10_2/350W Hub Motor v102",
+		"MainFrame - Reverse Prototype v12/STM-100 VS v4_1/STM-100 VS v4",
+		"MainFrame - Reverse Prototype v12/STM-100 VS v4_2/STM-100 VS v42",
+	],
+}
 
 # 残すノード（サブツリー全体と、その祖先）
 var _keep := {}
@@ -19,8 +28,12 @@ var _keep := {}
 
 func _post_import(scene: Node) -> Object:
 	_keep.clear()
+	var source_name := get_source_file().get_file()
+	if not KEEP_SUBTREES.has(source_name):
+		push_error("robot_merge_import: 残すノードの設定が無いためまとめを中止する: %s" % source_name)
+		return scene
 	# 残すノードのパスが取り込み後のシーンに存在するか確かめる。1つでも無ければ何も変えない
-	for path in KEEP_SUBTREES:
+	for path in KEEP_SUBTREES[source_name]:
 		var node := scene.get_node_or_null(NodePath(path))
 		if node == null:
 			push_error("robot_merge_import: 残すノードが見つからないためまとめを中止する: %s" % path)
