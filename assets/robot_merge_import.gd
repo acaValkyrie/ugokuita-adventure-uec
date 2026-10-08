@@ -42,9 +42,9 @@ const REMOVE_NODES := {
 const NODE_COLORS := {
 	"ugokuita-classic.fbx": {
 		# 後方の板の下に付いている3Dプリント部品。元は黄色
-		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/Component1_1/Component1/MeshBody1 (1) (2) (1) (1)": Color("#ff7f00"),
-		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/Component1_1/Component1/MeshBody1 (1) (2) (1) (1) (1)": Color("#ff7f00"),
-		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/MeshBody1 (1) (1)": Color("#ff7f00"),
+		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/Component1_1/Component1/MeshBody1 (1) (2) (1) (1)": Color("#f47731"),
+		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/Component1_1/Component1/MeshBody1 (1) (2) (1) (1) (1)": Color("#f47731"),
+		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/MeshBody1 (1) (1)": Color("#f47731"),
 	},
 }
 
