@@ -11,6 +11,8 @@ extends VehicleBody3D
 @export var RUN_SOUND_FADE := 6.0
 # モーター（後輪の外周）の速さの変化の速さ [m/s²]
 @export var MOTOR_ACCEL = 12.0
+# ジャンプの初速 [m/s]
+@export var JUMP_SPEED = 4.0
 
 var _run_sound: AudioStreamPlayer3D
 var _run_volume := 0.0
@@ -43,6 +45,18 @@ func _physics_process(delta: float) -> void:
         if not is_zero_approx(throttle):
             target = throttle * MAX_SPEED
         _motor_speed = move_toward(_motor_speed, target, MOTOR_ACCEL * delta)
+
+    # 車輪がどれか接地しているときだけジャンプできる
+    if Input.is_action_just_pressed("jump") and _is_on_ground():
+        apply_central_impulse(Vector3.UP * JUMP_SPEED * mass)
+
+
+func _is_on_ground() -> bool:
+    for child in get_children():
+        var wheel := child as VehicleWheel3D
+        if wheel != null and wheel.is_in_contact():
+            return true
+    return false
 
 
 # 見た目のタイヤ（ugokuita-neo内）を物理ホイールの回転・ステアリング・サスペンションに合わせて動かす
