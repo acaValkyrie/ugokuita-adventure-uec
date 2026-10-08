@@ -53,6 +53,8 @@ const NODE_COLORS := {
 		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/Component1_1/Component1/MeshBody1 (1) (2) (1) (1)": Color("#f47731"),
 		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/Component1_1/Component1/MeshBody1 (1) (2) (1) (1) (1)": Color("#f47731"),
 		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/MeshBody1 (1) (1)": Color("#f47731"),
+		# Livox Mid-70 の本体。元は黄色だが実物は銀色
+		"MainFrame - Reverse Prototype v12/Livox Mid-70 3D Model and FOV Shape v4_1/Livox Mid-70 3D Model and FOV Shape v4/Body232": Color("#c8cbcf"),
 	},
 }
 
