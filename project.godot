@@ -29,6 +29,7 @@ PlayerSwitch="*res://player_switch.gd"
 BoostGauge="*res://boost_gauge.gd"
 Speedometer="*res://speedometer.gd"
 SpeedLines="*res://speed_lines.gd"
+Ending="*res://ending.gd"
 
 [dotnet]
 
