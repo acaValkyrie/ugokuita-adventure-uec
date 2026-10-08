@@ -38,52 +38,52 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.159307, -0.0971674, 0.16409
 use_as_steering = true
 wheel_roll_influence = 0.37
 wheel_radius = 0.08
-wheel_rest_length = 0.0575
+wheel_rest_length = 0.0536
 wheel_friction_slip = 3.0
-suspension_travel = 0.0575
-suspension_stiffness = 600.0
-suspension_max_force = 5000.0
-damping_compression = 9.9
-damping_relaxation = 14.8
+suspension_travel = 0.0536
+suspension_stiffness = 1500.0
+suspension_max_force = 100000.0
+damping_compression = 15.6
+damping_relaxation = 23.4
 
 [node name="VehicleWheel3D_FR" type="VehicleWheel3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.159, -0.0969314, 0.164)
 use_as_steering = true
 wheel_roll_influence = 0.37
 wheel_radius = 0.08
-wheel_rest_length = 0.0575
+wheel_rest_length = 0.0536
 wheel_friction_slip = 3.0
-suspension_travel = 0.0575
-suspension_stiffness = 600.0
-suspension_max_force = 5000.0
-damping_compression = 9.9
-damping_relaxation = 14.8
+suspension_travel = 0.0536
+suspension_stiffness = 1500.0
+suspension_max_force = 100000.0
+damping_compression = 15.6
+damping_relaxation = 23.4
 
 [node name="VehicleWheel3D_BL" type="VehicleWheel3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.187619, -0.0771153, -0.187175)
 use_as_traction = true
 wheel_roll_influence = 0.37
 wheel_radius = 0.115
-wheel_rest_length = 0.0425
+wheel_rest_length = 0.0383
 wheel_friction_slip = 3.0
-suspension_travel = 0.0425
-suspension_stiffness = 600.0
-suspension_max_force = 5000.0
-damping_compression = 9.9
-damping_relaxation = 14.8
+suspension_travel = 0.0383
+suspension_stiffness = 1500.0
+suspension_max_force = 100000.0
+damping_compression = 15.6
+damping_relaxation = 23.4
 
 [node name="VehicleWheel3D_BR" type="VehicleWheel3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.188, -0.0774037, -0.187)
 use_as_traction = true
 wheel_roll_influence = 0.37
 wheel_radius = 0.115
-wheel_rest_length = 0.0425
+wheel_rest_length = 0.0383
 wheel_friction_slip = 3.0
-suspension_travel = 0.0425
-suspension_stiffness = 600.0
-suspension_max_force = 5000.0
-damping_compression = 9.9
-damping_relaxation = 14.8
+suspension_travel = 0.0383
+suspension_stiffness = 1500.0
+suspension_max_force = 100000.0
+damping_compression = 15.6
+damping_relaxation = 23.4
 
 [node name="ugokuita-classic" parent="." instance=ExtResource("2_classic")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.17, -0.240647, -0.2527)
