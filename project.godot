@@ -26,6 +26,7 @@ TouchControls="*res://touch_controls.gd"
 ControlsHelp="*res://controls_help.gd"
 GameMenu="*res://game_menu.gd"
 BoostGauge="*res://boost_gauge.gd"
+Speedometer="*res://speedometer.gd"
 
 [dotnet]
 
