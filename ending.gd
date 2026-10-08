@@ -1,5 +1,5 @@
 extends CanvasLayer
-# ステージから落ちたとき（集中線が出始めるほど速く落ちているとき）、BGMを流して画面左にクレジットとスタート地点に戻るボタンを出す。
+# ステージから落ちたとき（集中線が出始めるほど速く落ちているとき）、BGMを流して画面左上にクレジットとスタート地点に戻るボタンを出す。
 
 # この高さ [m] より下で、集中線が出る速さ（最高速度超え）で落ちていたらエンディングにする
 const FALL_HEIGHT := -10.0
@@ -16,9 +16,10 @@ func _ready() -> void:
     # 操作説明などの表示（layer 10）より上、メニュー（layer 20）より下に描く
     layer = 15
     _box = VBoxContainer.new()
-    _box.set_anchors_preset(Control.PRESET_CENTER_LEFT)
-    _box.grow_vertical = Control.GROW_DIRECTION_BOTH
+    # 画面中央の機体に被らないよう、左上のメニューボタンの下に置く
+    _box.set_anchors_preset(Control.PRESET_TOP_LEFT)
     _box.offset_left = 48
+    _box.offset_top = 120
     _box.add_theme_constant_override("separation", 16)
     _box.visible = false
     add_child(_box)
