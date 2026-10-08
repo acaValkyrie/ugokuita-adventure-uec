@@ -18,6 +18,8 @@ extends VehicleBody3D
 @export var BOOST_DURATION = 0.4
 # ブーストのゲージが満タンになるまでに走る距離 [m]
 @export var BOOST_CHARGE_DISTANCE = 40.0
+# このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
+@export var robot_key: String = "neo"
 
 var _run_sound: AudioStreamPlayer3D
 var _run_volume := 0.0
@@ -83,8 +85,7 @@ func _is_on_ground() -> bool:
 
 
 # 機体ごとの設定。見た目のタイヤを物理ホイールの回転・ステアリング・サスペンションに合わせて動かす
-# node: 機体のノード名（neo は car.tscn に最初から置いてある）
-# scene / transform: 初めて選ばれたときに読み込んで add_child する機体のシーンと位置
+# node: シーンに置いてある機体のノード名
 # wheels の group: 上下とステアリングで動かすキャスター部分（前輪のみ。後輪は空で部品を直接動かす）
 # wheels の parts: 1つ目がタイヤ、残りはタイヤと一緒に動く部品
 const MODELS := {
@@ -123,9 +124,6 @@ const MODELS := {
     },
     "classic": {
         "node": "ugokuita-classic",
-        "scene": "res://assets/ugokuita-classic.fbx",
-        # 前がモデルの -Z なので Y 軸まわりに180度回し、車体の中心とタイヤの接地高さを Neo に合わせる
-        "transform": Transform3D(Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, -1), Vector3(0.17, -0.240647, -0.2527)),
         "wheels": {
             "VehicleWheel3D_FL": {
                 "group": "MainFrame - Reverse Prototype v12/STM-100 VS v4_1/STM-100 VS v4",
@@ -160,64 +158,19 @@ const MODELS := {
 # ステアリングの見た目の向き（左入力でsteering > 0）
 const STEER_SIGN := 1.0
 
-# 今表示している機体のキー（MODELS）と、読み込み済みの機体（キー → Node3D）
-var _model_key: String = ""
-var _models: Dictionary = {}
 # {wheel, group, group_rest, group_pivot, parts: [{node, rest}], pivot, axis, angle, tire_center_body, tire_radius}
 var _visual_wheels: Array[Dictionary] = []
 
 func _ready() -> void:
     add_to_group("player")
     _setup_run_sound()
-    _models["neo"] = get_node_or_null("ugokuita-neo")
-    set_robot_model(GameMenu.robot_model)
-    # 選んだ機体を読み込めなかったときは Neo で表示する
-    if _model_key == "":
-        set_robot_model("neo")
-    GameMenu.robot_model_changed.connect(set_robot_model)
-
-
-# 見た目の機体を切り替える。初めて選ばれた機体はこのときに読み込む
-func set_robot_model(key: String) -> void:
-    if not MODELS.has(key):
-        push_warning("未知の機体: %s" % key)
+    var config: Dictionary = MODELS[robot_key]
+    var model := get_node_or_null(NodePath(config["node"])) as Node3D
+    if model == null:
+        push_warning("機体のノードが見つからない: %s" % config["node"])
         return
-    if key == _model_key:
-        return
-    var config: Dictionary = MODELS[key]
-    if not _models.has(key) or _models[key] == null:
-        var packed := load(config["scene"]) as PackedScene
-        if packed == null:
-            push_warning("機体を読み込めない: %s" % config["scene"])
-            return
-        var instance := packed.instantiate() as Node3D
-        instance.name = config["node"]
-        instance.transform = config["transform"]
-        add_child(instance)
-        _models[key] = instance
-    var model: Node3D = _models[key]
-    if _model_key == "":
-        # 最初の呼び出し。選ばれなかった機体（car.tscn に置いてある neo など）を隠す
-        for other_key in _models:
-            if other_key != key and _models[other_key] != null:
-                _models[other_key].visible = false
-    else:
-        # 今の機体の車輪を元の位置に戻してから隠す（再表示のときに rest を取り直す）
-        _reset_visual_wheels()
-        (_models[_model_key] as Node3D).visible = false
-    model.visible = true
     _setup_visual_wheels(model, config["wheels"])
-    _model_key = key
-
-
-# 動かした見た目のタイヤを記録済みの rest の位置に戻す
-func _reset_visual_wheels() -> void:
-    for w in _visual_wheels:
-        var group: Node3D = w["group"]
-        if group != null:
-            group.transform = w["group_rest"]
-        for part in w["parts"]:
-            part["node"].transform = part["rest"]
+    PlayerSwitch.on_player_ready(self)
 
 
 func _setup_visual_wheels(model: Node3D, wheels: Dictionary) -> void:

@@ -50,6 +50,8 @@ func _ready():
         # Set the camera to follow the vehicle
         global_transform.origin = vehicle.global_transform.origin + to_camera_position()
         look_at(vehicle.global_transform.origin, Vector3.UP)
+    # 機体が入れ替わったら追いかける対象を付け替える
+    PlayerSwitch.player_changed.connect(func(p): vehicle = p)
 
 
 var theta_speed: float = 3
