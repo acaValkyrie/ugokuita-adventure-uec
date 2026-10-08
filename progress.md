@@ -390,7 +390,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 
 ### 29. ステージから落ちたらエンディングを出した（2026-10-09）
 
-- autoload `Ending`（`ending.gd`、CanvasLayer の layer 15）を追加した。機体の高さが y < -10 で、速さが `MAX_SPEED` を超えたら発動する。速さの条件は、集中線が出始める条件と同じ。発動すると BGM「これにてお開き、また来週！」（`assets/audio/bgm/`）を1回だけ流す（ループしない）。同時に、画面左に「Thank you for Playing!」「製作：動く板製作委員会」と「Back to Start」ボタンを出す。
+- autoload `Ending`（`ending.gd`、CanvasLayer の layer 15）を追加した。機体の高さが y < -10 で、速さが `MAX_SPEED` を超えたら発動する。速さの条件は、集中線が出始める条件と同じ。発動すると BGM「これにてお開き、また来週！」（`assets/audio/bgm/`）を1回だけ流す（ループしない）。同時に、画面左上（メニューボタンの下。画面中央に映る機体に被らない位置）に「Thank you for Playing!」「製作：動く板製作委員会」と「Back to Start」ボタンを出す。
 - ボタンを押すとシーンを読み込み直して、スタート地点に戻る。ボタンには初めからフォーカスを当てるので、ゲームパッドやキーボードの決定でも押せる。タッチではこのボタンを運転の入力として扱わない（`touch_controls.gd`）。
 - Web版では OS のフォントに頼れないので、Noto Sans JP Bold から、ASCII と「製作：動く板製作委員会」の文字だけを抜き出して同梱した（`assets/fonts/noto_sans_jp_bold_ending.otf`、約46KB。ライセンスは `assets/fonts/OFL.txt`）。表示する日本語を増やすときは、フォントにも文字を足し直す必要がある。
 - 確認: ステージの外の y=-5 に機体を移し、下向きに速度を与えて落とすと発動した。BGMが鳴り、日本語は化けずに表示された。ボタンを押すとスタート地点に戻り、表示とBGMは消えた。BGMを耳で聴く確認はまだ。
