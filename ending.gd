@@ -56,6 +56,11 @@ func get_button_rect() -> Rect2:
     return _button.get_global_rect()
 
 
+# エンディングを出しているか（カメラを機体に寄せるのに使う）
+func is_shown() -> bool:
+    return _shown
+
+
 # 白字に黒フチのラベル
 func _make_label(text: String, size: int) -> Label:
     var label := Label.new()

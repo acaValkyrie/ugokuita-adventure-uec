@@ -18,6 +18,8 @@ var vehicle
 # カメラを離すときと、近づけて戻すときの追従の速さ（大きいほど素早い）
 @export var dash_out_speed: float = 6.0
 @export var dash_in_speed: float = 2.0
+# エンディング中のカメラと機体の距離 [m]
+@export var ending_radius: float = 1.2
 
 # 普段のカメラと機体の距離 [m]
 const BASE_RADIUS := 2.0
@@ -84,6 +86,9 @@ func _physics_process(delta: float) -> void:
         direction = -flat_velocity.normalized().dot(away.normalized())
     var shift := over_speed * dash_distance_per_speed * direction
     var target_radius := BASE_RADIUS + clampf(shift, -dash_max_approach, dash_max_distance)
+    # エンディング中は機体に寄せる
+    if Ending.is_shown():
+        target_radius = ending_radius
     # 標準の距離から離れていくときは素早く、戻るときはゆっくり追従する
     var dash_speed := dash_out_speed if absf(target_radius - BASE_RADIUS) > absf(radius - BASE_RADIUS) else dash_in_speed
     radius = lerpf(radius, target_radius, 1.0 - exp(-dash_speed * delta))
