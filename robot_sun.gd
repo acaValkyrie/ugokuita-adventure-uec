@@ -43,8 +43,7 @@ func _ready() -> void:
     # 明るさを0にすると空の太陽が黒く描かれるので、空には描かない
     sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 
-    for node in _vehicle.find_children("*", "GeometryInstance3D", true, false):
-        (node as GeometryInstance3D).layers = robot_layer
+    _apply_robot_layer()
 
     # エディタ上では変えない。ベイク時は静止物も影を落とす必要があるため
     _sun.light_cull_mask &= ~robot_layer
@@ -53,6 +52,17 @@ func _ready() -> void:
     _sun.directional_shadow_max_distance = shadow_distance
 
     _lit = 1.0
+    # 機体が入れ替わったら対象を付け替える
+    PlayerSwitch.player_changed.connect(_on_player_changed)
+
+# 機体のメッシュを機体だけの表示レイヤーに置く
+func _apply_robot_layer() -> void:
+    for node in _vehicle.find_children("*", "GeometryInstance3D", true, false):
+        (node as GeometryInstance3D).layers = robot_layer
+
+func _on_player_changed(p: VehicleBody3D) -> void:
+    _vehicle = p
+    _apply_robot_layer()
 
 func _physics_process(delta: float) -> void:
     # DirectionalLight は -Z 方向へ照らすので、+Z が太陽の方向
