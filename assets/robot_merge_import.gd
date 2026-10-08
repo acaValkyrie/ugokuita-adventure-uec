@@ -38,6 +38,14 @@ const REMOVE_NODES := {
 	],
 }
 
+# 取り込み元のファイル名 → 面の向きを直すノードのパス（書き出し時に一部の面が内向きに裏返っている部品）
+const FIX_FACE_NODES := {
+	"ugokuita-classic.fbx": [
+		# Livox Mid-70 の本体。側面が内向きで、裏面カリングにより透けて見える
+		"MainFrame - Reverse Prototype v12/Livox Mid-70 3D Model and FOV Shape v4_1/Livox Mid-70 3D Model and FOV Shape v4/Body232",
+	],
+}
+
 # 取り込み元のファイル名 → {ノードのパス: 色}（そのノードのマテリアルを複製して色だけ変える）
 const NODE_COLORS := {
 	"ugokuita-classic.fbx": {
@@ -81,6 +89,14 @@ func _post_import(scene: Node) -> Object:
 		target.get_parent().remove_child(target)
 		target.free()
 		removed_count += 1
+	# 内向きになっている面の向きを直す
+	var flipped_count := 0
+	for path in FIX_FACE_NODES.get(source_name, []):
+		var fix_mi := scene.get_node_or_null(NodePath(path)) as MeshInstance3D
+		if fix_mi == null or fix_mi.mesh == null:
+			push_warning("robot_merge_import: 面の向きを直すノードが見つからないため飛ばす: %s" % path)
+			continue
+		flipped_count += _fix_inward_faces(fix_mi)
 	# 指定したノードの色を変える。同じ色のノードは複製したマテリアルを共有する
 	# （メッシュをまとめるとき、同じマテリアル同士で1つにまとまるようにするため）
 	var recolored_count := 0
@@ -166,8 +182,193 @@ func _post_import(scene: Node) -> Object:
 	for mi in scene.find_children("*", "MeshInstance3D", true, false):
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 
-	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、差し替えたマテリアル %d 面、取り除いた部品 %d 個、色を変えた部品 %d 個" % [sources.size(), merged_count, kept_count, lod_count, _override_count, removed_count, recolored_count])
+	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、差し替えたマテリアル %d 面、取り除いた部品 %d 個、色を変えた部品 %d 個、向きを直した面 %d 枚" % [sources.size(), merged_count, kept_count, lod_count, _override_count, removed_count, recolored_count, flipped_count])
 	return scene
+
+
+# 内向きの三角形を外向きに直し、裏返した三角形の数を返す
+# 隣り合う三角形の巻き順の食い違いをたどって向きをそろえ、閉じた形の体積の符号で全体の表裏を決める
+func _fix_inward_faces(mi: MeshInstance3D) -> int:
+	var mesh := mi.mesh
+	var all_arrays: Array = []
+	var total_flipped := 0
+	for i in mesh.get_surface_count():
+		var arrays := mesh.surface_get_arrays(i)
+		if mesh.surface_get_primitive_type(i) == Mesh.PRIMITIVE_TRIANGLES:
+			total_flipped += _flip_inward_triangles(arrays)
+		all_arrays.append(arrays)
+	if total_flipped == 0:
+		return 0
+	# 向きを直したサーフェスを含むため、メッシュを作り直して差し替える
+	var fixed := ArrayMesh.new()
+	for i in mesh.get_surface_count():
+		fixed.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, all_arrays[i])
+		fixed.surface_set_material(i, mesh.surface_get_material(i))
+		fixed.surface_set_name(i, mesh.surface_get_name(i))
+	mi.mesh = fixed
+	return total_flipped
+
+
+# 1つのサーフェスの配列を直接書き換えて内向きの三角形を裏返し、裏返した数を返す
+func _flip_inward_triangles(arrays: Array) -> int:
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var indices := PackedInt32Array()
+	if arrays[Mesh.ARRAY_INDEX] != null and not (arrays[Mesh.ARRAY_INDEX] as PackedInt32Array).is_empty():
+		indices = arrays[Mesh.ARRAY_INDEX]
+	else:
+		indices.resize(verts.size())
+		for i in verts.size():
+			indices[i] = i
+	var tri_count := indices.size() / 3
+
+	# 位置が同じ頂点を同じ点IDにまとめる（法線やUVの継ぎ目で頂点が分かれていても隣を判定できるように）
+	var weld_ids := PackedInt32Array()
+	weld_ids.resize(verts.size())
+	var weld := {}
+	for i in verts.size():
+		var p := verts[i]
+		var key := Vector3i(roundi(p.x * 1e6), roundi(p.y * 1e6), roundi(p.z * 1e6))
+		if not weld.has(key):
+			weld[key] = weld.size()
+		weld_ids[i] = weld[key]
+
+	# 辺 → [三角形番号, 小さい点IDから大きい点IDへたどっているか] の配列
+	var edges := {}
+	for t in tri_count:
+		for c in 3:
+			var a := weld_ids[indices[t * 3 + c]]
+			var b := weld_ids[indices[t * 3 + (c + 1) % 3]]
+			if a == b:
+				continue
+			var key := Vector2i(mini(a, b), maxi(a, b))
+			if not edges.has(key):
+				edges[key] = []
+			edges[key].append([t, a < b])
+
+	# 向きの伝播: 辺をちょうど2枚で共有する隣同士の巻き順をそろえる（flip: -1 未決定、0 そのまま、1 裏返す）
+	var flip := PackedInt32Array()
+	flip.resize(tri_count)
+	flip.fill(-1)
+	var component := PackedInt32Array()
+	component.resize(tri_count)
+	var comp_count := 0
+	for start in tri_count:
+		if flip[start] != -1:
+			continue
+		flip[start] = 0
+		component[start] = comp_count
+		var queue: Array[int] = [start]
+		var head := 0
+		while head < queue.size():
+			var u := queue[head]
+			head += 1
+			for c in 3:
+				var a := weld_ids[indices[u * 3 + c]]
+				var b := weld_ids[indices[u * 3 + (c + 1) % 3]]
+				if a == b:
+					continue
+				var shared: Array = edges[Vector2i(mini(a, b), maxi(a, b))]
+				if shared.size() != 2:
+					continue
+				var mine: Array = shared[0] if shared[0][0] == u else shared[1]
+				var other: Array = shared[1] if shared[0][0] == u else shared[0]
+				var v: int = other[0]
+				if v == u or flip[v] != -1:
+					continue
+				# 同じ向きにたどっていれば巻き順が食い違っているので逆に、逆向きなら同じにする
+				var same_direction: bool = mine[1] == other[1]
+				flip[v] = (1 - flip[u]) if same_direction else flip[u]
+				component[v] = comp_count
+				queue.append(v)
+		comp_count += 1
+
+	# 成分ごとの符号付き体積。Godot では時計回りが表なので、外向きの閉じた形なら負になる
+	var volumes := PackedFloat64Array()
+	volumes.resize(comp_count)
+	for t in tri_count:
+		var v0 := verts[indices[t * 3]]
+		var v1 := verts[indices[t * 3 + 1]]
+		var v2 := verts[indices[t * 3 + 2]]
+		if flip[t] == 1:
+			var swap := v1
+			v1 = v2
+			v2 = swap
+		volumes[component[t]] += v0.dot(v1.cross(v2))
+	for t in tri_count:
+		if volumes[component[t]] > 0.0:
+			flip[t] = 1 - flip[t]
+
+	# 裏返す三角形と、そうでない三角形がそれぞれ使う頂点を数える
+	var flipped_use := PackedInt32Array()
+	flipped_use.resize(verts.size())
+	var normal_use := PackedInt32Array()
+	normal_use.resize(verts.size())
+	var flipped_count := 0
+	for t in tri_count:
+		for c in 3:
+			if flip[t] == 1:
+				flipped_use[indices[t * 3 + c]] += 1
+			else:
+				normal_use[indices[t * 3 + c]] += 1
+		if flip[t] == 1:
+			flipped_count += 1
+	if flipped_count == 0:
+		return 0
+
+	# 両方の三角形が使う頂点は複製し、裏返す三角形を複製側へ付け替える
+	var vertex_count := verts.size()
+	var duplicates := {}
+	var dup_sources: Array[int] = []
+	for t in tri_count:
+		if flip[t] != 1:
+			continue
+		for c in 3:
+			var vi := indices[t * 3 + c]
+			if normal_use[vi] == 0:
+				continue
+			if not duplicates.has(vi):
+				duplicates[vi] = vertex_count + dup_sources.size()
+				dup_sources.append(vi)
+			indices[t * 3 + c] = duplicates[vi]
+	# 頂点属性の配列すべての末尾に、複製した頂点の分を足す
+	for k in arrays.size():
+		if k == Mesh.ARRAY_INDEX or arrays[k] == null:
+			continue
+		var attr = arrays[k]
+		if attr.is_empty() or attr.size() % vertex_count != 0:
+			continue
+		var stride: int = attr.size() / vertex_count
+		for src in dup_sources:
+			for j in stride:
+				attr.append(attr[src * stride + j])
+		arrays[k] = attr
+
+	# 法線の反転。裏返す三角形だけが使う頂点と、複製した頂点が対象
+	var flip_vertices: Array[int] = []
+	for vi in vertex_count:
+		if flipped_use[vi] > 0 and normal_use[vi] == 0:
+			flip_vertices.append(vi)
+	for src in dup_sources:
+		flip_vertices.append(duplicates[src])
+	if arrays[Mesh.ARRAY_NORMAL] != null and not (arrays[Mesh.ARRAY_NORMAL] as PackedVector3Array).is_empty():
+		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+		for vi in flip_vertices:
+			normals[vi] = -normals[vi]
+		arrays[Mesh.ARRAY_NORMAL] = normals
+	if arrays[Mesh.ARRAY_TANGENT] != null and not (arrays[Mesh.ARRAY_TANGENT] as PackedFloat32Array).is_empty():
+		var tangents: PackedFloat32Array = arrays[Mesh.ARRAY_TANGENT]
+		for vi in flip_vertices:
+			tangents[vi * 4 + 3] = -tangents[vi * 4 + 3]
+		arrays[Mesh.ARRAY_TANGENT] = tangents
+
+	# 巻き順を反転（インデックスの2番目と3番目を入れ替える）
+	for t in tri_count:
+		if flip[t] == 1:
+			var tmp := indices[t * 3 + 1]
+			indices[t * 3 + 1] = indices[t * 3 + 2]
+			indices[t * 3 + 2] = tmp
+	arrays[Mesh.ARRAY_INDEX] = indices
+	return flipped_count
 
 
 func _mark_subtree(node: Node) -> void:
