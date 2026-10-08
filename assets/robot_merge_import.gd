@@ -38,6 +38,16 @@ const REMOVE_NODES := {
 	],
 }
 
+# 取り込み元のファイル名 → {ノードのパス: 色}（そのノードのマテリアルを複製して色だけ変える）
+const NODE_COLORS := {
+	"ugokuita-classic.fbx": {
+		# 後方の板の下に付いている3Dプリント部品。元は黄色
+		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/Component1_1/Component1/MeshBody1 (1) (2) (1) (1)": Color("#ff7f00"),
+		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/Component1_1/Component1/MeshBody1 (1) (2) (1) (1) (1)": Color("#ff7f00"),
+		"MainFrame - Reverse Prototype v12/Version_2_Complete v11_1/Version_2_Complete v11/MeshBody1 (1) (1)": Color("#ff7f00"),
+	},
+}
+
 # 残すノード（サブツリー全体と、その祖先）
 var _keep := {}
 # マテリアルの名前 → 差し替え先として読み込んだマテリアル
@@ -71,6 +81,28 @@ func _post_import(scene: Node) -> Object:
 		target.get_parent().remove_child(target)
 		target.free()
 		removed_count += 1
+	# 指定したノードの色を変える。同じ色のノードは複製したマテリアルを共有する
+	# （メッシュをまとめるとき、同じマテリアル同士で1つにまとまるようにするため）
+	var recolored_count := 0
+	var color_materials := {}
+	var node_colors: Dictionary = NODE_COLORS.get(source_name, {})
+	for path in node_colors:
+		var mi := scene.get_node_or_null(NodePath(path)) as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			push_warning("robot_merge_import: 色を変えるノードが見つからないため飛ばす: %s" % path)
+			continue
+		var color: Color = node_colors[path]
+		if not color_materials.has(color):
+			var base := _original_material(mi, 0) as BaseMaterial3D
+			if base == null:
+				push_warning("robot_merge_import: 色を変えるマテリアルが BaseMaterial3D ではないため飛ばす: %s" % path)
+				continue
+			var copy := base.duplicate() as BaseMaterial3D
+			copy.albedo_color = color
+			color_materials[color] = copy
+		for i in mi.mesh.get_surface_count():
+			mi.set_surface_override_material(i, color_materials[color])
+		recolored_count += 1
 	# 残すノードのパスが取り込み後のシーンに存在するか確かめる。1つでも無ければ何も変えない
 	for path in KEEP_SUBTREES[source_name]:
 		var node := scene.get_node_or_null(NodePath(path))
@@ -134,7 +166,7 @@ func _post_import(scene: Node) -> Object:
 	for mi in scene.find_children("*", "MeshInstance3D", true, false):
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 
-	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、差し替えたマテリアル %d 面、取り除いた部品 %d 個" % [sources.size(), merged_count, kept_count, lod_count, _override_count, removed_count])
+	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、差し替えたマテリアル %d 面、取り除いた部品 %d 個、色を変えた部品 %d 個" % [sources.size(), merged_count, kept_count, lod_count, _override_count, removed_count, recolored_count])
 	return scene
 
 
@@ -161,15 +193,21 @@ func _count_meshes(node: Node) -> int:
 
 # サーフェスのオーバーライド、material_override、メッシュ本来のマテリアルの順で採用する
 func _surface_material(mi: MeshInstance3D, surface: int) -> Material:
+	var material := _original_material(mi, surface)
+	# 差し替えはまとめる対象のメッシュにだけ効く（KEEP_SUBTREES で残すメッシュには効かない。Oak は残す対象に含まれない）
+	if material != null and _overrides.has(material.resource_name):
+		_override_count += 1
+		return _overrides[material.resource_name]
+	return material
+
+
+# 名前による差し替えをする前のマテリアル（オーバーライド、material_override、メッシュ本来の順）
+func _original_material(mi: MeshInstance3D, surface: int) -> Material:
 	var material := mi.get_surface_override_material(surface)
 	if material == null:
 		material = mi.material_override
 	if material == null:
 		material = mi.mesh.surface_get_material(surface)
-	# 差し替えはまとめる対象のメッシュにだけ効く（KEEP_SUBTREES で残すメッシュには効かない。Oak は残す対象に含まれない）
-	if material != null and _overrides.has(material.resource_name):
-		_override_count += 1
-		return _overrides[material.resource_name]
 	return material
 
 
