@@ -1,6 +1,6 @@
 extends CanvasLayer
 # 左上のメニューボタンと、ESC/STARTで開く一時停止メニュー。
-# メニュー内で全体音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体の見た目（Neo / Classic）を選べる。
+# メニュー内で全体音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体（Neo / Classic）を選べる。
 
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
@@ -17,7 +17,7 @@ const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
 # 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
 const PAD_LAYOUTS := ["nintendo", "playstation", "xbox"]
 const PAD_LAYOUT_NAMES := ["Nintendo", "PlayStation", "Xbox"]
-# 操作する機体の見た目（設定ファイルに保存する値）
+# 操作する機体（設定ファイルに保存する値）
 const ROBOT_MODELS := ["neo", "classic"]
 const ROBOT_MODEL_NAMES := ["Ugokuita Neo", "Ugokuita Classic"]
 
