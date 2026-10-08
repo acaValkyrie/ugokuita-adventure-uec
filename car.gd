@@ -13,11 +13,21 @@ extends VehicleBody3D
 @export var MOTOR_ACCEL = 12.0
 # ジャンプの初速 [m/s]
 @export var JUMP_SPEED = 4.0
+# ブーストの加速度 [m/s²] と、かける時間 [s]
+@export var BOOST_ACCEL = 20.0
+@export var BOOST_DURATION = 0.4
+# ブーストのゲージが満タンになるまでに走る距離 [m]
+@export var BOOST_CHARGE_DISTANCE = 40.0
 
 var _run_sound: AudioStreamPlayer3D
 var _run_volume := 0.0
 # 後輪の外周の速さ [m/s]、前進が正
 var _motor_speed := 0.0
+# ブーストのゲージ（0〜1、1で発動できる）
+var boost_gauge := 0.0
+# ブーストの残り時間 [s] と向き（前が1、後ろが-1）
+var _boost_time := 0.0
+var _boost_dir := 1.0
 
 func _physics_process(delta: float) -> void:
     steering = move_toward(steering, Input.get_axis("right", "left") * MAX_STEER, delta * 10)
@@ -49,6 +59,19 @@ func _physics_process(delta: float) -> void:
     # 車輪がどれか接地しているときだけジャンプできる
     if Input.is_action_just_pressed("jump") and _is_on_ground():
         apply_central_impulse(Vector3.UP * JUMP_SPEED * mass)
+
+    # 接地して走った水平距離でゲージを貯める（ブースト中は貯めない）
+    if _boost_time <= 0.0 and _is_on_ground():
+        var horizontal := Vector3(linear_velocity.x, 0.0, linear_velocity.z)
+        boost_gauge = minf(boost_gauge + horizontal.length() * delta / BOOST_CHARGE_DISTANCE, 1.0)
+    # 満タンのときだけ発動できる。後退の入力中なら後ろ向き、それ以外は前向き
+    if Input.is_action_just_pressed("boost") and boost_gauge >= 1.0:
+        boost_gauge = 0.0
+        _boost_time = BOOST_DURATION
+        _boost_dir = -1.0 if throttle < 0.0 else 1.0
+    if _boost_time > 0.0:
+        apply_central_force(global_basis.z * _boost_dir * BOOST_ACCEL * mass)
+        _boost_time -= delta
 
 
 func _is_on_ground() -> bool:
@@ -100,6 +123,7 @@ const STEER_SIGN := 1.0
 var _visual_wheels: Array[Dictionary] = []
 
 func _ready() -> void:
+    add_to_group("player")
     _setup_run_sound()
     var model := get_node_or_null("ugokuita-neo")
     if model == null:
