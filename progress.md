@@ -365,6 +365,14 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - Livox Mid-70 の視野（FOV）を示す形状（`Body342`）は、取り込み時に取り除く（`REMOVE_NODES`）。センサー本体は残す。試しに使った OBJ と `.mtl` は削除した。
 - 後方の板の下に付いている3Dプリント部品（`Version_2_Complete v11` の3つ）の色を、黄色からオレンジ（#f47731。使っているフィラメントの写真から測った色）に変えた（`NODE_COLORS`）。マテリアル名が白い部品と同じ「ABS (White)」なので、名前ではなくノードのパスで指定し、マテリアルを複製して色だけ変える。
 
+### 26. Classic のサスペンションをほぼ効かなくした（2026-10-08）
+
+- `car_classic.tscn` の4輪: `suspension_stiffness` 80→600、`damping_compression` 3.6→9.9、`damping_relaxation` 5.4→14.8（ばねの固さの平方根に比例させた）、`suspension_max_force` 500→5000。
+- `suspension_travel` を小さくすると逆に柔らかくなる。Godot はばねの縮みを travel で打ち切るので、着地の衝撃で力が頭打ちになり、車体が沈む（2cm にしたときは Neo より深く沈んだ）。そのため travel は自然長いっぱいにした。
+- 固くすると止まっているときの沈み込みが減り、車体が浮く。その分だけ自然長を縮めた（前 0.1→0.0575、後 0.08→0.0425）。止まっているときの車体の中心は、地面から 0.228m で Neo と同じ。
+- 車輪ノードの位置からは、実際の縮みは読み取れない。車高は `VehicleWheel3D.get_contact_point()` と車体の高さの差で測った。
+- 確認（同じ場所でジャンプして着地）: Neo は車高が 0.228→0.114m まで沈み、戻るのに約0.4秒かかった。Classic は 0.174m までで、約0.07秒で戻った。後退してから前進したときの車体の揺れは、縦の速さの最大が Classic 0.10m/s、Neo 0.03m/s で、Classic のほうがやや硬く揺れる。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
