@@ -98,9 +98,11 @@ func _notification(what: int) -> void:
         _reset()
 
 
-# 指がボタンの上にあるか（リセット／メニュー）
+# 指がボタンの上にあるか（リセット／メニュー／ブースト）
 func _is_on_button(pos: Vector2) -> bool:
     if _reset_button.visible and _reset_button.get_global_rect().has_point(pos):
+        return true
+    if BoostGauge.get_button_rect().has_point(pos):
         return true
     return GameMenu.get_button_rect().has_point(pos)
 
