@@ -20,6 +20,8 @@ extends VehicleBody3D
 @export var BOOST_CHARGE_DISTANCE = 40.0
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
+# サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
+@export var rigid_visual_wheels := false
 
 var _run_sound: AudioStreamPlayer3D
 var _run_volume := 0.0
@@ -254,7 +256,8 @@ func _process(delta: float) -> void:
     for w in _visual_wheels:
         var wheel: VehicleWheel3D = w["wheel"]
         # 見た目のタイヤの下端を物理ホイールの下端に合わせる（タイヤの半径が違っても浮かない）
-        var dy: float = (body_inv * wheel.global_position).y - wheel.wheel_radius + w["tire_radius"] - w["tire_center_body"].y
+        # rigid_visual_wheels のときは上下させない（dy = 0）
+        var dy: float = 0.0 if rigid_visual_wheels else (body_inv * wheel.global_position).y - wheel.wheel_radius + w["tire_radius"] - w["tire_center_body"].y
         var moved_parent: Node3D = w["moved_parent"]
         var to_local := moved_parent.global_basis.inverse()
         var offset_local: Vector3 = to_local * (global_basis * Vector3(0.0, dy, 0.0))

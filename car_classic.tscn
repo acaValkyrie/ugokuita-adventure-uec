@@ -32,6 +32,7 @@ center_of_mass_mode = 1
 center_of_mass = Vector3(0, -0.18, 0)
 script = ExtResource("1_7822p")
 robot_key = "classic"
+rigid_visual_wheels = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.000949897, -0.00846478, -6.06477e-05)
@@ -90,7 +91,7 @@ damping_compression = 15.6
 damping_relaxation = 23.4
 
 [node name="ugokuita-classic" parent="." instance=ExtResource("2_classic")]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.17, -0.240647, -0.2527)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.17, -0.2279, -0.2527)
 
 [node name="SurfaceSounds" type="Node3D" parent="."]
 script = ExtResource("4_surf")
