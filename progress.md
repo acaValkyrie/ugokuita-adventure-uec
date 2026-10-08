@@ -354,7 +354,14 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - オートロード `PlayerSwitch`（`player_switch.gd`）: メニューで機体を選ぶと、プレイヤーのノード（`VehicleBody3D`）ごと入れ替える。位置・速度・ブーストのゲージ・モーターの速さ・リスポーンの記録を引き継ぐ。シーンに置いてあるのは Neo なので、保存してある機体が Classic なら起動直後に入れ替える。
 - カメラ（`camera_3d.gd`）と機体用の光（`robot_sun.gd`）は、`PlayerSwitch.player_changed` で対象を付け替える。
 - 確認: Classic を保存した状態で起動すると Classic で始まった。メニューで Classic → Neo → Classic と入れ替え、どちらも W で約4.5m/sまで走った。カメラと光の対象が新しいプレイヤーに替わることも確かめた。
-- Classic の板（`Ita`、マテリアル名 `Oak`）が真っ黒なのは、Fusion から書き出した FBX に木目の画像が含まれておらず、色も (0,0,0) になっているため。まだ直していない。
+- Classic の板（`Ita`、マテリアル名 `Oak`）が真っ黒なのは、Fusion から書き出した FBX に木目の画像が含まれておらず、色も (0,0,0) になっているため。
+
+### 25. Classic の板に木目を貼った（2026-10-08）
+
+- Fusion から OBJ でも書き出して確かめたが、`.mtl` の Oak も `Kd 0 0 0` だけで画像の指定は無かった。さらに Godot は OBJ を1つのメッシュとして取り込み、マテリアルが256を超えた分を捨てるため、板そのものが消えた。そのため FBX を使い続ける。
+- Poly Haven の `oak_veneer_03`（CC0、1k の色・法線・粗さ）を `assets/textures/oak_veneer_03/` に置いた。マテリアル `oak_veneer_03.tres` は3方向投影（triplanar）で、実寸どおり1mに1枚の割合で貼る。
+- `robot_merge_import.gd` に `MATERIAL_OVERRIDES`（取り込み元のファイル名 → マテリアルの名前 → 差し替え先）を追加し、Classic の `Oak` を取り込み時に差し替える。
+- 確認: 取り込み直すと `Merged_46` の Oak が差し替わった。日なたでは木目が見える。日陰では機体用の光が消えて環境光だけになるため、灰色っぽく見える。
 
 ## まだやっていないこと
 
