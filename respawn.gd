@@ -76,6 +76,7 @@ func respawn() -> void:
     PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
     vehicle.global_transform = target
     vehicle._motor_speed = 0.0
+    vehicle._boost_time = 0.0
     _cursor = index
     _last_time = now
     _safe_since_respawn = false
