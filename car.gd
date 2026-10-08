@@ -56,8 +56,8 @@ func _physics_process(delta: float) -> void:
             target = throttle * MAX_SPEED
         _motor_speed = move_toward(_motor_speed, target, MOTOR_ACCEL * delta)
 
-    # 車輪がどれか接地しているときだけジャンプできる
-    if Input.is_action_just_pressed("jump") and _is_on_ground():
+    # 車輪がどれか接地しているときだけジャンプできる（メニューを閉じたボタンでは発動しない）
+    if Input.is_action_just_pressed("jump") and not GameMenu.is_just_closed() and _is_on_ground():
         apply_central_impulse(Vector3.UP * JUMP_SPEED * mass)
 
     # 接地して走った水平距離でゲージを貯める（ブースト中は貯めない）
@@ -65,7 +65,7 @@ func _physics_process(delta: float) -> void:
         var horizontal := Vector3(linear_velocity.x, 0.0, linear_velocity.z)
         boost_gauge = minf(boost_gauge + horizontal.length() * delta / BOOST_CHARGE_DISTANCE, 1.0)
     # 満タンのときだけ発動できる。後退の入力中なら後ろ向き、それ以外は前向き
-    if Input.is_action_just_pressed("boost") and boost_gauge >= 1.0:
+    if Input.is_action_just_pressed("boost") and not GameMenu.is_just_closed() and boost_gauge >= 1.0:
         boost_gauge = 0.0
         _boost_time = BOOST_DURATION
         _boost_dir = -1.0 if throttle < 0.0 else 1.0
