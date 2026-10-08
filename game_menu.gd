@@ -1,8 +1,9 @@
 extends CanvasLayer
 # 左上のメニューボタンと、ESC/STARTで開く一時停止メニュー。
-# メニュー内で全体音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）を選べる。
+# メニュー内で全体音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体の見た目（Neo / Classic）を選べる。
 
 signal pad_layout_changed(layout: String)
+signal robot_model_changed(model: String)
 
 # Master バスの既定音量（default_bus_layout.tres）
 const BASE_DB := -6.0206
@@ -16,15 +17,20 @@ const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
 # 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
 const PAD_LAYOUTS := ["nintendo", "playstation", "xbox"]
 const PAD_LAYOUT_NAMES := ["Nintendo", "PlayStation", "Xbox"]
+# 操作する機体の見た目（設定ファイルに保存する値）
+const ROBOT_MODELS := ["neo", "classic"]
+const ROBOT_MODEL_NAMES := ["Ugokuita Neo", "Ugokuita Classic"]
 
 var is_open: bool = false
 var pad_layout: String = "nintendo"
+var robot_model: String = "neo"
 var _volume: int = 100
 var _menu_button: Button
 var _dimmer: ColorRect
 var _slider: HSlider
 var _volume_label: Label
 var _pad_buttons: Array[Button] = []
+var _robot_buttons: Array[Button] = []
 var _player: AudioStreamPlayer
 # メニューを閉じたときの物理フレーム番号
 var _closed_physics_frame: int = -100
@@ -42,6 +48,7 @@ func _ready() -> void:
     _slider.set_value_no_signal(_volume)
     _volume_label.text = "%d%%" % _volume
     _pad_buttons[PAD_LAYOUTS.find(pad_layout)].set_pressed_no_signal(true)
+    _robot_buttons[ROBOT_MODELS.find(robot_model)].set_pressed_no_signal(true)
 
 
 func get_button_rect() -> Rect2:
@@ -222,6 +229,26 @@ func _build_menu() -> void:
         pad_row.add_child(pad_button)
         _pad_buttons.append(pad_button)
 
+    var robot_title := Label.new()
+    robot_title.text = "Robot"
+    robot_title.add_theme_font_size_override("font_size", 20)
+    vbox.add_child(robot_title)
+
+    var robot_row := HBoxContainer.new()
+    robot_row.add_theme_constant_override("separation", 12)
+    vbox.add_child(robot_row)
+
+    var robot_group := ButtonGroup.new()
+    for i in ROBOT_MODELS.size():
+        var robot_button := Button.new()
+        robot_button.text = ROBOT_MODEL_NAMES[i]
+        robot_button.toggle_mode = true
+        robot_button.button_group = robot_group
+        robot_button.add_theme_font_size_override("font_size", 20)
+        robot_button.pressed.connect(_on_robot_model_pressed.bind(ROBOT_MODELS[i]))
+        robot_row.add_child(robot_button)
+        _robot_buttons.append(robot_button)
+
     var close_button := Button.new()
     close_button.text = "Close"
     close_button.add_theme_font_size_override("font_size", 20)
@@ -247,6 +274,14 @@ func _on_pad_layout_pressed(layout: String) -> void:
     _apply_pad_buttons()
     _save_settings()
     pad_layout_changed.emit(pad_layout)
+
+
+func _on_robot_model_pressed(model: String) -> void:
+    if model == robot_model:
+        return
+    robot_model = model
+    _save_settings()
+    robot_model_changed.emit(robot_model)
 
 
 # 決定・キャンセルのボタンを表記に合わせる（任天堂・PSは右が決定で下がキャンセル、Xboxは下が決定で右がキャンセル）
@@ -293,10 +328,14 @@ func _load_settings() -> void:
     var layout := str(config.get_value("controls", "pad_layout", "nintendo"))
     if layout in PAD_LAYOUTS:
         pad_layout = layout
+    var model := str(config.get_value("robot", "model", "neo"))
+    if model in ROBOT_MODELS:
+        robot_model = model
 
 
 func _save_settings() -> void:
     var config := ConfigFile.new()
     config.set_value("audio", "volume", _volume)
     config.set_value("controls", "pad_layout", pad_layout)
+    config.set_value("robot", "model", robot_model)
     config.save(SETTINGS_PATH)
