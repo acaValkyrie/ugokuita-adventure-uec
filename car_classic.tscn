@@ -16,6 +16,10 @@
 [ext_resource type="Script" path="res://bump_sounds.gd" id="5_bump"]
 [ext_resource type="AudioStream" path="res://assets/audio/bump/bump_a.ogg" id="b0_bumpa"]
 [ext_resource type="AudioStream" path="res://assets/audio/bump/bump_b.ogg" id="b1_bumpb"]
+[ext_resource type="AudioStream" path="res://assets/audio/bump/rattle_a.wav" id="r0_rattlea"]
+[ext_resource type="AudioStream" path="res://assets/audio/bump/rattle_b.wav" id="r1_rattleb"]
+[ext_resource type="AudioStream" path="res://assets/audio/bump/rattle_c.wav" id="r2_rattlec"]
+[ext_resource type="AudioStream" path="res://assets/audio/bump/rattle_d.wav" id="r3_rattled"]
 
 [ext_resource type="Script" path="res://respawn.gd" id="6_respawn"]
 
@@ -96,6 +100,8 @@ water_sounds = Array[AudioStream]([ExtResource("13_w3")])
 [node name="BumpSounds" type="Node3D" parent="."]
 script = ExtResource("5_bump")
 sounds = Array[AudioStream]([ExtResource("b0_bumpa"), ExtResource("b1_bumpb")])
+rattle_sounds = Array[AudioStream]([ExtResource("r0_rattlea"), ExtResource("r1_rattleb"), ExtResource("r2_rattlec"), ExtResource("r3_rattled")])
+rattle_volume_db = -4.0
 
 [node name="Respawn" type="Node" parent="."]
 script = ExtResource("6_respawn")
