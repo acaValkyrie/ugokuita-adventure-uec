@@ -36,7 +36,7 @@ extends VehicleBody3D
 @export var SWEEP_MIN_DISTANCE := 0.04
 # 面の手前に残す余裕 [m]。ちょうど面で止めると、その後の重力などで少しめり込み、傾いたときに抜けるため。最後の数cmは物理エンジンに任せる
 @export var SWEEP_MARGIN := 0.03
-# すり抜け防止で落とした速さを足し合わせる時間 [s]。ぶつかる直前の数フレームに分けて落とすので、激突の判定ではこの間の合計も見る
+# すり抜け防止が働いてから、フレームごとの水平の速度変化を足し合わせる時間 [s]。ぶつかる直前の数フレームに分けて速度が落ちるので、激突の判定ではこの間の合計も見る
 @export var SWEEP_CRASH_WINDOW := 0.1
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
@@ -65,7 +65,7 @@ var _crash_sound: AudioStreamPlayer
 # 前の物理フレームの速度（激突の判定用。リスポーンや機体の入れ替えのときは外から書き換える）
 var _prev_velocity := Vector3.ZERO
 var _crash_cooldown := 0.0
-# すり抜け防止で落とした水平方向の速さの合計 [m/s] と、その合計を残す残り時間 [s]
+# すり抜け防止が働いてからの、フレームごとの水平の速度変化の合計 [m/s] と、合計を続ける残り時間 [s]
 var _sweep_dv_sum := 0.0
 var _sweep_dv_timer := 0.0
 # 激突の音を鳴らした回数（テスト用）
@@ -189,11 +189,8 @@ func _prevent_tunneling(delta: float) -> void:
     var allowed := maxf((motion * safe).dot(-n) - SWEEP_MARGIN, 0.0)
     var target := allowed / delta
     if target < approach:
-        var dv := n * (approach - target)
-        linear_velocity += dv
-        # 激突の音の判定用に、落とした水平方向の速さを足し合わせる
-        dv.y = 0.0
-        _sweep_dv_sum += dv.length()
+        linear_velocity += n * (approach - target)
+        # 激突の音の判定用に、この後しばらく速度変化を足し合わせる
         _sweep_dv_timer = SWEEP_CRASH_WINDOW
 
 # 壁などに当たって水平の速度が急に変わったら激突の音を鳴らす
@@ -208,7 +205,9 @@ func _check_crash(delta: float) -> void:
     var dv := linear_velocity - _prev_velocity
     dv.y = 0.0
     # すり抜け防止が、ぶつかる直前の数フレームに分けて速度を落とすので、1フレームの変化だけでは激突を取りこぼす。
-    # 落とした分の合計と比べて大きいほうを使う（足すと二重に数えるため）
+    # 働いてからしばらくは、フレームごとの変化の合計と比べて大きいほうを使う
+    if _sweep_dv_timer > 0.0:
+        _sweep_dv_sum += dv.length()
     var change := maxf(dv.length(), _sweep_dv_sum)
     if change < CRASH_MIN_DV or _crash_cooldown > 0.0:
         return
