@@ -159,6 +159,16 @@ func get_boost_icon() -> Texture2D:
     return null
 
 
+# ジャンプのボタンのアイコン（看板のヒントに出す）。タッチはボタンが無いので null
+func get_jump_icon() -> Texture2D:
+    match _mode:
+        Mode.KEYBOARD:
+            return ICON_KEY_SPACE
+        Mode.GAMEPAD:
+            return PAD_ICONS[GameMenu.pad_layout]["jump"]
+    return null
+
+
 # 現在のモードの項目で HBox の中身を作り直す
 func _rebuild() -> void:
     for child in _hbox.get_children():

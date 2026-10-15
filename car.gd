@@ -61,8 +61,9 @@ func _physics_process(delta: float) -> void:
             target = throttle * MAX_SPEED
         _motor_speed = move_toward(_motor_speed, target, MOTOR_ACCEL * delta)
 
-    # 車輪がどれか接地しているときだけジャンプできる（メニューを閉じたボタンでは発動しない）
-    if Input.is_action_just_pressed("jump") and not GameMenu.is_just_closed() and _is_on_ground():
+    # 車輪がどれか接地しているときだけジャンプできる（メニューを閉じたボタンや、看板の近くで押したボタンでは発動しない）
+    if Input.is_action_just_pressed("jump") and not GameMenu.is_just_closed() \
+            and not LinkBoard.is_player_near() and _is_on_ground():
         apply_central_impulse(Vector3.UP * JUMP_SPEED * mass)
 
     # 接地して走った水平距離でゲージを貯める（ブースト中は貯めない）
