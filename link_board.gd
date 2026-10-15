@@ -105,7 +105,7 @@ func _ready() -> void:
     _add_outline_bar(vertical_size, Vector3(-offset_x, 0.0, 0.005), outline_material)
     _add_outline_bar(vertical_size, Vector3(offset_x, 0.0, 0.005), outline_material)
 
-    # ヒントのUI（ポスターの上に追従させる）
+    # ヒントのUI（ポスターの下に追従させる）
     _layer = CanvasLayer.new()
     _layer.layer = 10
     _layer.visible = false
@@ -187,9 +187,9 @@ func _process(_delta: float) -> void:
     else:
         _label.text = "タップしてウェブで開く"
 
-    # ポスターの上辺の中央の少し上を画面に投影し、パネルの下辺の中央をそこに置く
+    # ポスターの下辺の中央の少し下を画面に投影し、パネルの上辺の中央をそこに置く
     var camera := get_viewport().get_camera_3d()
-    var point := global_transform * Vector3(0.0, poster_size.y / 2.0 + 0.15, 0.0)
+    var point := global_transform * Vector3(0.0, -poster_size.y / 2.0 - 0.15, 0.0)
     if camera == null or camera.is_position_behind(point):
         _panel.visible = false
         return
@@ -199,7 +199,7 @@ func _process(_delta: float) -> void:
     var screen_point := camera.unproject_position(point)
     var viewport_size := get_viewport().get_visible_rect().size
     var margin := 16.0
-    var target := screen_point - Vector2(_panel.size.x / 2.0, _panel.size.y)
+    var target := screen_point - Vector2(_panel.size.x / 2.0, 0.0)
     # 画面からはみ出さないようにする
     target.x = clampf(target.x, margin, viewport_size.x - _panel.size.x - margin)
     target.y = clampf(target.y, margin, viewport_size.y - _panel.size.y - margin)
