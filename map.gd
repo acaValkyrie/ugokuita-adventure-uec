@@ -244,10 +244,9 @@ func _add_building_labels(node: Node) -> void:
 
 
 # 守衛所・宿舎・センターなど小さな施設まで載せると文字が重なって読めないため、
-# 表示名が「号館」「棟」を含む、または「館」で終わる建物だけを載せる
+# 表示名に「館」か「棟」を含む建物（号館・図書館・体育館・会館・本館・〜棟）だけを載せる
 func _is_listed_building(display_name: String) -> bool:
-    return display_name.contains("号館") or display_name.contains("棟") \
-            or display_name.ends_with("館")
+    return display_name.contains("館") or display_name.contains("棟")
 
 
 func _add_label(building: Node3D) -> void:
