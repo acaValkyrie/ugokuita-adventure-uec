@@ -62,6 +62,7 @@ const NODE_COLORS := {
 # エントリが無いファイルは三角形を減らさない
 const SIMPLIFY_MAX_ERROR := {
 	"ugokuita-neo.glb": 0.001,
+	"ugokuita-classic.fbx": 0.001,
 }
 
 # 残すノード（サブツリー全体と、その祖先）
