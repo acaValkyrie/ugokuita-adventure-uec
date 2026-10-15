@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://dhomfjn5v0vbg" path="res://robot_sun.gd" id="6_robotsun"]
 [ext_resource type="Script" path="res://link_board.gd" id="7_linkboard"]
 [ext_resource type="Texture2D" path="res://assets/boards/github_poster.png" id="8_poster"]
+[ext_resource type="Texture2D" path="res://assets/boards/ugokuita_project_poster.png" id="9_poster_ugokuita"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_gyfs4"]
 sky_top_color = Color(0.56, 0.7, 0.84, 1)
@@ -72,3 +73,9 @@ light_data = ExtResource("4_8mm7a")
 transform = Transform3D(0.9703, 0, -0.2419, 0, 1, 0, 0.2419, 0, 0.9703, 113.9696, 1.5, -110.7553)
 script = ExtResource("7_linkboard")
 poster = ExtResource("8_poster")
+
+[node name="LinkBoardUgokuitaProject" type="Node3D" parent="."]
+transform = Transform3D(0.9703, 0, -0.2419, 0, 1, 0, 0.2419, 0, 0.9703, 119.7914, 1.5, -109.3039)
+script = ExtResource("7_linkboard")
+url = "https://github.com/ugokuita-project"
+poster = ExtResource("9_poster_ugokuita")
