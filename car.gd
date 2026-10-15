@@ -46,6 +46,8 @@ var boost_gauge := 0.0
 # ブーストの残り時間 [s] と向き（前が1、後ろが-1）
 var _boost_time := 0.0
 var _boost_dir := 1.0
+# 空中でのジャンプ（二段ジャンプ）を使ったか。接地すると戻る
+var _air_jump_used := false
 # ジャンプと激突の効果音
 # 実機を録音したガッタン音。ジャンプと激突で鳴らす
 const BUMP_SOUNDS: Array[AudioStream] = [
@@ -66,20 +68,24 @@ func _physics_process(delta: float) -> void:
     var throttle = Input.get_axis("down", "up")
     var forward_speed = linear_velocity.dot(global_basis.z)
     # 最高速度に近づくほど推力を絞る（減速方向の入力は絞らない）
-    var limit = clampf(1.0 - absf(forward_speed) / MAX_SPEED, 0.0, 1.0)
+    var limit = clampf(1.0 - absf(forward_speed) / _max_speed(), 0.0, 1.0)
     if throttle * forward_speed < 0.0:
         limit = 1.0
-    engine_force = throttle * ENGINE_POWER * limit
+    engine_force = throttle * _engine_power() * limit
     # 入力がないときはブレーキをかけて坂でずり落ちないようにする
     brake = BRAKE_FORCE if is_zero_approx(throttle) else 0.0
 
     # 接地して走った水平距離でゲージを貯める（ブースト中は貯めない）
     if _boost_time <= 0.0 and _is_on_ground():
         var horizontal := Vector3(linear_velocity.x, 0.0, linear_velocity.z)
-        boost_gauge = minf(boost_gauge + horizontal.length() * delta / BOOST_CHARGE_DISTANCE, 1.0)
+        var charge: float = horizontal.length() * delta / BOOST_CHARGE_DISTANCE
+        if PowerUps.has("boost_charge"):
+            charge *= PowerUps.BOOST_CHARGE_MULTIPLIER
+        boost_gauge = minf(boost_gauge + charge, 1.0)
     # 満タンのときだけ発動できる。後退の入力中なら後ろ向き、それ以外は前向き
     # （発動したフレームからモーターに効かせるため、モーターの処理より前に置く）
-    if Input.is_action_just_pressed("boost") and not GameMenu.is_just_closed() and boost_gauge >= 1.0:
+    if Input.is_action_just_pressed("boost") and not GameMenu.is_just_closed() \
+            and not PowerUps.is_just_closed() and boost_gauge >= 1.0:
         boost_gauge = 0.0
         _boost_time = BOOST_DURATION
         _boost_dir = -1.0 if throttle < 0.0 else 1.0
@@ -96,23 +102,31 @@ func _physics_process(delta: float) -> void:
             measured = 0.0
         var target := measured
         if not is_zero_approx(throttle):
-            target = throttle * MAX_SPEED
+            target = throttle * _max_speed()
         var accel: float = MOTOR_ACCEL
         # ブースト中は最高速度より速く、素早く回して唸らせる
         if _boost_time > 0.0:
-            target = _boost_dir * MAX_SPEED * BOOST_MOTOR_RATIO
+            target = _boost_dir * _max_speed() * BOOST_MOTOR_RATIO
             accel = BOOST_MOTOR_ACCEL
         _motor_speed = move_toward(_motor_speed, target, accel * delta)
 
-    # 車輪がどれか接地しているときだけジャンプできる（メニューを閉じたボタンでは発動しない）
+    # 車輪がどれか接地しているときだけジャンプできる（メニューやポップアップを閉じたボタンでは発動しない）
     # Xbox 表記では看板を開くボタンがジャンプと同じ下のボタンなので、看板の近くでは開くほうを優先する
+    # 二段ジャンプを取っていれば、空中でも1回だけもう一度ジャンプできる
+    var on_ground := _is_on_ground()
+    if on_ground:
+        _air_jump_used = false
     if Input.is_action_just_pressed("jump") and not GameMenu.is_just_closed() \
-            and not (LinkBoard.is_player_near() and Input.is_action_just_pressed("interact")) \
-            and _is_on_ground():
-        apply_central_impulse(Vector3.UP * JUMP_SPEED * mass)
-        _jump_sound.stream = BUMP_SOUNDS.pick_random()
-        _jump_sound.pitch_scale = 1.0 + randf_range(-0.08, 0.08)
-        _jump_sound.play()
+            and not PowerUps.is_just_closed() \
+            and not (LinkBoard.is_player_near() and Input.is_action_just_pressed("interact")):
+        if on_ground:
+            apply_central_impulse(Vector3.UP * JUMP_SPEED * mass)
+            _play_jump_sound()
+        elif PowerUps.has("double_jump") and not _air_jump_used:
+            # 上向きの速度を置き換える（落下中でも同じ高さまで跳ぶ）
+            linear_velocity.y = JUMP_SPEED
+            _air_jump_used = true
+            _play_jump_sound()
 
     if _boost_time > 0.0:
         apply_central_force(global_basis.z * _boost_dir * BOOST_ACCEL * mass)
@@ -138,6 +152,21 @@ func _check_crash(delta: float) -> void:
     _crash_sound.play()
     _crash_cooldown = CRASH_COOLDOWN
     crash_count += 1
+
+
+func _play_jump_sound() -> void:
+    _jump_sound.stream = BUMP_SOUNDS.pick_random()
+    _jump_sound.pitch_scale = 1.0 + randf_range(-0.08, 0.08)
+    _jump_sound.play()
+
+
+# 最高速度と駆動力。モータートルクUPを取っていれば上がる
+func _max_speed() -> float:
+    return MAX_SPEED * PowerUps.TORQUE_SPEED_MULTIPLIER if PowerUps.has("torque") else MAX_SPEED
+
+
+func _engine_power() -> float:
+    return ENGINE_POWER * PowerUps.TORQUE_POWER_MULTIPLIER if PowerUps.has("torque") else ENGINE_POWER
 
 
 func _is_on_ground() -> bool:
