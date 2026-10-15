@@ -11,6 +11,12 @@ extends VehicleBody3D
 @export var RUN_SOUND_FADE := 6.0
 # モーター（後輪の外周）の速さの変化の速さ [m/s²]
 @export var MOTOR_ACCEL = 12.0
+# ブースト中のモーターの速さ（MAX_SPEED に対する倍率）
+@export var BOOST_MOTOR_RATIO := 1.6
+# ブースト中にモーターの速さを変える速さ [m/s²]（普段の MOTOR_ACCEL より速く唸らせる）
+@export var BOOST_MOTOR_ACCEL := 40.0
+# ブースト中、モーターの速さが BOOST_MOTOR_RATIO に達したときの走行音のピッチ
+@export var RUN_SOUND_BOOST_PITCH := 1.8
 # ジャンプの初速 [m/s]
 @export var JUMP_SPEED = 4.0
 # ブーストの加速度 [m/s²] と、かける時間 [s]
@@ -65,6 +71,17 @@ func _physics_process(delta: float) -> void:
     # 入力がないときはブレーキをかけて坂でずり落ちないようにする
     brake = BRAKE_FORCE if is_zero_approx(throttle) else 0.0
 
+    # 接地して走った水平距離でゲージを貯める（ブースト中は貯めない）
+    if _boost_time <= 0.0 and _is_on_ground():
+        var horizontal := Vector3(linear_velocity.x, 0.0, linear_velocity.z)
+        boost_gauge = minf(boost_gauge + horizontal.length() * delta / BOOST_CHARGE_DISTANCE, 1.0)
+    # 満タンのときだけ発動できる。後退の入力中なら後ろ向き、それ以外は前向き
+    # （発動したフレームからモーターに効かせるため、モーターの処理より前に置く）
+    if Input.is_action_just_pressed("boost") and not GameMenu.is_just_closed() and boost_gauge >= 1.0:
+        boost_gauge = 0.0
+        _boost_time = BOOST_DURATION
+        _boost_dir = -1.0 if throttle < 0.0 else 1.0
+
     # アクセル中はモーターの指令に、離したら実際の回転に合わせる（乗り上げて空転しても回り、音も鳴るようにする）
     var wheel_bl := get_node_or_null("VehicleWheel3D_BL") as VehicleWheel3D
     var wheel_br := get_node_or_null("VehicleWheel3D_BR") as VehicleWheel3D
@@ -78,7 +95,12 @@ func _physics_process(delta: float) -> void:
         var target := measured
         if not is_zero_approx(throttle):
             target = throttle * MAX_SPEED
-        _motor_speed = move_toward(_motor_speed, target, MOTOR_ACCEL * delta)
+        var accel: float = MOTOR_ACCEL
+        # ブースト中は最高速度より速く、素早く回して唸らせる
+        if _boost_time > 0.0:
+            target = _boost_dir * MAX_SPEED * BOOST_MOTOR_RATIO
+            accel = BOOST_MOTOR_ACCEL
+        _motor_speed = move_toward(_motor_speed, target, accel * delta)
 
     # 車輪がどれか接地しているときだけジャンプできる（メニューを閉じたボタンでは発動しない）
     # Xbox 表記では看板を開くボタンがジャンプと同じ下のボタンなので、看板の近くでは開くほうを優先する
@@ -90,15 +112,6 @@ func _physics_process(delta: float) -> void:
         _jump_sound.pitch_scale = 1.0 + randf_range(-0.08, 0.08)
         _jump_sound.play()
 
-    # 接地して走った水平距離でゲージを貯める（ブースト中は貯めない）
-    if _boost_time <= 0.0 and _is_on_ground():
-        var horizontal := Vector3(linear_velocity.x, 0.0, linear_velocity.z)
-        boost_gauge = minf(boost_gauge + horizontal.length() * delta / BOOST_CHARGE_DISTANCE, 1.0)
-    # 満タンのときだけ発動できる。後退の入力中なら後ろ向き、それ以外は前向き
-    if Input.is_action_just_pressed("boost") and not GameMenu.is_just_closed() and boost_gauge >= 1.0:
-        boost_gauge = 0.0
-        _boost_time = BOOST_DURATION
-        _boost_dir = -1.0 if throttle < 0.0 else 1.0
     if _boost_time > 0.0:
         apply_central_force(global_basis.z * _boost_dir * BOOST_ACCEL * mass)
         _boost_time -= delta
@@ -297,11 +310,18 @@ func _update_run_sound(delta: float) -> void:
     if _run_sound == null:
         return
     var wheel_speed := absf(_motor_speed)
-    var ratio := clampf(wheel_speed / MAX_SPEED, 0.0, 1.0)
-    var target := smoothstep(0.02, 0.25, ratio)
+    # ブースト中は最高速度（1）を超えて BOOST_MOTOR_RATIO まで上がる
+    var ratio := clampf(wheel_speed / MAX_SPEED, 0.0, BOOST_MOTOR_RATIO)
+    var base_ratio := minf(ratio, 1.0)
+    var target := smoothstep(0.02, 0.25, base_ratio)
     _run_volume = move_toward(_run_volume, target, RUN_SOUND_FADE * delta)
-    _run_sound.volume_db = linear_to_db(maxf(_run_volume, 0.0001))
-    _run_sound.pitch_scale = lerpf(RUN_SOUND_MIN_PITCH, RUN_SOUND_MAX_PITCH, ratio)
+    # 1を超えた分だけ音量を上げる（最大 +6dB）
+    var boost_amount := clampf((ratio - 1.0) / (BOOST_MOTOR_RATIO - 1.0), 0.0, 1.0)
+    _run_sound.volume_db = linear_to_db(maxf(_run_volume, 0.0001)) + 6.0 * boost_amount
+    var pitch := lerpf(RUN_SOUND_MIN_PITCH, RUN_SOUND_MAX_PITCH, base_ratio)
+    if ratio > 1.0:
+        pitch = lerpf(RUN_SOUND_MAX_PITCH, RUN_SOUND_BOOST_PITCH, boost_amount)
+    _run_sound.pitch_scale = pitch
 
 func _process(delta: float) -> void:
     _update_run_sound(delta)
