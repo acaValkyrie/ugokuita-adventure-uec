@@ -39,13 +39,13 @@ var boost_gauge := 0.0
 var _boost_time := 0.0
 var _boost_dir := 1.0
 # ジャンプと激突の効果音
-const JUMP_SOUND := preload("res://assets/audio/ロボットの足音2.mp3")
-const CRASH_SOUND := preload("res://assets/audio/ロボットを強く殴る2.mp3")
-# 激突の音に重ねる打撃の音
-const CRASH_HIT_SOUND := preload("res://assets/audio/打撃3.mp3")
+# 実機を録音したガッタン音。ジャンプと激突で鳴らす
+const BUMP_SOUNDS: Array[AudioStream] = [
+    preload("res://assets/audio/bump/bump_a.ogg"),
+    preload("res://assets/audio/bump/bump_b.ogg"),
+]
 var _jump_sound: AudioStreamPlayer3D
 var _crash_sound: AudioStreamPlayer3D
-var _crash_hit_sound: AudioStreamPlayer3D
 # 前の物理フレームの速度（激突の判定用。リスポーンや機体の入れ替えのときは外から書き換える）
 var _prev_velocity := Vector3.ZERO
 var _crash_cooldown := 0.0
@@ -86,6 +86,8 @@ func _physics_process(delta: float) -> void:
             and not (LinkBoard.is_player_near() and Input.is_action_just_pressed("interact")) \
             and _is_on_ground():
         apply_central_impulse(Vector3.UP * JUMP_SPEED * mass)
+        _jump_sound.stream = BUMP_SOUNDS.pick_random()
+        _jump_sound.pitch_scale = 1.0 + randf_range(-0.08, 0.08)
         _jump_sound.play()
 
     # 接地して走った水平距離でゲージを貯める（ブースト中は貯めない）
@@ -117,10 +119,8 @@ func _check_crash(delta: float) -> void:
         return
     _crash_sound.volume_db = linear_to_db(clampf(change / CRASH_FULL_DV, 0.3, 1.0))
     _crash_sound.pitch_scale = 1.0 + randf_range(-0.05, 0.05)
+    _crash_sound.stream = BUMP_SOUNDS.pick_random()
     _crash_sound.play()
-    _crash_hit_sound.volume_db = _crash_sound.volume_db
-    _crash_hit_sound.pitch_scale = _crash_sound.pitch_scale
-    _crash_hit_sound.play()
     _crash_cooldown = CRASH_COOLDOWN
     crash_count += 1
 
@@ -215,16 +215,10 @@ func _ready() -> void:
     _setup_run_sound()
     _jump_sound = AudioStreamPlayer3D.new()
     _jump_sound.unit_size = 3.0
-    _jump_sound.stream = JUMP_SOUND
     add_child(_jump_sound)
     _crash_sound = AudioStreamPlayer3D.new()
     _crash_sound.unit_size = 3.0
-    _crash_sound.stream = CRASH_SOUND
     add_child(_crash_sound)
-    _crash_hit_sound = AudioStreamPlayer3D.new()
-    _crash_hit_sound.unit_size = 3.0
-    _crash_hit_sound.stream = CRASH_HIT_SOUND
-    add_child(_crash_hit_sound)
     var config: Dictionary = MODELS[robot_key]
     var model := get_node_or_null(NodePath(config["node"])) as Node3D
     if model == null:
