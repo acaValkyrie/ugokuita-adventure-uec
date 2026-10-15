@@ -472,6 +472,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - Neo の三角形の約4割は Jetson Orin Nano の基板（P3766/P3767/P3768）だったが、ケースに蓋がなく上から見えるので、消さずに上の方法で減らした。
 - 結果: pck 102.7 → 64.6MB、gzip 後 89.7 → 53.1MB。wasm と合わせた転送量は約100MB → 約63MB。
 - 確認: 減らす前と後で同じ角度から機体を撮り比べ、全体・フレーム・サスペンション・Jetson の基板に崩れがないことを見た。
+- 追記: Classic にも同じ削減（`SIMPLIFY_MAX_ERROR` に 1mm）を入れた。まとめたメッシュの三角形は 85万 → 37万、Classic のデータは 17.9 → 7.6MB。pck は 54.3MB、gzip 後 43.1MB になり、wasm と合わせた転送量は約100MB → 約53MB。減らす前と後で同じ角度から2枚ずつ撮り比べ、違いは見分けられなかった。
 - 取り込みスクリプトを変えても glb は自動で取り込み直されない。エディタを閉じ、`.godot/imported/ugokuita-neo.glb-*.md5` を消して glb の更新時刻を新しくしてから `--headless --import` すると取り込み直された。
 
 ## まだやっていないこと
