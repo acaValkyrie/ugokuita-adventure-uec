@@ -34,6 +34,7 @@ SpeedLines="*res://speed_lines.gd"
 Ending="*res://ending.gd"
 Map="*res://map.gd"
 MiniMap="*res://minimap.gd"
+PowerUps="*res://power_ups.gd"
 
 [display]
 
