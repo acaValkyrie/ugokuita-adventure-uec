@@ -58,6 +58,9 @@ const WINDOW_GRID_CELL := 1.0
 const LOD_NORMAL_MERGE_ANGLE := deg_to_rad(60.0)
 const LOD_NORMAL_SPLIT_ANGLE := deg_to_rad(25.0)
 
+# 建物の地面の高さの面とみなす、三角形の全頂点のワールドYの絶対値の上限（メートル）
+const GROUND_FACE_MAX_Y := 0.02
+
 # ライトマップ1ピクセルが覆う長さ（メートル）
 const LIGHTMAP_TEXEL_SIZE := 0.5
 
@@ -85,6 +88,8 @@ func _post_import(scene: Node) -> Object:
 	var start_msec := Time.get_ticks_msec()
 	_material_cache.clear()
 	_window_tri_total = 0
+	var strip_cache := {}
+	var strip_stats := {"tris": 0, "buildings": 0}
 	for child in scene.get_children():
 		if _is_low_poly(child.name):
 			scene.remove_child(child)
@@ -95,9 +100,79 @@ func _post_import(scene: Node) -> Object:
 			_add_collisions(child)
 		elif child.name == "tree":
 			_add_sun_occluders(child)
+		# 当たり判定を作った後で、見た目のメッシュだけから地面の高さの面を取り除く
+		if String(child.name).begins_with("hi_"):
+			_strip_ground_faces(child, scene, strip_cache, strip_stats)
+	print("stage_collision_import: 建物の地面の高さの面を取り除いた: %d 三角形（%d 棟）" % [strip_stats["tris"], strip_stats["buildings"]])
 	_set_lightmap_hints(scene)
 	print("窓の検出の合計: 窓の三角形=%d 取り込み時間=%d ms" % [_window_tri_total, Time.get_ticks_msec() - start_msec])
 	return scene
+
+
+# 建物の見た目のメッシュから、ワールドの高さがほぼ0の水平な三角形を取り除く。
+# 敷地の地面（y=0）と同じ平面にあってZファイティングでちらつくため。
+# 建物の外では敷地の地面が見えるので穴は空かない。当たり判定（_col）は変えない
+func _strip_ground_faces(node: Node, scene: Node, cache: Dictionary, stats: Dictionary) -> void:
+	var removed_before: int = stats["tris"]
+	_strip_ground_faces_recursive(node, scene, cache, stats)
+	if stats["tris"] > removed_before:
+		stats["buildings"] += 1
+
+
+func _strip_ground_faces_recursive(node: Node, scene: Node, cache: Dictionary, stats: Dictionary) -> void:
+	for child in node.get_children():
+		if child is StaticBody3D:
+			continue
+		_strip_ground_faces_recursive(child, scene, cache, stats)
+	var node_name := String(node.name)
+	if not (node is MeshInstance3D) or node_name.ends_with("_col") or not (node.mesh is ArrayMesh):
+		return
+	var mesh: ArrayMesh = node.mesh
+	if not cache.has(mesh):
+		var xform := _scene_transform(node, scene)
+		var result := _strip_mesh(mesh, xform)
+		cache[mesh] = result["mesh"]
+		stats["tris"] += result["removed"]
+	if cache[mesh] != null:
+		node.mesh = cache[mesh]
+
+
+# 3頂点すべてが |y| < 閾値 の三角形を除いたメッシュを返す。取り除くものが無ければ mesh は null
+func _strip_mesh(mesh: ArrayMesh, xform: Transform3D) -> Dictionary:
+	var removed := 0
+	var importer_mesh := ImporterMesh.new()
+	importer_mesh.set_lightmap_size_hint(mesh.lightmap_size_hint)
+	for surface in mesh.get_surface_count():
+		var primitive := mesh.surface_get_primitive_type(surface)
+		var arrays := mesh.surface_get_arrays(surface)
+		if primitive == Mesh.PRIMITIVE_TRIANGLES:
+			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var old_indices = arrays[Mesh.ARRAY_INDEX]
+			var corner_count: int = vertices.size() if old_indices == null else old_indices.size()
+			var kept := PackedInt32Array()
+			for i in range(0, corner_count - 2, 3):
+				var ids := [i, i + 1, i + 2]
+				if old_indices != null:
+					ids = [old_indices[i], old_indices[i + 1], old_indices[i + 2]]
+				var is_ground := true
+				for id in ids:
+					if absf((xform * vertices[id]).y) >= GROUND_FACE_MAX_Y:
+						is_ground = false
+						break
+				if is_ground:
+					removed += 1
+				else:
+					kept.append_array(PackedInt32Array(ids))
+			if kept.is_empty():
+				continue
+			arrays[Mesh.ARRAY_INDEX] = kept
+		importer_mesh.add_surface(primitive, arrays, [], {}, mesh.surface_get_material(surface), mesh.surface_get_name(surface))
+	if removed == 0:
+		return {"mesh": null, "removed": 0}
+	importer_mesh.generate_lods(LOD_NORMAL_MERGE_ANGLE, LOD_NORMAL_SPLIT_ANGLE, [])
+	var new_mesh := importer_mesh.get_mesh()
+	new_mesh.resource_name = mesh.resource_name
+	return {"mesh": new_mesh, "removed": removed}
 
 
 # 残ったメッシュのUV2用に、面積から決めたライトマップのサイズを設定する
