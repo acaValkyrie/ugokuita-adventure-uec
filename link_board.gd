@@ -15,14 +15,21 @@ const FONT := preload("res://assets/fonts/noto_sans_cjk_jp_bold_ui.otf")
 @export var trigger_depth := 3.0
 ## 看板の上下方向に、この範囲内にいると「近い」[m]
 @export var trigger_half_height := 2.5
+## 選択中の看板のポスターを縁取る白枠の太さ（ポスターの内側）[m]
+@export var outline_width := 0.06
 
-# プレイヤーが近くにいる看板
+# シーン内のすべての看板
+static var _boards: Array[LinkBoard] = []
+# プレイヤーの近くにいて、いちばん近い（選択中の）看板
 static var _active: LinkBoard = null
+# 選択を最後に更新した物理フレーム
+static var _selected_frame := -1
 
 var _layer: CanvasLayer
 var _panel: PanelContainer
 var _icon: TextureRect
 var _label: Label
+var _outline: Node3D
 
 
 # 看板の近くにいるか（車のジャンプを止めるのに使う）
@@ -37,6 +44,39 @@ static func get_prompt_rect() -> Rect2:
     return Rect2()
 
 
+func _enter_tree() -> void:
+    _boards.append(self)
+
+
+# 近くにいる看板のうち、プレイヤーにいちばん近い1枚を選ぶ
+static func _select_active() -> void:
+    _active = null
+    if _boards.is_empty():
+        return
+    var player := _boards[0].get_tree().get_first_node_in_group("player") as Node3D
+    if player == null:
+        return
+    var best := INF
+    for board in _boards:
+        var distance := board._player_distance(player)
+        if distance < best:
+            best = distance
+            _active = board
+
+
+# プレイヤーまでの水平距離（近くにいないときは INF）
+func _player_distance(player: Node3D) -> float:
+    var local := global_transform.affine_inverse() * player.global_position
+    var near := (
+        absf(local.x) <= trigger_half_width
+        and local.z >= 0.0 and local.z <= trigger_depth
+        and absf(local.y) <= trigger_half_height
+    )
+    if not near:
+        return INF
+    return Vector2(local.x, local.z).length()
+
+
 func _ready() -> void:
     # ポスター（QuadMesh の表は +Z なのでそのまま向ける）
     var quad := QuadMesh.new()
@@ -48,6 +88,22 @@ func _ready() -> void:
     var mesh_instance := MeshInstance3D.new()
     mesh_instance.mesh = quad
     add_child(mesh_instance)
+
+    # 選択中の白枠（ポスターの内側に四辺を重ねる）
+    _outline = Node3D.new()
+    _outline.visible = false
+    add_child(_outline)
+    var outline_material := StandardMaterial3D.new()
+    outline_material.albedo_color = Color.WHITE
+    outline_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    var horizontal_size := Vector2(poster_size.x, outline_width)
+    var vertical_size := Vector2(outline_width, poster_size.y - 2.0 * outline_width)
+    var offset_y := (poster_size.y - outline_width) / 2.0
+    var offset_x := (poster_size.x - outline_width) / 2.0
+    _add_outline_bar(horizontal_size, Vector3(0.0, offset_y, 0.005), outline_material)
+    _add_outline_bar(horizontal_size, Vector3(0.0, -offset_y, 0.005), outline_material)
+    _add_outline_bar(vertical_size, Vector3(-offset_x, 0.0, 0.005), outline_material)
+    _add_outline_bar(vertical_size, Vector3(offset_x, 0.0, 0.005), outline_material)
 
     # ヒントのUI（画面下中央）
     _layer = CanvasLayer.new()
@@ -96,24 +152,27 @@ func _ready() -> void:
     box.add_child(_label)
 
 
+func _add_outline_bar(bar_size: Vector2, bar_position: Vector3, material: Material) -> void:
+    var quad := QuadMesh.new()
+    quad.size = bar_size
+    quad.material = material
+    var bar := MeshInstance3D.new()
+    bar.mesh = quad
+    bar.position = bar_position
+    _outline.add_child(bar)
+
+
 func _physics_process(_delta: float) -> void:
-    var near := false
-    var player := get_tree().get_first_node_in_group("player") as Node3D
-    if player != null:
-        var local := global_transform.affine_inverse() * player.global_position
-        near = (
-            absf(local.x) <= trigger_half_width
-            and local.z >= 0.0 and local.z <= trigger_depth
-            and absf(local.y) <= trigger_half_height
-        )
+    # 選択は全看板で1回だけ、そのフレームで最初に処理された看板が更新する
+    if Engine.get_physics_frames() != _selected_frame:
+        _selected_frame = Engine.get_physics_frames()
+        _select_active()
 
-    if near:
-        _active = self
-    elif _active == self:
-        _active = null
-    _layer.visible = near
+    var selected := _active == self
+    _layer.visible = selected
+    _outline.visible = selected
 
-    if near and Input.is_action_just_pressed("interact") \
+    if selected and Input.is_action_just_pressed("interact") \
             and not GameMenu.is_open and not GameMenu.is_just_closed():
         _open()
 
@@ -148,5 +207,6 @@ func _open() -> void:
 
 
 func _exit_tree() -> void:
+    _boards.erase(self)
     if _active == self:
         _active = null
