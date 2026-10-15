@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/test_stage.gd" id="1_stage"]
+[ext_resource type="Script" path="res://camera_3d.gd" id="2_camera"]
+[ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://car.tscn" id="3_car"]
+[ext_resource type="Script" path="res://tests/measure_runner.gd" id="4_measure"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_stage"]
+sky_top_color = Color(0.56, 0.7, 0.84, 1)
+sky_horizon_color = Color(0.9, 0.88, 0.8, 1)
+ground_bottom_color = Color(0.45, 0.43, 0.4, 1)
+ground_horizon_color = Color(0.9, 0.88, 0.8, 1)
+
+[sub_resource type="Sky" id="Sky_stage"]
+sky_material = SubResource("ProceduralSkyMaterial_stage")
+
+[sub_resource type="Environment" id="Environment_stage"]
+background_mode = 2
+sky = SubResource("Sky_stage")
+ambient_light_source = 3
+tonemap_mode = 2
+tonemap_exposure = 0.62
+
+[node name="TestStage" type="Node3D"]
+script = ExtResource("1_stage")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.5547, 0.351417, -0.754197, 0, 0.906433, 0.422351, 0.83205, 0.234278, -0.502798, 0, 40, 0)
+light_color = Color(1, 0.86, 0.68, 1)
+light_energy = 1.3
+shadow_enabled = true
+shadow_opacity = 0.85
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_stage")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-1, 0, 0, 0, 0.94594, 0.324266, 0, 0.324266, -0.94594, 0, 1.6, -22)
+script = ExtResource("2_camera")
+vehicle_path = NodePath("../VehicleBody3D")
+
+[node name="VehicleBody3D" parent="." instance=ExtResource("3_car")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, -20)
+mass = 30.0
+
+[node name="Measure" type="Node" parent="."]
+script = ExtResource("4_measure")
+run_on_start = false
