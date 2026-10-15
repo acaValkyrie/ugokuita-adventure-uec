@@ -34,6 +34,8 @@ extends VehicleBody3D
 @export var CRASH_VOLUME_DB := 14.0
 # 1回の物理更新で進む距離がこれ未満なら、通り道を先に調べない [m]（当たり判定の半分の厚さより小さければ、物理エンジンだけですり抜けないため）
 @export var SWEEP_MIN_DISTANCE := 0.04
+# 面の手前に残す余裕 [m]。ちょうど面で止めると、その後の重力などで少しめり込み、傾いたときに抜けるため。最後の数cmは物理エンジンに任せる
+@export var SWEEP_MARGIN := 0.03
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
@@ -179,7 +181,7 @@ func _prevent_tunneling(delta: float) -> void:
     if approach <= 0.0:
         return
     # 面に届くまでに許される、面に向かう方向の移動量。そこで止まる速さまで、面に向かう成分だけを減らす
-    var allowed := maxf((motion * safe).dot(-n), 0.0)
+    var allowed := maxf((motion * safe).dot(-n) - SWEEP_MARGIN, 0.0)
     var target := allowed / delta
     if target < approach:
         linear_velocity += n * (approach - target)
