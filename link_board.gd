@@ -39,7 +39,7 @@ static func is_player_near() -> bool:
 
 # ヒントのパネルの画面上の矩形（表示中でないときは空）。タッチ運転の除外領域に使う
 static func get_prompt_rect() -> Rect2:
-    if _active != null and _active._layer.visible:
+    if _active != null and _active._layer.visible and _active._panel.visible:
         return _active._panel.get_global_rect()
     return Rect2()
 
@@ -105,7 +105,7 @@ func _ready() -> void:
     _add_outline_bar(vertical_size, Vector3(-offset_x, 0.0, 0.005), outline_material)
     _add_outline_bar(vertical_size, Vector3(offset_x, 0.0, 0.005), outline_material)
 
-    # ヒントのUI（画面下中央）
+    # ヒントのUI（ポスターの上に追従させる）
     _layer = CanvasLayer.new()
     _layer.layer = 10
     _layer.visible = false
@@ -121,10 +121,6 @@ func _ready() -> void:
     style.content_margin_top = 10
     style.content_margin_bottom = 10
     _panel.add_theme_stylebox_override("panel", style)
-    _panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-    _panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-    _panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-    _panel.offset_bottom = -150.0
     _layer.add_child(_panel)
 
     var box := HBoxContainer.new()
@@ -191,11 +187,29 @@ func _process(_delta: float) -> void:
     else:
         _label.text = "タップしてウェブで開く"
 
+    # ポスターの上辺の中央の少し上を画面に投影し、パネルの下辺の中央をそこに置く
+    var camera := get_viewport().get_camera_3d()
+    var point := global_transform * Vector3(0.0, poster_size.y / 2.0 + 0.15, 0.0)
+    if camera == null or camera.is_position_behind(point):
+        _panel.visible = false
+        return
+    _panel.visible = true
+    # 文言が変わるとサイズも変わるので、位置の前に合わせ直す
+    _panel.reset_size()
+    var screen_point := camera.unproject_position(point)
+    var viewport_size := get_viewport().get_visible_rect().size
+    var margin := 16.0
+    var target := screen_point - Vector2(_panel.size.x / 2.0, _panel.size.y)
+    # 画面からはみ出さないようにする
+    target.x = clampf(target.x, margin, viewport_size.x - _panel.size.x - margin)
+    target.y = clampf(target.y, margin, viewport_size.y - _panel.size.y - margin)
+    _panel.position = target
+
 
 func _input(event: InputEvent) -> void:
     if not _layer.visible:
         return
-    if event is InputEventScreenTouch and event.pressed \
+    if event is InputEventScreenTouch and event.pressed and _panel.visible \
             and _panel.get_global_rect().has_point(event.position):
         _open()
         get_viewport().set_input_as_handled()
