@@ -32,6 +32,8 @@ extends VehicleBody3D
 @export var CRASH_COOLDOWN := 0.4
 # 激突の音の全体の音量 [dB]（強さに応じた音量にこの値を足す）
 @export var CRASH_VOLUME_DB := 14.0
+# 1回の物理更新で進む距離がこれ未満なら、通り道を先に調べない [m]（当たり判定の半分の厚さより小さければ、物理エンジンだけですり抜けないため）
+@export var SWEEP_MIN_DISTANCE := 0.04
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
@@ -133,7 +135,54 @@ func _physics_process(delta: float) -> void:
         _boost_time -= delta
 
     _check_crash(delta)
+    # 激突の判定は物理エンジンが出した速度どうしで比べたいので、速度を調整する前に記録する
     _prev_velocity = linear_velocity
+    _prevent_tunneling(delta)
+
+# 1回の更新で当たり判定の厚さより大きく進むと、厚みのない地面や壁を通り越してしまう。
+# そこで通り道を先に調べ、面の手前で止まる速さに落とす（ぶつかった後の反応は物理エンジンに任せる）
+func _prevent_tunneling(delta: float) -> void:
+    if sleeping or freeze:
+        return
+    var motion := linear_velocity * delta
+    if motion.length() < SWEEP_MIN_DISTANCE:
+        return
+    var col: CollisionShape3D = null
+    for child in get_children():
+        var c := child as CollisionShape3D
+        if c != null and c.shape is BoxShape3D:
+            col = c
+            break
+    if col == null:
+        return
+    var params := PhysicsShapeQueryParameters3D.new()
+    params.shape = col.shape
+    params.transform = col.global_transform
+    params.motion = motion
+    params.exclude = [get_rid()]
+    params.collision_mask = collision_mask
+    var space := get_world_3d().direct_space_state
+    var result := space.cast_motion(params)
+    if result.size() < 2 or result[0] >= 1.0:
+        return
+    var safe: float = result[0]
+    var unsafe: float = result[1]
+    # 接触する面の法線を、ぶつかる位置での接触情報から求める
+    params.transform.origin += motion * unsafe
+    params.motion = Vector3.ZERO
+    var rest := space.get_rest_info(params)
+    if rest.is_empty():
+        return
+    var n: Vector3 = rest["normal"]
+    # 面に向かう速さ
+    var approach := -linear_velocity.dot(n)
+    if approach <= 0.0:
+        return
+    # 面に届くまでに許される、面に向かう方向の移動量。そこで止まる速さまで、面に向かう成分だけを減らす
+    var allowed := maxf((motion * safe).dot(-n), 0.0)
+    var target := allowed / delta
+    if target < approach:
+        linear_velocity += n * (approach - target)
 
 # 壁などに当たって水平の速度が急に変わったら激突の音を鳴らす
 # 上下方向は除く（ジャンプの着地で鳴らさないため）
