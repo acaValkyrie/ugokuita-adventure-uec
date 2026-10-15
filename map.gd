@@ -237,9 +237,17 @@ func _add_building_labels(node: Node) -> void:
     for child in node.get_children():
         if child is Node3D and child.name.begins_with(BUILDING_PREFIX) \
                 and not child.name.ends_with(COLLISION_SUFFIX):
-            _add_label(child)
+            if _is_listed_building(String(child.name).trim_prefix(BUILDING_PREFIX)):
+                _add_label(child)
         else:
             _add_building_labels(child)
+
+
+# 守衛所・宿舎・センターなど小さな施設まで載せると文字が重なって読めないため、
+# 表示名が「号館」「棟」を含む、または「館」で終わる建物だけを載せる
+func _is_listed_building(display_name: String) -> bool:
+    return display_name.contains("号館") or display_name.contains("棟") \
+            or display_name.ends_with("館")
 
 
 func _add_label(building: Node3D) -> void:
