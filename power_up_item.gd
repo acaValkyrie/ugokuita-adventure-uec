@@ -13,6 +13,8 @@ const ICON_OFFSET := 0.035
 const SPIN_SPEED := 90.0
 const BOB_AMPLITUDE := 0.1
 const BOB_PERIOD := 1.5
+# メダルを取れる範囲の半径 [m]。メダル自体の半径 0.36m より少し大きくして、近づかないと取れないようにする
+const PICKUP_RADIUS := 0.5
 
 @export var kind: String = ""
 
@@ -26,7 +28,7 @@ func _ready() -> void:
     collision_mask = 1
     var shape := CollisionShape3D.new()
     var sphere := SphereShape3D.new()
-    sphere.radius = 1.0
+    sphere.radius = PICKUP_RADIUS
     shape.shape = sphere
     add_child(shape)
     body_entered.connect(_on_body_entered)
