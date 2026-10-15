@@ -36,6 +36,8 @@ extends VehicleBody3D
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
 @export var rigid_visual_wheels := false
+# 機体の当たり判定の厚さ [m]。下の端はシーンのままで上へ伸ばす。薄いと、高いジャンプの着地で1回の物理更新の落下（約0.2m）が当たり判定を通り越して地面をすり抜けるため、その2倍以上にする
+@export var COLLISION_HEIGHT := 0.46
 
 var _run_sound: AudioStreamPlayer3D
 var _run_volume := 0.0
@@ -261,6 +263,7 @@ var _visual_wheels: Array[Dictionary] = []
 
 func _ready() -> void:
     add_to_group("player")
+    _thicken_collision()
     _setup_run_sound()
     _jump_sound = AudioStreamPlayer3D.new()
     _jump_sound.unit_size = 3.0
@@ -275,6 +278,20 @@ func _ready() -> void:
         return
     _setup_visual_wheels(model, config["wheels"])
     PlayerSwitch.on_player_ready(self)
+
+
+# 当たり判定の箱を、下の端を保ったまま上へ厚くする
+func _thicken_collision() -> void:
+    for child in get_children():
+        var col := child as CollisionShape3D
+        if col == null or not (col.shape is BoxShape3D):
+            continue
+        # シーンのリソースを共有しているので、複製してから変える
+        var box := (col.shape as BoxShape3D).duplicate() as BoxShape3D
+        var bottom := col.position.y - box.size.y / 2.0
+        box.size.y = COLLISION_HEIGHT
+        col.shape = box
+        col.position.y = bottom + COLLISION_HEIGHT / 2.0
 
 
 func _setup_visual_wheels(model: Node3D, wheels: Dictionary) -> void:
