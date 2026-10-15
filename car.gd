@@ -36,6 +36,8 @@ extends VehicleBody3D
 @export var SWEEP_MIN_DISTANCE := 0.04
 # 面の手前に残す余裕 [m]。ちょうど面で止めると、その後の重力などで少しめり込み、傾いたときに抜けるため。最後の数cmは物理エンジンに任せる
 @export var SWEEP_MARGIN := 0.03
+# すり抜け防止で落とした速さを足し合わせる時間 [s]。ぶつかる直前の数フレームに分けて落とすので、激突の判定ではこの間の合計も見る
+@export var SWEEP_CRASH_WINDOW := 0.1
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
@@ -63,6 +65,9 @@ var _crash_sound: AudioStreamPlayer
 # 前の物理フレームの速度（激突の判定用。リスポーンや機体の入れ替えのときは外から書き換える）
 var _prev_velocity := Vector3.ZERO
 var _crash_cooldown := 0.0
+# すり抜け防止で落とした水平方向の速さの合計 [m/s] と、その合計を残す残り時間 [s]
+var _sweep_dv_sum := 0.0
+var _sweep_dv_timer := 0.0
 # 激突の音を鳴らした回数（テスト用）
 var crash_count := 0
 
@@ -184,17 +189,27 @@ func _prevent_tunneling(delta: float) -> void:
     var allowed := maxf((motion * safe).dot(-n) - SWEEP_MARGIN, 0.0)
     var target := allowed / delta
     if target < approach:
-        linear_velocity += n * (approach - target)
+        var dv := n * (approach - target)
+        linear_velocity += dv
+        # 激突の音の判定用に、落とした水平方向の速さを足し合わせる
+        dv.y = 0.0
+        _sweep_dv_sum += dv.length()
+        _sweep_dv_timer = SWEEP_CRASH_WINDOW
 
 # 壁などに当たって水平の速度が急に変わったら激突の音を鳴らす
 # 上下方向は除く（ジャンプの着地で鳴らさないため）
 func _check_crash(delta: float) -> void:
     _crash_cooldown = maxf(_crash_cooldown - delta, 0.0)
+    _sweep_dv_timer -= delta
+    if _sweep_dv_timer <= 0.0:
+        _sweep_dv_sum = 0.0
     if sleeping or freeze:
         return
     var dv := linear_velocity - _prev_velocity
     dv.y = 0.0
-    var change := dv.length()
+    # すり抜け防止が、ぶつかる直前の数フレームに分けて速度を落とすので、1フレームの変化だけでは激突を取りこぼす。
+    # 落とした分の合計と比べて大きいほうを使う（足すと二重に数えるため）
+    var change := maxf(dv.length(), _sweep_dv_sum)
     if change < CRASH_MIN_DV or _crash_cooldown > 0.0:
         return
     _crash_sound.volume_db = CRASH_VOLUME_DB + linear_to_db(clampf(change / CRASH_FULL_DV, 0.3, 1.0))
@@ -202,6 +217,7 @@ func _check_crash(delta: float) -> void:
     _crash_sound.stream = BUMP_SOUNDS.pick_random()
     _crash_sound.play()
     _crash_cooldown = CRASH_COOLDOWN
+    _sweep_dv_sum = 0.0
     crash_count += 1
 
 
