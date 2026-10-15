@@ -31,6 +31,8 @@ const ICON_BUTTON_SQUARE := preload("res://assets/ui/controls/button_square.png"
 const ICON_TRIGGER_R2 := preload("res://assets/ui/controls/trigger_r2.png")
 const ICON_TRIGGER_L2 := preload("res://assets/ui/controls/trigger_l2.png")
 const ICON_BUTTON_CREATE := preload("res://assets/ui/controls/button_create.png")
+const ICON_KEY_M := preload("res://assets/ui/controls/key_m.png")
+const ICON_BUTTON_TRIANGLE := preload("res://assets/ui/controls/button_triangle.png")
 
 # モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
 const ITEMS := {
@@ -39,6 +41,7 @@ const ITEMS := {
         [ICON_KEYS_ARROWS, "Camera"],
         [ICON_KEY_SPACE, "Jump", 0.6],
         [ICON_KEY_R, "Reset", 0.6],
+        [ICON_KEY_M, "Map", 0.6],
     ],
     Mode.TOUCH: [
         [ICON_SWIPE_ONE, "Drive"],
@@ -49,24 +52,24 @@ const ITEMS := {
 
 # コントローラのボタン表記ごとのアイコン。
 # Godot のボタン番号は位置で決まるため（下のボタン＝ジャンプ、左のボタン＝ブースト、
-# 左側の小さいボタン＝リセット）、表記が変わっても操作は同じでアイコンだけが変わる。
+# 左側の小さいボタン＝リセット、上のボタン＝マップ）、表記が変わっても操作は同じでアイコンだけが変わる。
 # ただし看板を開くボタンは例外で、表記ごとの決定ボタン（game_menu.gd の _apply_pad_buttons）なので、
 # 割り当ても表記で変わる。
 const PAD_ICONS := {
     "nintendo": {
         "rt": ICON_TRIGGER_ZR, "lt": ICON_TRIGGER_ZL,
         "jump": ICON_BUTTON_B, "boost": ICON_BUTTON_Y, "reset": ICON_BUTTON_MINUS,
-        "interact": ICON_BUTTON_A,
+        "interact": ICON_BUTTON_A, "map": ICON_BUTTON_X,
     },
     "playstation": {
         "rt": ICON_TRIGGER_R2, "lt": ICON_TRIGGER_L2,
         "jump": ICON_BUTTON_CROSS, "boost": ICON_BUTTON_SQUARE, "reset": ICON_BUTTON_CREATE,
-        "interact": ICON_BUTTON_CIRCLE,
+        "interact": ICON_BUTTON_CIRCLE, "map": ICON_BUTTON_TRIANGLE,
     },
     "xbox": {
         "rt": ICON_TRIGGER_RT, "lt": ICON_TRIGGER_LT,
         "jump": ICON_BUTTON_A, "boost": ICON_BUTTON_X, "reset": ICON_BUTTON_BACK,
-        "interact": ICON_BUTTON_A,
+        "interact": ICON_BUTTON_A, "map": ICON_BUTTON_Y,
     },
 }
 
@@ -153,6 +156,7 @@ func _items_for(mode: Mode) -> Array:
         [ICON_STICK_RIGHT, "Camera"],
         [icons.jump, "Jump", 0.8],
         [icons.reset, "Reset", 0.8],
+        [icons.map, "Map", 0.8],
     ]
 
 
