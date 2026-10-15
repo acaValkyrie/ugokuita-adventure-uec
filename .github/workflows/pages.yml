@@ -27,6 +27,16 @@ jobs:
         with:
           lfs: true
 
+      # エンディングBGMは規約で公開できないので、暗号化して置いたものをシークレットの鍵で戻す
+      - name: Decrypt ending BGM
+        env:
+          BGM_KEY: ${{ secrets.BGM_KEY }}
+        run: |
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -in assets/audio/bgm/ending_bgm.mp3.enc \
+            -out "assets/audio/bgm/これにてお開き、また来週！.mp3" \
+            -pass env:BGM_KEY
+          test -s "assets/audio/bgm/これにてお開き、また来週！.mp3"
       - name: Install Godot and export templates
         run: |
           base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"

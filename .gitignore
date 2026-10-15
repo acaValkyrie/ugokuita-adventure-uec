@@ -4,3 +4,6 @@
 /builds/
 uec.blend
 web/
+
+# エンディングBGM（オープントラックス）は規約で公開が禁止されているので、暗号化した assets/audio/bgm/ending_bgm.mp3.enc だけをコミットする
+assets/audio/bgm/これにてお開き、また来週！.mp3

@@ -7,3 +7,4 @@
 - `fanfare/fanfare_02.ogg`: Fantasy Musica（Beau Buckley）「Fanfare 02」 https://opengameart.org/content/fanfare-02 — CC-BY-SA 4.0 (http://creativecommons.org/licenses/by-sa/4.0/)。クレジット: Beau Buckley。パワーアップアイテムを取ったときに鳴らす。元の OGG をそのまま使用（改変なし）。
 - `bgm/ending2_fanfare_1.mp3`: tcarisland「Fanfare 1」 https://opengameart.org/content/fanfare-1 — CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/)。クレジット: tcarisland。エンディング2（空を飛べるパワーアップで一定の高さを越えて無重力になったとき）の BGM として用意。元の MP3（ページ上の `Fanfare_2.mp3`）をそのまま使用（改変なし）。
 - `bump/rattle_a.wav`〜`bump/rattle_d.wav`: 段差の音に重ねるプラスチック部品のカチャカチャ音。`tools/gen_rattle.gd` でノイズから合成した自作の音。
+- `bgm/これにてお開き、また来週！.mp3`: 秦暁「これにてお開き、また来週！」 https://opentracks.com/bgm/detail/23343 — フリーBGM オープントラックス（旧DOVA-SYNDROME）。クレジット表記は不要（作曲者の条件でも任意）。規約で音源の公開が禁止されているため、リポジトリには暗号化した `bgm/ending_bgm.mp3.enc` だけを置き、GitHub Actions でシークレット `BGM_KEY` を使って復号する。
