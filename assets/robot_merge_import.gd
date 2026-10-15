@@ -32,10 +32,6 @@ const MATERIAL_OVERRIDES := {
 
 # 取り込み元のファイル名 → 取り除くノードのパス（ゲームで見せない部品）
 const REMOVE_NODES := {
-	"ugokuita-neo.glb": [
-		# Jetson Orin Nano の基板一式（P3766/P3767/P3768）。ケースの中にあって見えないのに、機体全体の三角形の約4割を占める。ケースは残す
-		"Main Frame III v42/P3766-P3768SKU4-P3767ENVELOPE v4_1",
-	],
 	"ugokuita-classic.fbx": [
 		# Livox Mid-70 の視野（FOV）を示す形状。センサー本体は残す
 		"MainFrame - Reverse Prototype v12/Livox Mid-70 3D Model and FOV Shape v4_1/Livox Mid-70 3D Model and FOV Shape v4/Body342",
