@@ -284,12 +284,14 @@ func _on_robot_model_pressed(model: String) -> void:
     robot_model_changed.emit(robot_model)
 
 
-# 決定・キャンセルのボタンを表記に合わせる（任天堂・PSは右が決定で下がキャンセル、Xboxは下が決定で右がキャンセル）
+# 決定・キャンセル（と看板を開く）のボタンを表記に合わせる（任天堂・PSは右が決定で下がキャンセル、Xboxは下が決定で右がキャンセル）
 func _apply_pad_buttons() -> void:
     var confirm := JOY_BUTTON_A if pad_layout == "xbox" else JOY_BUTTON_B
     var cancel := JOY_BUTTON_B if pad_layout == "xbox" else JOY_BUTTON_A
     _set_joy_button("ui_accept", confirm)
     _set_joy_button("ui_cancel", cancel)
+    # 看板を開くボタンは決定と同じ（Nintendo は A、PS は ○、Xbox は A）
+    _set_joy_button("interact", confirm)
 
 
 # アクションのゲームパッドのボタン割り当てを1つに置き換える（キーボードの割り当ては残す）

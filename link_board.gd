@@ -1,6 +1,6 @@
 class_name LinkBoard
 extends Node3D
-## 近づくとジャンプのボタンでURLをブラウザで開く看板。
+## 近づくと看板を開くボタン（interact。キーボードは E、コントローラは決定ボタン）でURLをブラウザで開く看板。
 ## ノードの +Z 方向が看板の表（プレイヤーが立つ側）、ノード原点がポスターの中心。
 
 const FONT := preload("res://assets/fonts/noto_sans_cjk_jp_bold_ui.otf")
@@ -113,7 +113,7 @@ func _physics_process(_delta: float) -> void:
         _active = null
     _layer.visible = near
 
-    if near and Input.is_action_just_pressed("jump") \
+    if near and Input.is_action_just_pressed("interact") \
             and not GameMenu.is_open and not GameMenu.is_just_closed():
         _open()
 
@@ -122,7 +122,7 @@ func _process(_delta: float) -> void:
     if not _layer.visible:
         return
     # ボタンの種類は入力の切り替えで変わるので、毎フレーム合わせる
-    var icon := ControlsHelp.get_jump_icon()
+    var icon := ControlsHelp.get_interact_icon()
     _icon.visible = icon != null
     if icon != null:
         _icon.texture = icon

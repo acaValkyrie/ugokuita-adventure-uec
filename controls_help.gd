@@ -13,6 +13,7 @@ const ICON_TRIGGER_RT := preload("res://assets/ui/controls/trigger_rt.png")
 const ICON_SWIPE_ONE := preload("res://assets/ui/controls/swipe_one_finger.png")
 const ICON_SWIPE_TWO := preload("res://assets/ui/controls/swipe_two_fingers.png")
 const ICON_KEY_R := preload("res://assets/ui/controls/key_r.png")
+const ICON_KEY_E := preload("res://assets/ui/controls/key_e.png")
 const ICON_BUTTON_BACK := preload("res://assets/ui/controls/button_back.png")
 const ICON_KEY_SPACE := preload("res://assets/ui/controls/key_space.png")
 const ICON_BUTTON_A := preload("res://assets/ui/controls/button_a.png")
@@ -25,6 +26,7 @@ const ICON_TRIGGER_ZR := preload("res://assets/ui/controls/trigger_zr.png")
 const ICON_TRIGGER_ZL := preload("res://assets/ui/controls/trigger_zl.png")
 const ICON_BUTTON_MINUS := preload("res://assets/ui/controls/button_minus.png")
 const ICON_BUTTON_CROSS := preload("res://assets/ui/controls/button_cross.png")
+const ICON_BUTTON_CIRCLE := preload("res://assets/ui/controls/button_circle.png")
 const ICON_BUTTON_SQUARE := preload("res://assets/ui/controls/button_square.png")
 const ICON_TRIGGER_R2 := preload("res://assets/ui/controls/trigger_r2.png")
 const ICON_TRIGGER_L2 := preload("res://assets/ui/controls/trigger_l2.png")
@@ -48,18 +50,23 @@ const ITEMS := {
 # コントローラのボタン表記ごとのアイコン。
 # Godot のボタン番号は位置で決まるため（下のボタン＝ジャンプ、左のボタン＝ブースト、
 # 左側の小さいボタン＝リセット）、表記が変わっても操作は同じでアイコンだけが変わる。
+# ただし看板を開くボタンは例外で、表記ごとの決定ボタン（game_menu.gd の _apply_pad_buttons）なので、
+# 割り当ても表記で変わる。
 const PAD_ICONS := {
     "nintendo": {
         "rt": ICON_TRIGGER_ZR, "lt": ICON_TRIGGER_ZL,
         "jump": ICON_BUTTON_B, "boost": ICON_BUTTON_Y, "reset": ICON_BUTTON_MINUS,
+        "interact": ICON_BUTTON_A,
     },
     "playstation": {
         "rt": ICON_TRIGGER_R2, "lt": ICON_TRIGGER_L2,
         "jump": ICON_BUTTON_CROSS, "boost": ICON_BUTTON_SQUARE, "reset": ICON_BUTTON_CREATE,
+        "interact": ICON_BUTTON_CIRCLE,
     },
     "xbox": {
         "rt": ICON_TRIGGER_RT, "lt": ICON_TRIGGER_LT,
         "jump": ICON_BUTTON_A, "boost": ICON_BUTTON_X, "reset": ICON_BUTTON_BACK,
+        "interact": ICON_BUTTON_A,
     },
 }
 
@@ -159,13 +166,13 @@ func get_boost_icon() -> Texture2D:
     return null
 
 
-# ジャンプのボタンのアイコン（看板のヒントに出す）。タッチはボタンが無いので null
-func get_jump_icon() -> Texture2D:
+# 看板を開くボタンのアイコン（看板のヒントに出す）。タッチはボタンが無いので null
+func get_interact_icon() -> Texture2D:
     match _mode:
         Mode.KEYBOARD:
-            return ICON_KEY_SPACE
+            return ICON_KEY_E
         Mode.GAMEPAD:
-            return PAD_ICONS[GameMenu.pad_layout]["jump"]
+            return PAD_ICONS[GameMenu.pad_layout]["interact"]
     return null
 
 
