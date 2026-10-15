@@ -77,6 +77,8 @@ func respawn() -> void:
     vehicle.global_transform = target
     vehicle._motor_speed = 0.0
     vehicle._boost_time = 0.0
+    # 速度が0になるので、激突と誤検出しないようにする
+    vehicle._prev_velocity = Vector3.ZERO
     _cursor = index
     _last_time = now
     _safe_since_respawn = false

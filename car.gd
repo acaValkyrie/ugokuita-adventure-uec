@@ -18,6 +18,12 @@ extends VehicleBody3D
 @export var BOOST_DURATION = 0.4
 # ブーストのゲージが満タンになるまでに走る距離 [m]
 @export var BOOST_CHARGE_DISTANCE = 40.0
+# 激突の音: 1回の物理フレームでの水平速度の変化 [m/s]。これ以上で激突とみなす
+@export var CRASH_MIN_DV := 2.5
+# この変化で最大音量
+@export var CRASH_FULL_DV := 6.0
+# 続けて鳴らさない時間 [s]
+@export var CRASH_COOLDOWN := 0.4
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
@@ -32,6 +38,16 @@ var boost_gauge := 0.0
 # ブーストの残り時間 [s] と向き（前が1、後ろが-1）
 var _boost_time := 0.0
 var _boost_dir := 1.0
+# ジャンプと激突の効果音
+const JUMP_SOUND := preload("res://assets/audio/ロボットの足音2.mp3")
+const CRASH_SOUND := preload("res://assets/audio/ロボットを強く殴る2.mp3")
+var _jump_sound: AudioStreamPlayer3D
+var _crash_sound: AudioStreamPlayer3D
+# 前の物理フレームの速度（激突の判定用。リスポーンや機体の入れ替えのときは外から書き換える）
+var _prev_velocity := Vector3.ZERO
+var _crash_cooldown := 0.0
+# 激突の音を鳴らした回数（テスト用）
+var crash_count := 0
 
 func _physics_process(delta: float) -> void:
     steering = move_toward(steering, Input.get_axis("right", "left") * MAX_STEER, delta * 10)
@@ -67,6 +83,7 @@ func _physics_process(delta: float) -> void:
             and not (LinkBoard.is_player_near() and Input.is_action_just_pressed("interact")) \
             and _is_on_ground():
         apply_central_impulse(Vector3.UP * JUMP_SPEED * mass)
+        _jump_sound.play()
 
     # 接地して走った水平距離でゲージを貯める（ブースト中は貯めない）
     if _boost_time <= 0.0 and _is_on_ground():
@@ -80,6 +97,26 @@ func _physics_process(delta: float) -> void:
     if _boost_time > 0.0:
         apply_central_force(global_basis.z * _boost_dir * BOOST_ACCEL * mass)
         _boost_time -= delta
+
+    _check_crash(delta)
+    _prev_velocity = linear_velocity
+
+# 壁などに当たって水平の速度が急に変わったら激突の音を鳴らす
+# 上下方向は除く（ジャンプの着地で鳴らさないため）
+func _check_crash(delta: float) -> void:
+    _crash_cooldown = maxf(_crash_cooldown - delta, 0.0)
+    if sleeping or freeze:
+        return
+    var dv := linear_velocity - _prev_velocity
+    dv.y = 0.0
+    var change := dv.length()
+    if change < CRASH_MIN_DV or _crash_cooldown > 0.0:
+        return
+    _crash_sound.volume_db = linear_to_db(clampf(change / CRASH_FULL_DV, 0.3, 1.0))
+    _crash_sound.pitch_scale = 1.0 + randf_range(-0.05, 0.05)
+    _crash_sound.play()
+    _crash_cooldown = CRASH_COOLDOWN
+    crash_count += 1
 
 
 func _is_on_ground() -> bool:
@@ -170,6 +207,14 @@ var _visual_wheels: Array[Dictionary] = []
 func _ready() -> void:
     add_to_group("player")
     _setup_run_sound()
+    _jump_sound = AudioStreamPlayer3D.new()
+    _jump_sound.unit_size = 3.0
+    _jump_sound.stream = JUMP_SOUND
+    add_child(_jump_sound)
+    _crash_sound = AudioStreamPlayer3D.new()
+    _crash_sound.unit_size = 3.0
+    _crash_sound.stream = CRASH_SOUND
+    add_child(_crash_sound)
     var config: Dictionary = MODELS[robot_key]
     var model := get_node_or_null(NodePath(config["node"])) as Node3D
     if model == null:
