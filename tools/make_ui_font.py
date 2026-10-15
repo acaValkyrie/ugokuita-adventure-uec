@@ -13,7 +13,7 @@ OUT = Path(__file__).resolve().parent.parent / "assets/fonts/noto_sans_cjk_jp_bo
 FAMILY = "Noto Sans CJK JP"
 
 # ASCIIの印字可能文字に加えて、ここに書いた文字だけを含める
-TEXT = "ウェブで開くタップして"
+TEXT = "ウェブで開くタップして東西号館棟新図書国際交流会学生本プール管理体育地区食堂第0123456789ABCD"
 
 
 def main() -> None:
