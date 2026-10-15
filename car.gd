@@ -30,6 +30,8 @@ extends VehicleBody3D
 @export var CRASH_FULL_DV := 6.0
 # 続けて鳴らさない時間 [s]
 @export var CRASH_COOLDOWN := 0.4
+# 激突の音の全体の音量 [dB]（強さに応じた音量にこの値を足す）
+@export var CRASH_VOLUME_DB := 6.0
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
@@ -130,7 +132,7 @@ func _check_crash(delta: float) -> void:
     var change := dv.length()
     if change < CRASH_MIN_DV or _crash_cooldown > 0.0:
         return
-    _crash_sound.volume_db = linear_to_db(clampf(change / CRASH_FULL_DV, 0.3, 1.0))
+    _crash_sound.volume_db = CRASH_VOLUME_DB + linear_to_db(clampf(change / CRASH_FULL_DV, 0.3, 1.0))
     _crash_sound.pitch_scale = 1.0 + randf_range(-0.05, 0.05)
     _crash_sound.stream = BUMP_SOUNDS.pick_random()
     _crash_sound.play()
