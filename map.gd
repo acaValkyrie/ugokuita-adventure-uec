@@ -27,6 +27,9 @@ const ARROW_LENGTH := 22.0
 const ARROW_WIDTH := 16.0
 # 目的地のマーカー
 const MARKER_COLOR := Color("#ffd600")
+const MARKER_3D_SCRIPT := preload("res://map_marker_3d.gd")
+# 水平の距離がこれ（m）より近づいたら、着いたとしてマーカーを消す
+const ARRIVE_DISTANCE := 5.0
 # 押した点からこの距離（px）以内にマーカーがあれば消す
 const MARKER_HIT_RADIUS := 20.0
 # コントローラ・キーボードのカーソル
@@ -56,6 +59,8 @@ var _map_rect := Rect2()
 # コントローラ・キーボード用のカーソル（画面上の位置と、表示中か）
 var _cursor_pos := Vector2.ZERO
 var _cursor_visible: bool = false
+# シーンに置いている3Dの印
+var _marker_3d  # map_marker_3d.gd のノード（型は付けられない）
 # 閉じたときの物理フレーム番号
 var _closed_physics_frame: int = -100
 
@@ -123,6 +128,7 @@ func clear_marker() -> void:
 
 
 func _process(delta: float) -> void:
+    _update_marker_3d()
     if not is_open:
         return
     # メニューが開いたらマップは閉じる（一時停止はメニュー側が持つ）
@@ -173,6 +179,30 @@ func _input(event: InputEvent) -> void:
     elif _cursor_visible and event.is_action_pressed("ui_accept") and not event.is_echo():
         _toggle_marker_at(_cursor_pos)
         get_viewport().set_input_as_handled()
+
+
+# マーカーがある間だけ、シーンに3Dの印を1つ置く。着いたらマーカーを消す
+func _update_marker_3d() -> void:
+    var scene := get_tree().current_scene
+    var valid: bool = is_instance_valid(_marker_3d) and _marker_3d.get_parent() == scene \
+            and _marker_3d.marker_xz == marker_xz
+    if not has_marker or scene == null:
+        if is_instance_valid(_marker_3d):
+            _marker_3d.queue_free()
+        _marker_3d = null
+        return
+    if not valid:
+        if is_instance_valid(_marker_3d):
+            _marker_3d.queue_free()
+        _marker_3d = MARKER_3D_SCRIPT.new()
+        _marker_3d.marker_xz = marker_xz
+        scene.add_child(_marker_3d)
+    # 水平の距離が近づいたら消す
+    var player := get_tree().get_first_node_in_group("player") as Node3D
+    if player != null:
+        var xz := Vector2(player.global_position.x, player.global_position.z)
+        if xz.distance_to(marker_xz) < ARRIVE_DISTANCE:
+            clear_marker()
 
 
 # 押した点（画面上）の近くにマーカーがあれば消し、なければそこに置く
