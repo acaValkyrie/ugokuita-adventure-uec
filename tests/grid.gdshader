@@ -12,9 +12,11 @@ uniform float major_width = 0.08;
 uniform float height_width = 0.03;
 
 varying vec3 world_pos;
+varying vec3 world_normal;
 
 void vertex() {
     world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+    world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 // 値 v の周期 period ごとの線。線の中心からの距離 [m] を使い、fwidth でアンチエイリアスする
@@ -28,7 +30,11 @@ void fragment() {
     vec3 color = base_color.rgb;
     float minor = max(grid_line(world_pos.x, 1.0, minor_width), grid_line(world_pos.z, 1.0, minor_width));
     float major = max(grid_line(world_pos.x, 10.0, major_width), grid_line(world_pos.z, 10.0, major_width));
-    float height = grid_line(world_pos.y, 1.0, height_width);
+    // 平らな面では高さが一定で、線の判定が面全体に当たって床が赤くなるため、傾いた面（坂）だけに引く
+    float height = 0.0;
+    if (normalize(world_normal).y < 0.995) {
+        height = grid_line(world_pos.y, 1.0, height_width);
+    }
     color = mix(color, minor_color.rgb, minor);
     color = mix(color, height_color.rgb, height);
     color = mix(color, major_color.rgb, major);
