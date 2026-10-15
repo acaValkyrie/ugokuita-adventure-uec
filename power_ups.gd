@@ -45,7 +45,8 @@ const DEBUG_SPAWN_ITEMS := true
 # 機体の前へ [m]、横へ [m]、機体の位置からの高さ [m]
 const SPAWN_FORWARD := 6.0
 const SPAWN_SIDE := 2.5
-const SPAWN_HEIGHT := 1.0
+# メダルの高さ（機体の基準点から [m]）。中心が地面から約0.6m で、走っていけば取れそうに見える高さ
+const SPAWN_HEIGHT := 0.4
 const SPAWN_KEYS := ["boost_charge", "double_jump", "torque", "jump_up"]
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
 const CLOSE_DELAY_MSEC := 300
