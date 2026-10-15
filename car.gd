@@ -31,7 +31,7 @@ extends VehicleBody3D
 # 続けて鳴らさない時間 [s]
 @export var CRASH_COOLDOWN := 0.4
 # 激突の音の全体の音量 [dB]（強さに応じた音量にこの値を足す）
-@export var CRASH_VOLUME_DB := 6.0
+@export var CRASH_VOLUME_DB := 14.0
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
@@ -53,7 +53,7 @@ const BUMP_SOUNDS: Array[AudioStream] = [
     preload("res://assets/audio/bump/bump_b.ogg"),
 ]
 var _jump_sound: AudioStreamPlayer3D
-var _crash_sound: AudioStreamPlayer3D
+var _crash_sound: AudioStreamPlayer
 # 前の物理フレームの速度（激突の判定用。リスポーンや機体の入れ替えのときは外から書き換える）
 var _prev_velocity := Vector3.ZERO
 var _crash_cooldown := 0.0
@@ -231,8 +231,8 @@ func _ready() -> void:
     _jump_sound = AudioStreamPlayer3D.new()
     _jump_sound.unit_size = 3.0
     add_child(_jump_sound)
-    _crash_sound = AudioStreamPlayer3D.new()
-    _crash_sound.unit_size = 3.0
+    # 3Dの音は max_db（既定 +3dB）で頭打ちになり、距離でも小さくなるため、激突の音は位置を持たない音で鳴らす
+    _crash_sound = AudioStreamPlayer.new()
     add_child(_crash_sound)
     var config: Dictionary = MODELS[robot_key]
     var model := get_node_or_null(NodePath(config["node"])) as Node3D
