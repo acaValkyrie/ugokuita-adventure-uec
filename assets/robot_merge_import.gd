@@ -184,7 +184,9 @@ func _post_import(scene: Node) -> Object:
 			var arrays := st.commit_to_arrays()
 			importer_mesh.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, material, "", Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES)
 			importer_mesh.generate_lods(25.0, 60.0, [])
-			var before_triangles := _triangle_count(arrays)
+			# generate_lods は頂点の配列を作り直すので、LOD の番号は作り直した後の配列を指す
+			var lod_arrays := importer_mesh.get_surface_arrays(0)
+			var before_triangles := _triangle_count(lod_arrays)
 			triangles_before += before_triangles
 			var after_triangles := before_triangles
 			# 形のずれが上限以下のLODのうち、いちばん粗いものの三角形だけを残して作り直す
@@ -193,7 +195,7 @@ func _post_import(scene: Node) -> Object:
 				if lod >= 0:
 					var indices := importer_mesh.get_surface_lod_indices(0, lod)
 					var lod_size := importer_mesh.get_surface_lod_size(0, lod)
-					var simplified_arrays := _compact_arrays(arrays, indices)
+					var simplified_arrays := _compact_arrays(lod_arrays, indices)
 					importer_mesh = ImporterMesh.new()
 					importer_mesh.add_surface(Mesh.PRIMITIVE_TRIANGLES, simplified_arrays, [], {}, material, "", Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES)
 					importer_mesh.generate_lods(25.0, 60.0, [])
