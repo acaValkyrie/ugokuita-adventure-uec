@@ -58,20 +58,26 @@ func _process(_delta: float) -> void:
 
 
 # 上から下へレイを飛ばして、地面の高さを求める（当たらなければ 0）
-# 屋根や木ではなく、その下の地面に立てるため、当たった物体を除外しながら繰り返し、
+# 屋根や木の下の地面に立てるため、当たった点の少し下からレイを飛ばし直し、
 # 当たった中でいちばん低い高さを地面とする
 func _find_ground_y(xz: Vector2) -> float:
     var space := get_world_3d().direct_space_state
     var query := PhysicsRayQueryParameters3D.create(
             Vector3(xz.x, RAY_TOP, xz.y),
             Vector3(xz.x, RAY_BOTTOM, xz.y))
+    # 建物の中から下へ飛ばしても、床や地面の裏面に当たるようにする
+    query.hit_back_faces = true
     var lowest := INF
     for i in MAX_RAY_HITS:
         var hit := space.intersect_ray(query)
         if hit.is_empty():
             break
         lowest = minf(lowest, hit.position.y)
-        query.exclude.append(hit.rid)
+        # 次は当たった点の 0.05m 下から飛ばし直す
+        var next_y: float = hit.position.y - 0.05
+        if next_y <= RAY_BOTTOM:
+            break
+        query.from = Vector3(xz.x, next_y, xz.y)
     if lowest == INF:
         return 0.0
     return lowest
