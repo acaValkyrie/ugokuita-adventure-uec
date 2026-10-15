@@ -17,9 +17,9 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="Ugokuita Adventure UEC"
 run/main_scene="uid://u00qaolam772"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://icon.svg"
 boot_splash/bg_color=Color(0, 0, 0, 1)
 boot_splash/image="res://assets/img/splash.png"
+config/icon="res://icon.svg"
 
 [autoload]
 
