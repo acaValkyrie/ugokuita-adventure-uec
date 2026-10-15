@@ -48,6 +48,18 @@ const SPAWN_SIDE := 2.5
 # メダルの高さ（機体の基準点から [m]）。中心が地面から約0.6m で、走っていけば取れそうに見える高さ
 const SPAWN_HEIGHT := 0.4
 const SPAWN_KEYS := ["boost_charge", "double_jump", "torque", "jump_up"]
+# 一時的なデバッグ用。true のとき、スタート地点を東3号館（高層棟。モデル上は hi_東図書館A）の非常階段の
+# 一番上の踊り場にし、メダルもすべてそこに置く。終わったら false に戻す
+const DEBUG_START_AT_E3_STAIRS := true
+# 踊り場の上、+Z 向き＝屋上の方向。踊り場は高さ 37.2m、平らなのは x 79〜82・z −160.5〜−158.5、屋上 42.5m は z −158.25 から +Z 側
+const E3_STAIRS_START := Transform3D(Basis.IDENTITY, Vector3(80.5, 37.6, -160.0))
+# 踊り場に置くメダルの位置（SPAWN_KEYS と同じ順）
+const E3_STAIRS_ITEM_POSITIONS := [
+    Vector3(79.4, 37.83, -159.2),
+    Vector3(80.1, 37.83, -159.2),
+    Vector3(80.8, 37.83, -159.2),
+    Vector3(81.5, 37.83, -159.2),
+]
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
 const CLOSE_DELAY_MSEC := 300
 
@@ -136,6 +148,14 @@ func _spawn_debug_items() -> void:
     if player == null:
         return
     _need_spawn = false
+    if DEBUG_START_AT_E3_STAIRS:
+        _move_player_to_e3_stairs(player)
+        for i in SPAWN_KEYS.size():
+            var stairs_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
+            stairs_item.kind = SPAWN_KEYS[i]
+            _shown_scene.add_child(stairs_item)
+            stairs_item.global_position = E3_STAIRS_ITEM_POSITIONS[i]
+        return
     var forward := player.global_basis.z
     forward.y = 0.0
     forward = forward.normalized()
@@ -146,6 +166,21 @@ func _spawn_debug_items() -> void:
         _shown_scene.add_child(item)
         item.global_position = player.global_position + forward * SPAWN_FORWARD \
                 + side * SPAWN_SIDE * (i - (SPAWN_KEYS.size() - 1) / 2.0) + Vector3.UP * SPAWN_HEIGHT
+
+
+# 機体を東3号館の非常階段の一番上に移し、リセットの戻り先もそこにする（デバッグ用）
+func _move_player_to_e3_stairs(player: Node3D) -> void:
+    var rid := (player as VehicleBody3D).get_rid()
+    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, E3_STAIRS_START)
+    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
+    player.global_transform = E3_STAIRS_START
+    player._prev_velocity = Vector3.ZERO
+    var respawn := player.get_node_or_null("Respawn")
+    if respawn != null:
+        # _points は型付き配列なので、置き換えずに中身を入れ替える
+        respawn._points.clear()
+        respawn._points.append(E3_STAIRS_START)
 
 
 func _open_next() -> void:
