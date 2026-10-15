@@ -13,8 +13,13 @@ const ICON_OFFSET := 0.035
 const SPIN_SPEED := 90.0
 const BOB_AMPLITUDE := 0.1
 const BOB_PERIOD := 1.5
-# メダルを取れる範囲の半径 [m]。メダル自体の半径 0.36m より少し大きくして、近づかないと取れないようにする
-const PICKUP_RADIUS := 0.5
+# メダルを取れる範囲は、メダルの真下から上に伸びる細い円柱（横方向で軸から PICKUP_RADIUS 以内に車体が入ったら取れる）。
+# 機体の当たり判定は地面から 0.17〜0.27m の薄い板なので、球だと高さが合わない。
+# 半径 [m]。近づかないと取れないよう、メダル自体の半径 0.36m より狭くする
+const PICKUP_RADIUS := 0.1
+# 円柱の高さ [m] と、下の端のメダルの中心からの高さ [m]（地面より少し下）。上の端は中心の 0.5m 上になる
+const PICKUP_HEIGHT := 1.2
+const PICKUP_BOTTOM := -0.7
 
 @export var kind: String = ""
 
@@ -27,9 +32,11 @@ func _ready() -> void:
     collision_layer = 0
     collision_mask = 1
     var shape := CollisionShape3D.new()
-    var sphere := SphereShape3D.new()
-    sphere.radius = PICKUP_RADIUS
-    shape.shape = sphere
+    var pickup := CylinderShape3D.new()
+    pickup.radius = PICKUP_RADIUS
+    pickup.height = PICKUP_HEIGHT
+    shape.shape = pickup
+    shape.position.y = PICKUP_BOTTOM + PICKUP_HEIGHT / 2.0
     add_child(shape)
     body_entered.connect(_on_body_entered)
 
