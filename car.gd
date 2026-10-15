@@ -53,7 +53,8 @@ func _physics_process(delta: float) -> void:
         var rpm := (wheel_bl.get_rpm() + wheel_br.get_rpm()) * 0.5
         var measured := rpm / 60.0 * TAU * wheel_bl.wheel_radius
         # 機体が固定されているときなどに回転数がNaNになることがあるので、そのときは0として扱う
-        if is_nan(measured):
+        # スリープ中は止まる直前の速度が残って回転数が0にならないので、これも0として扱う
+        if is_nan(measured) or sleeping:
             measured = 0.0
         var target := measured
         if not is_zero_approx(throttle):
@@ -263,7 +264,8 @@ func _process(delta: float) -> void:
         var offset_local: Vector3 = to_local * (global_basis * Vector3(0.0, dy, 0.0))
         var offset := Transform3D(Basis.IDENTITY, offset_local)
 
-        var spin := wheel.get_rpm() / 60.0 * TAU
+        # スリープ中は止まる直前の速度が残って回転数が0にならないので、回さない
+        var spin := 0.0 if sleeping else wheel.get_rpm() / 60.0 * TAU
         if wheel.use_as_traction:
             spin = _motor_speed / wheel.wheel_radius
         var angle: float = fposmod(w["angle"] + spin * delta, TAU)
