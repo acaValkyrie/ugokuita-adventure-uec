@@ -522,7 +522,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - UI 用フォントにメッセージの文字を足した。
 - 取ってポップアップが出るたびに、ファンファーレ（Beau Buckley「Fanfare 02」、CC-BY-SA 4.0、`assets/audio/fanfare/fanfare_02.ogg`、6.7秒）を鳴らす。一時停止中も鳴り、閉じても鳴り終わるまで流す。ファイルに RPG ツクール用のループ情報があるので、`loop = false` にして鳴らす。アイテムは今後、到達が難しい場所や思いもよらない場所に置く予定で、取ったときに盛大に褒めるため（ユーザーの意図）。
 - エンディング2用の BGM として tcarisland「Fanfare 1」（CC-BY 4.0、`assets/audio/bgm/ending2_fanfare_1.mp3`、40秒）を保存した。まだ使っていない。予定: 屋上に「空を飛べる」パワーアップを置き、それで一定の高さより上に行くと無重力になってエンディング2になり、この曲を流す。
-- 2曲とも CC0 ではなくクレジット表記が必要（`assets/audio/CREDITS.md` に記載）。エンディング（`ending.gd`）とサイト（`site/index.html` のクレジット欄）にも載せた。エンディング2の曲（Fanfare 1）は、ネタバレになるのでエンディング1から外し、エンディング2を作るときにそこへ載せる予定（CC BY は媒体に応じた合理的な方法で表記すればよい）。※エンディング1の表記からの Fanfare 1 の削除はまだ。
+- 2曲とも CC0 ではなくクレジット表記が必要（`assets/audio/CREDITS.md` に記載）。エンディング（`ending.gd`）とサイト（`site/index.html` のクレジット欄）にも載せた。エンディング2の曲（Fanfare 1）は、ネタバレになるのでエンディング1から外し、エンディング2を作るときにそこへ載せる予定（CC BY は媒体に応じた合理的な方法で表記すればよい）。エンディング1には「Music: "Fanfare 02" by Beau Buckley (CC BY-SA 4.0)」だけを出す（表示を確認済み）。
 - エンディング1の BGM「これにてお開き、また来週！」（秦暁、フリーBGM オープントラックス（旧DOVA-SYNDROME））は、規約で「インターネット上での公開」など音源だけを利用できる形での配布が禁止されていた。公開リポジトリに mp3 をコミットしていたので、2026-10-16 に次のように直した。
   - 暗号化（AES-256-CBC、PBKDF2 20万回）した `assets/audio/bgm/ending_bgm.mp3.enc` だけをコミットし、mp3 本体は `.gitignore` に入れた。鍵は GitHub Actions のシークレット `BGM_KEY` にだけある（手元にも残していない）。`pages.yml` の書き出しの前に復号する。
   - `git filter-repo` で main の全履歴から mp3 を消し、強制 push した（10/09 以降のコミットのハッシュが変わった）。参照されなくなった古いコミットは GitHub 上にしばらく残る可能性があり、完全に消すには GitHub サポートへの依頼が必要。
