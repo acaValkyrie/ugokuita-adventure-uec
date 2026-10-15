@@ -1,8 +1,14 @@
-# 作者のGitHubを案内する看板のポスター画像（1500x600）を作る。
-# アイコンは https://github.com/acaValkyrie.png 、
+# GitHubを案内する看板のポスター画像（1500x600）を作る。
+# アイコンは https://github.com/<ユーザー名>.png 、
 # マークは https://cdn.jsdelivr.net/npm/simple-icons@13.0.0/icons/github.svg から取得したものを使う。
-# 実行: uv run --with pillow --with cairosvg python tools/make_link_poster.py \
-#         アイコンPNGのパス GitHubマークSVGのパス assets/boards/github_poster.png
+# 引数: アイコンPNG GitHubマークSVG タイトル URL表記 出力PNG
+# フォントのパスは Debian の fonts-noto-cjk のものなので、Docker の python:3.12-slim で実行する。
+#   docker run --rm -v "<プロジェクト>:/work" -v "<入力の置き場>:/in" -w /work python:3.12-slim sh -c \
+#     "apt-get update -qq && apt-get install -y -qq fonts-noto-cjk libcairo2 >/dev/null && pip install -q pillow cairosvg && python tools/make_link_poster.py ..."
+# 実行例（作者）:
+#   python tools/make_link_poster.py /in/icon.png /in/github.svg "作者のGitHub" "github.com/acaValkyrie" assets/boards/github_poster.png
+# 実行例（動く板Project）:
+#   python tools/make_link_poster.py /in/icon.png /in/github.svg "動く板Project" "github.com/ugokuita-project" assets/boards/ugokuita_project_poster.png
 import io
 import sys
 
@@ -44,7 +50,7 @@ def white_ring(center: tuple, outer_d: int, width: int) -> Image.Image:
 
 
 def main() -> None:
-    icon_path, svg_path, out_path = sys.argv[1:4]
+    icon_path, svg_path, title, url_text, out_path = sys.argv[1:6]
 
     img = Image.new("RGB", (W, H), BG)
     draw = ImageDraw.Draw(img)
@@ -70,13 +76,13 @@ def main() -> None:
     # マークの右にタイトル（マークと縦中央をそろえる）、その下にURL
     title_font = ImageFont.truetype(BOLD, 96, index=JP_INDEX)
     url_font = ImageFont.truetype(REGULAR, 56, index=JP_INDEX)
-    draw.text((750, 110 + 70), "作者のGitHub", font=title_font, fill=WHITE, anchor="lm")
-    draw.text((580, 330), "github.com/acaValkyrie", font=url_font, fill=GRAY, anchor="la")
+    draw.text((750, 110 + 70), title, font=title_font, fill=WHITE, anchor="lm")
+    draw.text((580, 330), url_text, font=url_font, fill=GRAY, anchor="la")
 
     # はみ出しの確認（内側の枠 12px より外に出ていないか）
     for name, xy, font, text, anchor in [
-        ("title", (750, 180), title_font, "作者のGitHub", "lm"),
-        ("url", (580, 330), url_font, "github.com/acaValkyrie", "la"),
+        ("title", (750, 180), title_font, title, "lm"),
+        ("url", (580, 330), url_font, url_text, "la"),
     ]:
         box = draw.textbbox(xy, text, font=font, anchor=anchor)
         print(name, "bbox", box)
