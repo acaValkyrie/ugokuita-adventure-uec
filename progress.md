@@ -455,6 +455,12 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - `project.godot` に `display/window/stretch/mode="canvas_items"`、`aspect="expand"` を入れた。基準の大きさは既定の 1152x648 のままで、2D をウィンドウに合わせて拡大縮小する。横長・縦長の画面では、短いほうの辺に合わせて拡大し、余った方向に表示範囲が広がる。
 - 確認: エディタに埋め込んだゲームではウィンドウの大きさを変えられないので、`content_scale_size` を 768x432 にして、1.5倍の解像度の画面と同じ倍率にした。UI 全体が1.5倍になり、看板の文言のパネルもポスターのすぐ下からずれなかった（`Camera3D.unproject_position` の座標は拡大縮小後の 2D の座標と合っている）。実際に高解像度の画面や Web 版で開いての確認はまだ。
 
+### 35. 起動画面のロゴを動く板Projectのロゴにした（2026-10-16）
+
+- 起動画面（boot splash）の画像は PNG しか指定できないので、`assets/img/ugokuita logo.jpg`（400x400、背景は黒）を 1152x648 の黒地の中央に元の大きさで置いた `assets/img/splash.png` を `tools/make_splash.py` で作った。
+- `project.godot` で `boot_splash/image` をこの画像に、`boot_splash/bg_color` を黒にした。拡大縮小は既定の Keep のままなので、ロゴは画面の高さの約62%（400/648）で、解像度によらず画面に対する大きさが変わらない。
+- 確認: 実行中のゲームで、設定値と画像（1152x648）が読み込めることを確かめた。起動画面は一瞬しか出ないので、見た目はまだ目で確かめていない。Web 版の読み込み画面にも同じ画像が出るはず。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
