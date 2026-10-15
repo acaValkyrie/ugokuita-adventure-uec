@@ -461,6 +461,19 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - `project.godot` で `boot_splash/image` をこの画像に、`boot_splash/bg_color` を黒にした。拡大縮小は既定の Keep のままなので、ロゴは画面の高さの約62%（400/648）で、解像度によらず画面に対する大きさが変わらない。
 - 確認: 実行中のゲームで、設定値と画像（1152x648）が読み込めることを確かめた。起動画面は一瞬しか出ないので、見た目はまだ目で確かめていない。Web 版の読み込み画面にも同じ画像が出るはず。
 
+### 36. Web版の起動を速くするため、データを小さくした（2026-10-16）
+
+- 測定: Web版は index.pck 102.7MB・index.wasm 37.7MB。公開サイトでは gzip で配信されていて、転送量は pck 約90MB＋wasm 約10MB。手元のブラウザ（localhost）では、ダウンロード後にゲームが動き出すまで約2.6秒だったので、起動の遅さはほぼダウンロードの時間。
+- 取り込み後のデータの内訳は、Neo 46.7MB・Classic 17.9MB・マップ 15.8MB・ライトマップ 9MB・古いマップ 5.3MB。
+- `export_presets.cfg` の `exclude_filter` で、使っていないファイル（古いマップ `uec-all.glb`、`test.tscn`・`player.tscn`、ポスターと起動画面の元画像、使っていない水の音、ルートの `{30C55952-…}.png`）を書き出しから外した（pck 102.7 → 95.7MB）。
+- `assets/robot_merge_import.gd`:
+  - 部品をまとめたメッシュを `ImporterMesh.add_surface` で作るとき flags を渡しておらず、頂点データが圧縮されていなかったので、`ARRAY_FLAG_COMPRESS_ATTRIBUTES` を付けた。
+  - Neo だけ、まとめたメッシュの三角形を、`generate_lods` で作った LOD のうち形のずれ（`get_surface_lod_size`）が 1mm 以下でいちばん粗いものに置き換える（`SIMPLIFY_MAX_ERROR`）。まとめたメッシュの三角形は 226万 → 51万、機体全体では 254万 → 79万、Neo のデータは 46.7 → 15.6MB。
+  - Neo の三角形の約4割は Jetson Orin Nano の基板（P3766/P3767/P3768）だったが、ケースに蓋がなく上から見えるので、消さずに上の方法で減らした。
+- 結果: pck 102.7 → 64.6MB、gzip 後 89.7 → 53.1MB。wasm と合わせた転送量は約100MB → 約63MB。
+- 確認: 減らす前と後で同じ角度から機体を撮り比べ、全体・フレーム・サスペンション・Jetson の基板に崩れがないことを見た。
+- 取り込みスクリプトを変えても glb は自動で取り込み直されない。エディタを閉じ、`.godot/imported/ugokuita-neo.glb-*.md5` を消して glb の更新時刻を新しくしてから `--headless --import` すると取り込み直された。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
