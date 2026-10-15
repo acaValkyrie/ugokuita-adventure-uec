@@ -1,5 +1,5 @@
 extends CanvasLayer
-# ステージから落ちたとき（集中線が出始めるほど速く落ちているとき）、BGMを流して画面左上にクレジットとスタート地点に戻るボタンを出す。
+# ステージから落ちたとき（集中線が出始めるほど速く落ちているとき）、BGMを流して画面左上にクレジットとスタート地点に戻るボタンを出す。Reset でステージに戻ったときも閉じる。
 
 # この高さ [m] より下で、集中線が出る速さ（最高速度超え）で落ちていたらエンディングにする
 const FALL_HEIGHT := -10.0
@@ -42,11 +42,16 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-    if _shown:
-        return
     var car := get_tree().get_first_node_in_group("player") as VehicleBody3D
+    if car == null:
+        return
+    if _shown:
+        # Back to Start を押さずに Reset でステージに戻ったら閉じる
+        if car.global_position.y >= FALL_HEIGHT:
+            _hide()
+        return
     # 集中線が出始める条件（最高速度超え）と同じ
-    if car and car.global_position.y < FALL_HEIGHT and car.linear_velocity.length() > car.MAX_SPEED:
+    if car.global_position.y < FALL_HEIGHT and car.linear_velocity.length() > car.MAX_SPEED:
         _show()
 
 
@@ -81,8 +86,13 @@ func _show() -> void:
     _button.grab_focus()
 
 
-func _on_back_pressed() -> void:
+func _hide() -> void:
+    _shown = false
     _box.visible = false
     _player.stop()
-    _shown = false
+    _button.release_focus()
+
+
+func _on_back_pressed() -> void:
+    _hide()
     get_tree().reload_current_scene()
