@@ -4,6 +4,8 @@ extends CanvasLayer
 
 const FONT := preload("res://assets/fonts/noto_sans_cjk_jp_bold_ui.otf")
 const ITEM_SCRIPT := preload("res://power_up_item.gd")
+# アイテムを取ったときのファンファーレ。Fantasy Musica (Beau Buckley)「Fanfare 02」CC-BY-SA 4.0。クレジットは assets/audio/CREDITS.md
+const FANFARE := preload("res://assets/audio/fanfare/fanfare_02.ogg")
 
 # 種類のキー: 名前・説明・アイコン
 const ITEMS := {
@@ -57,6 +59,7 @@ var _name_label: Label
 var _desc_label: Label
 var _hint_icon: TextureRect
 var _hint_label: Label
+var _fanfare_player: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -64,6 +67,14 @@ func _ready() -> void:
     layer = 19
     process_mode = Node.PROCESS_MODE_ALWAYS
     _build_popup()
+    # ファンファーレ用のプレイヤー。一時停止中も鳴らす。ファイルにループ設定があっても繰り返さない
+    var stream := FANFARE.duplicate() as AudioStreamOggVorbis
+    stream.loop = false
+    _fanfare_player = AudioStreamPlayer.new()
+    _fanfare_player.stream = stream
+    _fanfare_player.bus = "Master"
+    _fanfare_player.process_mode = Node.PROCESS_MODE_ALWAYS
+    add_child(_fanfare_player)
 
 
 func has(key: String) -> bool:
@@ -102,6 +113,7 @@ func _process(_delta: float) -> void:
 func _reset() -> void:
     _acquired.clear()
     _queue.clear()
+    _fanfare_player.stop()
     if is_open:
         is_open = false
         _root.visible = false
@@ -136,6 +148,7 @@ func _open_next() -> void:
     is_open = true
     _root.visible = true
     get_tree().paused = true
+    _fanfare_player.play()
     _update_hint()
 
 
