@@ -51,7 +51,7 @@ func _process(_delta: float) -> void:
             _hide()
         return
     # 集中線が出始める条件（最高速度超え）と同じ
-    if car.global_position.y < FALL_HEIGHT and car.linear_velocity.length() > car.MAX_SPEED:
+    if car.global_position.y < FALL_HEIGHT and car.linear_velocity.length() > car.get_max_speed():
         _show()
 
 

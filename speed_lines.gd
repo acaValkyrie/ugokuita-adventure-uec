@@ -1,5 +1,5 @@
 extends CanvasLayer
-# 通常の最高速度を超えて走っているとき（ブースト中など）、画面に集中線を重ねる。
+# 通常の最高速度（get_max_speed）を超えて走っているとき（ブースト中など）、画面に集中線を重ねる。
 
 const SHADER := preload("res://assets/shaders/speed_lines.gdshader")
 # 最高速度をこの速さ [m/s] 超えたときに最も濃くする
@@ -31,7 +31,7 @@ func _process(delta: float) -> void:
     var car := get_tree().get_first_node_in_group("player") as VehicleBody3D
     var target := 0.0
     if car:
-        target = clampf((car.linear_velocity.length() - car.MAX_SPEED) / SPEED_RANGE, 0.0, 1.0)
+        target = clampf((car.linear_velocity.length() - car.get_max_speed()) / SPEED_RANGE, 0.0, 1.0)
     var rate := FADE_IN if target > _intensity else FADE_OUT
     _intensity = lerpf(_intensity, target, 1.0 - exp(-rate * delta))
     _rect.visible = _intensity > 0.01

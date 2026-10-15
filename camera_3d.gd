@@ -9,7 +9,7 @@ var vehicle
 # この速さ [m/s] を超えて走っているときだけ真後ろへ戻す
 @export var return_min_speed: float = 0.3
 
-# 通常の最高速度（機体の MAX_SPEED）を超えたとき、超えた速さ1m/sあたりカメラを離す（近づける）距離 [m]
+# 通常の最高速度（機体の get_max_speed）を超えたとき、超えた速さ1m/sあたりカメラを離す（近づける）距離 [m]
 @export var dash_distance_per_speed: float = 0.2
 # 速さに応じて離す距離の上限 [m]
 @export var dash_max_distance: float = 1.6
@@ -77,7 +77,7 @@ func _physics_process(delta: float) -> void:
 
     # 通常の最高速度を超えた分だけ、カメラから遠ざかる向きに進んでいるなら離し、近づく向きなら近づける（ブースト中などのダッシュ演出）
     var velocity: Vector3 = vehicle.linear_velocity
-    var over_speed := maxf(velocity.length() - vehicle.MAX_SPEED, 0.0)
+    var over_speed := maxf(velocity.length() - vehicle.get_max_speed(), 0.0)
     var flat_velocity := Vector3(velocity.x, 0.0, velocity.z)
     var away := Vector3(global_position.x - vehicle.global_position.x, 0.0, global_position.z - vehicle.global_position.z)
     # カメラから遠ざかる向きなら1、カメラへ向かう向きなら-1、横向きなら0

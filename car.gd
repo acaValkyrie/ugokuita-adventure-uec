@@ -68,7 +68,7 @@ func _physics_process(delta: float) -> void:
     var throttle = Input.get_axis("down", "up")
     var forward_speed = linear_velocity.dot(global_basis.z)
     # 最高速度に近づくほど推力を絞る（減速方向の入力は絞らない）
-    var limit = clampf(1.0 - absf(forward_speed) / _max_speed(), 0.0, 1.0)
+    var limit = clampf(1.0 - absf(forward_speed) / get_max_speed(), 0.0, 1.0)
     if throttle * forward_speed < 0.0:
         limit = 1.0
     engine_force = throttle * _engine_power() * limit
@@ -102,11 +102,11 @@ func _physics_process(delta: float) -> void:
             measured = 0.0
         var target := measured
         if not is_zero_approx(throttle):
-            target = throttle * _max_speed()
+            target = throttle * get_max_speed()
         var accel: float = MOTOR_ACCEL
         # ブースト中は最高速度より速く、素早く回して唸らせる
         if _boost_time > 0.0:
-            target = _boost_dir * _max_speed() * BOOST_MOTOR_RATIO
+            target = _boost_dir * get_max_speed() * BOOST_MOTOR_RATIO
             accel = BOOST_MOTOR_ACCEL
         _motor_speed = move_toward(_motor_speed, target, accel * delta)
 
@@ -160,8 +160,8 @@ func _play_jump_sound() -> void:
     _jump_sound.play()
 
 
-# 最高速度と駆動力。モータートルクUPを取っていれば上がる
-func _max_speed() -> float:
+# パワーアップを反映した最高速度。集中線やカメラの演出の基準にも使う
+func get_max_speed() -> float:
     return MAX_SPEED * PowerUps.TORQUE_SPEED_MULTIPLIER if PowerUps.has("torque") else MAX_SPEED
 
 
