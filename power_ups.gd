@@ -40,8 +40,20 @@ const TORQUE_SPEED_MULTIPLIER := 1.3
 # 余裕をもって届き、二段ジャンプなしでは届かない高さ
 const JUMP_UP_MULTIPLIER := 2.16
 
-# true のとき、シーンが始まったら機体の前にメダルを4つ置く（デバッグ用）
-const DEBUG_SPAWN_ITEMS := true
+# メダルを置く場所（ユーザーが実際に機体を置いて決めた場所。高さは機体の基準点 + SPAWN_HEIGHT）
+const ITEM_PLACEMENTS := {
+    # 西11号館前
+    "jump_up": Vector3(-187.11, 0.63, -160.23),
+    # 東3号館（高層棟。モデル上は hi_東図書館A）の非常階段 7階の踊り場、ドアの目の前
+    "double_jump": Vector3(79.32, 26.18, -158.80),
+    # 学生会館前（サークル棟。モデル上は hi_東課外活動施設）
+    "boost_charge": Vector3(74.02, 0.63, -293.62),
+    # 100周年記念キャンパス前（UECポート アライアンスセンターの北側）
+    "torque": Vector3(-225.60, 0.63, 44.51),
+}
+
+# 本番の配置は ITEM_PLACEMENTS。デバッグ用に機体の手前にも4つ並べるときだけ true
+const DEBUG_SPAWN_ITEMS := false
 # 機体の前へ [m]、横へ [m]、機体の位置からの高さ [m]
 const SPAWN_FORWARD := 6.0
 const SPAWN_SIDE := 2.5
@@ -108,6 +120,9 @@ func acquire(key: String) -> void:
     if not ITEMS.has(key):
         push_warning("パワーアップの種類が不明: %s" % key)
         return
+    # すでに持っているときは何もしない（同じ種類を2つ取ってもポップアップを重ねて出さない）
+    if _acquired.has(key):
+        return
     _acquired[key] = true
     _queue.append(key)
     if not is_open:
@@ -124,6 +139,7 @@ func _process(_delta: float) -> void:
     if scene != null and scene != _shown_scene:
         _shown_scene = scene
         _reset()
+        _place_items()
         _need_spawn = DEBUG_SPAWN_ITEMS
     if _need_spawn:
         _spawn_debug_items()
@@ -140,6 +156,15 @@ func _reset() -> void:
         is_open = false
         _root.visible = false
         get_tree().paused = false
+
+
+# ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く）
+func _place_items() -> void:
+    for key in ITEM_PLACEMENTS:
+        var item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
+        item.kind = key
+        _shown_scene.add_child(item)
+        item.global_position = ITEM_PLACEMENTS[key]
 
 
 # 機体の前にメダルを4つ並べる（中央をはさんで左右対称）。機体がまだ無ければ次のフレームで試す
