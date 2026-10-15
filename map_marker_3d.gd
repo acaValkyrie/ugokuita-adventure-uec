@@ -5,7 +5,7 @@ extends Node3D
 const PILLAR_RADIUS := 0.5
 const PILLAR_HEIGHT := 40.0
 const PILLAR_ALPHA := 0.35
-const LABEL_HEIGHT := 3.0  # 地面から
+const LABEL_HEIGHT := 1.5  # 地面から。カメラは低く下向きなので、3m だと遠くで画面の上に外れるため
 const LABEL_FONT_SIZE := 48
 const LABEL_OUTLINE_SIZE := 12
 # 地面を探すレイの高さ
@@ -30,6 +30,8 @@ func _ready() -> void:
     material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
     material.albedo_color = Color(Map.MARKER_COLOR, PILLAR_ALPHA)
     material.cull_mode = BaseMaterial3D.CULL_DISABLED
+    # 建物の向こうにあっても方向がわかるよう、柱は建物越しに透けて見せる
+    material.no_depth_test = true
     mesh.material = material
     var pillar := MeshInstance3D.new()
     pillar.mesh = mesh
