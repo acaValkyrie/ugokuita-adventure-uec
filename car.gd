@@ -120,11 +120,11 @@ func _physics_process(delta: float) -> void:
             and not PowerUps.is_just_closed() \
             and not (LinkBoard.is_player_near() and Input.is_action_just_pressed("interact")):
         if on_ground:
-            apply_central_impulse(Vector3.UP * JUMP_SPEED * mass)
+            apply_central_impulse(Vector3.UP * _jump_speed() * mass)
             _play_jump_sound()
         elif PowerUps.has("double_jump") and not _air_jump_used:
             # 上向きの速度を置き換える（落下中でも同じ高さまで跳ぶ）
-            linear_velocity.y = JUMP_SPEED
+            linear_velocity.y = _jump_speed()
             _air_jump_used = true
             _play_jump_sound()
 
@@ -158,6 +158,11 @@ func _play_jump_sound() -> void:
     _jump_sound.stream = BUMP_SOUNDS.pick_random()
     _jump_sound.pitch_scale = 1.0 + randf_range(-0.08, 0.08)
     _jump_sound.play()
+
+
+# パワーアップを反映したジャンプの初速 [m/s]
+func _jump_speed() -> float:
+    return JUMP_SPEED * PowerUps.JUMP_UP_MULTIPLIER if PowerUps.has("jump_up") else JUMP_SPEED
 
 
 # パワーアップを反映した最高速度。集中線やカメラの演出の基準にも使う

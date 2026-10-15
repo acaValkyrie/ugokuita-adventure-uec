@@ -24,20 +24,29 @@ const ITEMS := {
         "description": "坂に強くなって、スピードと加速も上がったぞ！！",
         "icon": preload("res://assets/ui/powerups/powerup_torque.png"),
     },
+    "jump_up": {
+        "name": "ジャンプ力UP",
+        "description": "高くジャンプできるようになったぞ！！",
+        "icon": preload("res://assets/ui/powerups/powerup_jump_up.png"),
+    },
 }
 
 # 効果の倍率
 const BOOST_CHARGE_MULTIPLIER := 2.0
 const TORQUE_POWER_MULTIPLIER := 1.5
 const TORQUE_SPEED_MULTIPLIER := 1.3
+# ジャンプの初速の倍率。1回のジャンプで約4.0m、二段ジャンプを最高点で使うと約7.8m 上がる。
+# 東3号館の非常階段の一番上（高さ約37.2m）から屋上（約42.5m）へ、二段ジャンプと空中のBOOSTを合わせると
+# 余裕をもって届き、二段ジャンプなしでは届かない高さ
+const JUMP_UP_MULTIPLIER := 2.16
 
-# true のとき、シーンが始まったら機体の前にメダルを3つ置く（デバッグ用）
+# true のとき、シーンが始まったら機体の前にメダルを4つ置く（デバッグ用）
 const DEBUG_SPAWN_ITEMS := true
 # 機体の前へ [m]、横へ [m]、機体の位置からの高さ [m]
 const SPAWN_FORWARD := 6.0
 const SPAWN_SIDE := 2.5
 const SPAWN_HEIGHT := 1.0
-const SPAWN_KEYS := ["boost_charge", "double_jump", "torque"]
+const SPAWN_KEYS := ["boost_charge", "double_jump", "torque", "jump_up"]
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
 const CLOSE_DELAY_MSEC := 300
 
@@ -120,7 +129,7 @@ func _reset() -> void:
         get_tree().paused = false
 
 
-# 機体の前にメダルを3つ並べる。機体がまだ無ければ次のフレームで試す
+# 機体の前にメダルを4つ並べる（中央をはさんで左右対称）。機体がまだ無ければ次のフレームで試す
 func _spawn_debug_items() -> void:
     var player := get_tree().get_first_node_in_group("player") as Node3D
     if player == null:
@@ -135,7 +144,7 @@ func _spawn_debug_items() -> void:
         item.kind = SPAWN_KEYS[i]
         _shown_scene.add_child(item)
         item.global_position = player.global_position + forward * SPAWN_FORWARD \
-                + side * SPAWN_SIDE * (i - 1) + Vector3.UP * SPAWN_HEIGHT
+                + side * SPAWN_SIDE * (i - (SPAWN_KEYS.size() - 1) / 2.0) + Vector3.UP * SPAWN_HEIGHT
 
 
 func _open_next() -> void:
