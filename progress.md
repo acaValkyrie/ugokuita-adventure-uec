@@ -438,6 +438,10 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - アーケードの掲示板は、ステージのメッシュで表の面が接線方向 (0.9703, 0, 0.2419) に 6m 間隔で並んでいる（幅 5m・すき間 1m）。1枚目のノードの位置からこの方向に 6m ずらして置いた。
   - `tools/make_link_poster.py` は、タイトルと URL の表記を引数で渡すようにした。フォントは Debian の fonts-noto-cjk のパスなので、Docker の python:3.12-slim で fonts-noto-cjk・libcairo2 を入れて実行する（実行例はスクリプトの冒頭）。タイトルは「動く板Project」（「動く板ProjectのGitHub」だと右にはみ出すため）。アイコンは https://github.com/ugokuita-project.png 。
   - 確認: 2枚目の前に機体を置くと2枚目だけに白い枠と文言が出て、1枚目の前では1枚目だけに出た。
+- 追記（2026-10-16）: 3枚目（1枚目から 12m）に、Giving Campaign 2026 への応援投票・寄付をお願いする看板を置いた（`LinkBoardGivingCampaign`）。開く URL は動く板Project の団体ページ（https://student-union.2026.giving-campaign.jp/groups?id=91b414b8-b3bf-430f-8ac9-1a768c32d785）。
+  - ポスターは `tools/make_giving_poster.py` で作った（`assets/boards/giving_campaign_poster.png`）。左に告知画像（`assets/img/giving campaign twitter.jpg`）、中央に「Giving Campaign 参加してます！ 応援投票または寄付をお願いします！！」、右に QR コード（`assets/img/giving campaign qr.png`）。文字は幅 570px に収まるまで自動で小さくする。Docker で実行する（スクリプトの冒頭）。
+  - QR コードは、元の画像とできたポスターの両方を OpenCV で読み取り、上の URL と完全に一致することを確かめた。
+  - 確認: エディタで実行し、3枚目の掲示面にポスターが収まり、白い枠と文言が出ることを見た。投票期間は 10/16〜10/25 なので、終わったら外すか差し替える。
 
 ### 33. 落下後のエンディングを Reset で戻ったときも閉じる（2026-10-15）
 
