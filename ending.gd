@@ -26,6 +26,9 @@ func _ready() -> void:
 
     _box.add_child(_make_label("Thank you for Playing!", 48))
     _box.add_child(_make_label("製作：動く板製作委員会", 28))
+    # 音楽のクレジット（CC BY / CC BY-SA の表記。詳しくは assets/audio/CREDITS.md）
+    _box.add_child(_make_label("Music: \"Fanfare 02\" by Beau Buckley (CC BY-SA 4.0)", 18))
+    _box.add_child(_make_label("\"Fanfare 1\" by tcarisland (CC BY 4.0)", 18))
 
     _button = Button.new()
     _button.text = "Back to Start"
