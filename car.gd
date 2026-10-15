@@ -41,8 +41,11 @@ var _boost_dir := 1.0
 # ジャンプと激突の効果音
 const JUMP_SOUND := preload("res://assets/audio/ロボットの足音2.mp3")
 const CRASH_SOUND := preload("res://assets/audio/ロボットを強く殴る2.mp3")
+# 激突の音に重ねる打撃の音
+const CRASH_HIT_SOUND := preload("res://assets/audio/打撃3.mp3")
 var _jump_sound: AudioStreamPlayer3D
 var _crash_sound: AudioStreamPlayer3D
+var _crash_hit_sound: AudioStreamPlayer3D
 # 前の物理フレームの速度（激突の判定用。リスポーンや機体の入れ替えのときは外から書き換える）
 var _prev_velocity := Vector3.ZERO
 var _crash_cooldown := 0.0
@@ -115,6 +118,9 @@ func _check_crash(delta: float) -> void:
     _crash_sound.volume_db = linear_to_db(clampf(change / CRASH_FULL_DV, 0.3, 1.0))
     _crash_sound.pitch_scale = 1.0 + randf_range(-0.05, 0.05)
     _crash_sound.play()
+    _crash_hit_sound.volume_db = _crash_sound.volume_db
+    _crash_hit_sound.pitch_scale = _crash_sound.pitch_scale
+    _crash_hit_sound.play()
     _crash_cooldown = CRASH_COOLDOWN
     crash_count += 1
 
@@ -215,6 +221,10 @@ func _ready() -> void:
     _crash_sound.unit_size = 3.0
     _crash_sound.stream = CRASH_SOUND
     add_child(_crash_sound)
+    _crash_hit_sound = AudioStreamPlayer3D.new()
+    _crash_hit_sound.unit_size = 3.0
+    _crash_hit_sound.stream = CRASH_HIT_SOUND
+    add_child(_crash_hit_sound)
     var config: Dictionary = MODELS[robot_key]
     var model := get_node_or_null(NodePath(config["node"])) as Node3D
     if model == null:
