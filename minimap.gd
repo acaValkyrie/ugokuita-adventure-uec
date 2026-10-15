@@ -29,6 +29,8 @@ var _angle: float = 0.0
 
 
 func _ready() -> void:
+    # 全体マップやメニューで一時停止している間も、表示の切り替えを行うため
+    process_mode = Node.PROCESS_MODE_ALWAYS
     layer = 10
     _view = Control.new()
     _view.set_anchors_preset(Control.PRESET_TOP_RIGHT)
