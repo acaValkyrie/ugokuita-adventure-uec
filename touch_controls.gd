@@ -108,6 +108,8 @@ func _is_on_button(pos: Vector2) -> bool:
         return true
     if GameMenu.get_button_rect().has_point(pos):
         return true
+    if Map.get_button_rect().has_point(pos):
+        return true
     return Ending.get_button_rect().has_point(pos)
 
 

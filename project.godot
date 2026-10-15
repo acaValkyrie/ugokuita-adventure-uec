@@ -32,6 +32,7 @@ BoostGauge="*res://boost_gauge.gd"
 Speedometer="*res://speedometer.gd"
 SpeedLines="*res://speed_lines.gd"
 Ending="*res://ending.gd"
+Map="*res://map.gd"
 
 [display]
 
