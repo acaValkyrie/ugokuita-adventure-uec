@@ -1,13 +1,15 @@
 extends Node3D
-# 目的地のマーカーの場所に立つ、3Dの画面の印。光の柱と、自分からの距離の文字。
+# 目的地のマーカーの場所に立つ、3Dの画面の印。光の柱と、画面に重ねる2Dの距離の文字。
 # Map が、マーカーがある間だけシーンに1つ置く。
 
 const PILLAR_RADIUS := 0.5
 const PILLAR_HEIGHT := 40.0
-const PILLAR_ALPHA := 0.35
-const LABEL_HEIGHT := 1.5  # 地面から。カメラは低く下向きなので、3m だと遠くで画面の上に外れるため
-const LABEL_FONT_SIZE := 48
-const LABEL_OUTLINE_SIZE := 12
+const PILLAR_ALPHA := 0.5
+const LABEL_LAYER := 10
+const LABEL_FONT_SIZE := 32
+const LABEL_OUTLINE_SIZE := 10
+const LABEL_OFFSET_Y := 40.0  # 地面の点から文字の中心までの上方向の距離（px）
+const LABEL_MARGIN := 16.0  # 画面の端から内側に空ける余白（px）
 # 地面を探すレイの高さ
 const RAY_TOP := 200.0
 const RAY_BOTTOM := -50.0
@@ -15,7 +17,7 @@ const MAX_RAY_HITS := 16  # 地面探しでレイを繰り返す最大回数
 
 # 置く場所（ワールドの x・z）。add_child の前に Map が入れる
 var marker_xz := Vector2.ZERO
-var _label: Label3D
+var _label: Label
 
 
 func _ready() -> void:
@@ -39,24 +41,39 @@ func _ready() -> void:
     pillar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     add_child(pillar)
 
-    _label = Label3D.new()
-    _label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-    _label.fixed_size = true
-    _label.no_depth_test = true
-    _label.font_size = LABEL_FONT_SIZE
-    _label.outline_size = LABEL_OUTLINE_SIZE
-    _label.modulate = Color.WHITE
-    _label.outline_modulate = Color.BLACK
-    _label.position = Vector3(0.0, LABEL_HEIGHT, 0.0)
-    add_child(_label)
+    var layer := CanvasLayer.new()
+    layer.layer = LABEL_LAYER
+    add_child(layer)
+    _label = Label.new()
+    _label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    _label.add_theme_font_size_override("font_size", LABEL_FONT_SIZE)
+    _label.add_theme_color_override("font_color", Color.WHITE)
+    _label.add_theme_color_override("font_outline_color", Color.BLACK)
+    _label.add_theme_constant_override("outline_size", LABEL_OUTLINE_SIZE)
+    layer.add_child(_label)
 
 
 func _process(_delta: float) -> void:
-    var player := get_tree().get_first_node_in_group("player") as Node3D
-    if player == null:
+    # マーカーの地面の点を画面に投影し、その少し上に距離の文字を置く
+    var camera := get_viewport().get_camera_3d()
+    if camera == null or camera.is_position_behind(global_position):
+        _label.visible = false
         return
-    var distance := Vector2(player.global_position.x, player.global_position.z).distance_to(marker_xz)
-    _label.text = "%dm" % int(distance)
+    var player := get_tree().get_first_node_in_group("player") as Node3D
+    if player != null:
+        var distance := Vector2(player.global_position.x, player.global_position.z).distance_to(marker_xz)
+        _label.text = "%dm" % int(distance)
+    _label.visible = true
+    # 文字が変わるとサイズも変わるので、位置の前に合わせ直す
+    _label.reset_size()
+    var screen_point := camera.unproject_position(global_position)
+    var viewport_size := get_viewport().get_visible_rect().size
+    var target := screen_point - Vector2(_label.size.x / 2.0, _label.size.y / 2.0 + LABEL_OFFSET_Y)
+    # 画面からはみ出さないようにする
+    target.x = clampf(target.x, LABEL_MARGIN, viewport_size.x - _label.size.x - LABEL_MARGIN)
+    target.y = clampf(target.y, LABEL_MARGIN, viewport_size.y - _label.size.y - LABEL_MARGIN)
+    _label.position = target
 
 
 # 上から下へレイを飛ばして、地面の高さを求める（当たらなければ 0）
