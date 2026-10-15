@@ -25,8 +25,27 @@ const OUTLINE_WIDTH := 2.0
 const PLAYER_COLOR := Color("#e53935")
 const ARROW_LENGTH := 22.0
 const ARROW_WIDTH := 16.0
+# 目的地のマーカー
+const MARKER_COLOR := Color("#ffd600")
+# 押した点からこの距離（px）以内にマーカーがあれば消す
+const MARKER_HIT_RADIUS := 20.0
+# コントローラ・キーボードのカーソル
+const CURSOR_SPEED := 400.0  # px/秒
+const CURSOR_ARM := 12.0  # 中心から先端まで
+const CURSOR_WIDTH := 3.0
+# 説明の文字
+const HINT_FONT_SIZE := 16
+const HINT_OUTLINE_SIZE := 4
+const HINT_GAP := 8.0
+const HINT_MOUSE := "Click / tap the map to place or remove a marker"
+const HINT_CURSOR := "Move: stick / WASD   Place or remove: confirm"
+
+signal marker_changed
 
 var is_open: bool = false
+# 目的地のマーカー（ワールドの x・z）。1つだけ置ける
+var marker_xz := Vector2.ZERO
+var has_marker: bool = false
 var _button: Button
 var _overlay: Control
 var _texture_rect: TextureRect
@@ -34,6 +53,9 @@ var _label_root: Control
 var _marker_layer: Control
 # 地図の画像を表示している画面上の矩形
 var _map_rect := Rect2()
+# コントローラ・キーボード用のカーソル（画面上の位置と、表示中か）
+var _cursor_pos := Vector2.ZERO
+var _cursor_visible: bool = false
 # 閉じたときの物理フレーム番号
 var _closed_physics_frame: int = -100
 
@@ -57,6 +79,11 @@ func open() -> void:
     is_open = true
     _layout()
     _rebuild_labels()
+    # カーソルは自分の位置に置き、方向の入力があるまで隠す
+    _cursor_visible = false
+    var player := get_tree().get_first_node_in_group("player") as Node3D
+    _cursor_pos = _world_to_map(player.global_position) if player != null else _map_rect.get_center()
+    _cursor_pos = _clamp_to_map(_cursor_pos)
     _overlay.visible = true
     get_tree().paused = true
 
@@ -84,13 +111,29 @@ func is_just_closed() -> bool:
     return Engine.get_physics_frames() - _closed_physics_frame <= 1
 
 
-func _process(_delta: float) -> void:
+func set_marker(xz: Vector2) -> void:
+    marker_xz = xz
+    has_marker = true
+    marker_changed.emit()
+
+
+func clear_marker() -> void:
+    has_marker = false
+    marker_changed.emit()
+
+
+func _process(delta: float) -> void:
     if not is_open:
         return
     # メニューが開いたらマップは閉じる（一時停止はメニュー側が持つ）
     if GameMenu.is_open:
         close(false)
         return
+    # 方向の入力があればカーソルを出して動かす
+    var dir := Input.get_vector("left", "right", "up", "down")
+    if dir != Vector2.ZERO:
+        _cursor_visible = true
+        _cursor_pos = _clamp_to_map(_cursor_pos + dir * CURSOR_SPEED * delta)
     _marker_layer.queue_redraw()
 
 
@@ -107,10 +150,42 @@ func _input(event: InputEvent) -> void:
     if event.is_action_pressed("menu") or event.is_action_pressed("ui_cancel"):
         close()
         get_viewport().set_input_as_handled()
-    # タッチでは、画面のどこをタップしても閉じる
-    elif event is InputEventScreenTouch and event.pressed:
-        close()
+    # マウスやタッチの入力があったらカーソルは隠す
+    if event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag:
+        _cursor_visible = false
+    var click_pos := Vector2.ZERO
+    var clicked := false
+    if event is InputEventScreenTouch and event.pressed:
+        click_pos = event.position
+        clicked = true
+    # タッチから作られたマウスの入力は、タッチ側で処理済みなので無視する
+    elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT \
+            and event.device != InputEvent.DEVICE_ID_EMULATION:
+        click_pos = event.position
+        clicked = true
+    if clicked:
+        # 地図の中ならマーカーを置く・消す、外なら閉じる
+        if _map_rect.has_point(click_pos):
+            _toggle_marker_at(click_pos)
+        else:
+            close()
         get_viewport().set_input_as_handled()
+    elif _cursor_visible and event.is_action_pressed("ui_accept") and not event.is_echo():
+        _toggle_marker_at(_cursor_pos)
+        get_viewport().set_input_as_handled()
+
+
+# 押した点（画面上）の近くにマーカーがあれば消し、なければそこに置く
+func _toggle_marker_at(pos: Vector2) -> void:
+    if has_marker and _world_to_map(Vector3(marker_xz.x, 0.0, marker_xz.y)).distance_to(pos) <= MARKER_HIT_RADIUS:
+        clear_marker()
+    else:
+        set_marker(_map_to_world(pos))
+
+
+# 地図の矩形の中に収める
+func _clamp_to_map(pos: Vector2) -> Vector2:
+    return pos.clamp(_map_rect.position, _map_rect.end)
 
 
 # 背景、地図画像、号館の名前、看板・自分のマーカーを重ねた画面
@@ -222,6 +297,12 @@ func _world_to_map(world: Vector3) -> Vector2:
     return _map_rect.position + ratio * _map_rect.size
 
 
+# 画面上の地図の位置を、ワールドの x・z にする（_world_to_map の逆）
+func _map_to_world(pos: Vector2) -> Vector2:
+    var ratio := (pos - _map_rect.position) / _map_rect.size
+    return WORLD_RECT.position + ratio * WORLD_RECT.size
+
+
 # 号館の名前のラベルを置き直す（開くたびにシーンから探す）
 func _rebuild_labels() -> void:
     for child in _label_root.get_children():
@@ -288,6 +369,9 @@ func _on_marker_draw() -> void:
         var pos := _world_to_map(board.global_position)
         _marker_layer.draw_circle(pos, BOARD_RADIUS, BOARD_COLOR, true, -1.0, true)
         _marker_layer.draw_arc(pos, BOARD_RADIUS, 0.0, TAU, 24, OUTLINE_COLOR, OUTLINE_WIDTH, true)
+    if has_marker:
+        draw_marker_pin(_marker_layer, _world_to_map(Vector3(marker_xz.x, 0.0, marker_xz.y)), 1.0)
+    _draw_cursor_and_hint()
     var player := get_tree().get_first_node_in_group("player") as Node3D
     if player == null:
         return
@@ -305,3 +389,41 @@ func _on_marker_draw() -> void:
     var outline := points.duplicate()
     outline.append(points[0])
     _marker_layer.draw_polyline(outline, OUTLINE_COLOR, OUTLINE_WIDTH, true)
+
+
+# 下端（pos）が地面を指すマーカーのピン。ミニマップでも使う
+static func draw_marker_pin(canvas: CanvasItem, pos: Vector2, scale: float) -> void:
+    var center := pos + Vector2(0.0, -10.0 * scale)
+    var radius := 8.0 * scale
+    var edge := Color(0, 0, 0, 0.8)
+    var triangle := PackedVector2Array([
+        center + Vector2(-5.0 * scale, 0.0),
+        center + Vector2(5.0 * scale, 0.0),
+        pos,
+    ])
+    # 縁取りを先に描き、中身を重ねる
+    var outline := triangle.duplicate()
+    outline.append(triangle[0])
+    canvas.draw_polyline(outline, edge, 2.0, true)
+    canvas.draw_arc(center, radius, 0.0, TAU, 32, edge, 2.0, true)
+    canvas.draw_colored_polygon(triangle, MARKER_COLOR)
+    canvas.draw_circle(center, radius, MARKER_COLOR, true, -1.0, true)
+    canvas.draw_circle(center, 3.0 * scale, Color.BLACK, true, -1.0, true)
+
+
+# カーソル（表示中のみ）と、地図の下の説明の文字を描く
+func _draw_cursor_and_hint() -> void:
+    if _cursor_visible:
+        # 黒い縁取り（太い黒線）を先に描き、白線を重ねる
+        for arm in [Vector2(CURSOR_ARM, 0.0), Vector2(0.0, CURSOR_ARM)]:
+            _marker_layer.draw_line(_cursor_pos - arm, _cursor_pos + arm, Color.BLACK, CURSOR_WIDTH + 2.0)
+        for arm in [Vector2(CURSOR_ARM, 0.0), Vector2(0.0, CURSOR_ARM)]:
+            _marker_layer.draw_line(_cursor_pos - arm, _cursor_pos + arm, Color.WHITE, CURSOR_WIDTH)
+    var font := ThemeDB.fallback_font
+    var text := HINT_CURSOR if _cursor_visible else HINT_MOUSE
+    var text_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, HINT_FONT_SIZE)
+    var base := Vector2(
+            _map_rect.get_center().x - text_size.x * 0.5,
+            _map_rect.end.y + HINT_GAP + font.get_ascent(HINT_FONT_SIZE))
+    _marker_layer.draw_string_outline(font, base, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, HINT_FONT_SIZE, HINT_OUTLINE_SIZE, Color.BLACK)
+    _marker_layer.draw_string(font, base, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, HINT_FONT_SIZE, Color.WHITE)
