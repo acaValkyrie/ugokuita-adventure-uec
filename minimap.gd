@@ -12,6 +12,9 @@ const FRAME_COLOR := Color(1, 1, 1, 0.9)
 const FRAME_WIDTH := 3.0
 # 看板のマーカー
 const BOARD_RADIUS := 5.0
+# 目的地のマーカー（範囲の外では、枠からこの距離の内側に寄せる）
+const MARKER_SCALE := 0.8
+const MARKER_INSET := 12.0
 # 自分の矢印
 const ARROW_LENGTH := 18.0
 const ARROW_WIDTH := 13.0
@@ -100,6 +103,16 @@ func _on_draw() -> void:
         var pos := _to_view(Vector2(board.global_position.x, board.global_position.z))
         _view.draw_circle(pos, BOARD_RADIUS, Map.BOARD_COLOR, true, -1.0, true)
         _view.draw_arc(pos, BOARD_RADIUS, 0.0, TAU, 24, Map.OUTLINE_COLOR, Map.OUTLINE_WIDTH, true)
+
+    # 目的地のマーカー（範囲の外なら、方向を保ったまま枠の内側に寄せる）
+    if Map.has_marker:
+        var pos := _to_view(Map.marker_xz)
+        var offset := pos - center
+        var limit := SIZE * 0.5 - MARKER_INSET
+        var over := maxf(absf(offset.x), absf(offset.y))
+        if over > limit:
+            pos = center + offset * (limit / over)
+        Map.draw_marker_pin(_view, pos, MARKER_SCALE)
 
     # 自分（機体の前を指す赤い矢印）。機体の前は global_basis.z
     var forward := Vector2(player.global_basis.z.x, player.global_basis.z.z).rotated(_angle)
