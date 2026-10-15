@@ -171,8 +171,9 @@ func _post_import(scene: Node) -> Object:
 			var merged := MeshInstance3D.new()
 			merged.name = "Merged_%d" % merged_count
 			# ImporterMesh経由でLODを生成する
+			# 通常の取り込みと同じく、頂点の位置・法線・UVを圧縮してデータを小さくする
 			var importer_mesh := ImporterMesh.new()
-			importer_mesh.add_surface(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays(), [], {}, material)
+			importer_mesh.add_surface(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays(), [], {}, material, "", Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES)
 			importer_mesh.generate_lods(25.0, 60.0, [])
 			lod_count += importer_mesh.get_surface_lod_count(0)
 			merged.mesh = importer_mesh.get_mesh()
