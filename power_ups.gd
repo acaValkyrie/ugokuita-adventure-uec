@@ -50,7 +50,7 @@ const SPAWN_HEIGHT := 0.4
 const SPAWN_KEYS := ["boost_charge", "double_jump", "torque", "jump_up"]
 # 一時的なデバッグ用。true のとき、スタート地点を東3号館（高層棟。モデル上は hi_東図書館A）の非常階段の
 # 一番上の踊り場にし、メダルもすべてそこに置く。終わったら false に戻す
-const DEBUG_START_AT_E3_STAIRS := true
+const DEBUG_START_AT_E3_STAIRS := false
 # 踊り場の上、+Z 向き＝屋上の方向。踊り場は高さ 37.2m、平らなのは x 79〜82・z −160.5〜−158.5、屋上 42.5m は z −158.25 から +Z 側
 const E3_STAIRS_START := Transform3D(Basis.IDENTITY, Vector3(80.5, 37.6, -160.0))
 # 踊り場に置くメダルの位置（SPAWN_KEYS と同じ順）
