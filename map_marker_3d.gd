@@ -11,6 +11,7 @@ const LABEL_OUTLINE_SIZE := 12
 # 地面を探すレイの高さ
 const RAY_TOP := 200.0
 const RAY_BOTTOM := -50.0
+const MAX_RAY_HITS := 16  # 地面探しでレイを繰り返す最大回数
 
 # 置く場所（ワールドの x・z）。add_child の前に Map が入れる
 var marker_xz := Vector2.ZERO
@@ -18,7 +19,7 @@ var _label: Label3D
 
 
 func _ready() -> void:
-    position = Vector3(marker_xz.x, _find_ground_y(), marker_xz.y)
+    position = Vector3(marker_xz.x, _find_ground_y(marker_xz), marker_xz.y)
 
     var mesh := CylinderMesh.new()
     mesh.top_radius = PILLAR_RADIUS
@@ -57,12 +58,20 @@ func _process(_delta: float) -> void:
 
 
 # 上から下へレイを飛ばして、地面の高さを求める（当たらなければ 0）
-func _find_ground_y() -> float:
+# 屋根や木ではなく、その下の地面に立てるため、当たった物体を除外しながら繰り返し、
+# 当たった中でいちばん低い高さを地面とする
+func _find_ground_y(xz: Vector2) -> float:
     var space := get_world_3d().direct_space_state
     var query := PhysicsRayQueryParameters3D.create(
-            Vector3(marker_xz.x, RAY_TOP, marker_xz.y),
-            Vector3(marker_xz.x, RAY_BOTTOM, marker_xz.y))
-    var hit := space.intersect_ray(query)
-    if hit.is_empty():
+            Vector3(xz.x, RAY_TOP, xz.y),
+            Vector3(xz.x, RAY_BOTTOM, xz.y))
+    var lowest := INF
+    for i in MAX_RAY_HITS:
+        var hit := space.intersect_ray(query)
+        if hit.is_empty():
+            break
+        lowest = minf(lowest, hit.position.y)
+        query.exclude.append(hit.rid)
+    if lowest == INF:
         return 0.0
-    return hit.position.y
+    return lowest
