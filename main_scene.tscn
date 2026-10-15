@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://link_board.gd" id="7_linkboard"]
 [ext_resource type="Texture2D" path="res://assets/boards/github_poster.png" id="8_poster"]
 [ext_resource type="Texture2D" path="res://assets/boards/ugokuita_project_poster.png" id="9_poster_ugokuita"]
+[ext_resource type="Texture2D" path="res://assets/boards/giving_campaign_poster.png" id="10_poster_giving"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_gyfs4"]
 sky_top_color = Color(0.56, 0.7, 0.84, 1)
@@ -79,3 +80,9 @@ transform = Transform3D(0.9703, 0, -0.2419, 0, 1, 0, 0.2419, 0, 0.9703, 119.7914
 script = ExtResource("7_linkboard")
 url = "https://github.com/ugokuita-project"
 poster = ExtResource("9_poster_ugokuita")
+
+[node name="LinkBoardGivingCampaign" type="Node3D" parent="."]
+transform = Transform3D(0.9703, 0, -0.2419, 0, 1, 0, 0.2419, 0, 0.9703, 125.6132, 1.5, -107.8525)
+script = ExtResource("7_linkboard")
+url = "https://student-union.2026.giving-campaign.jp/groups?id=91b414b8-b3bf-430f-8ac9-1a768c32d785"
+poster = ExtResource("10_poster_giving")
