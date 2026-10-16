@@ -33,6 +33,10 @@ const ICON_TRIGGER_L2 := preload("res://assets/ui/controls/trigger_l2.png")
 const ICON_BUTTON_CREATE := preload("res://assets/ui/controls/button_create.png")
 const ICON_KEY_M := preload("res://assets/ui/controls/key_m.png")
 const ICON_BUTTON_TRIANGLE := preload("res://assets/ui/controls/button_triangle.png")
+const ICON_BUTTON_SELECT := preload("res://assets/ui/controls/button_select.png")
+const ICON_BUTTON_SHARE := preload("res://assets/ui/controls/button_share.png")
+const ICON_BUTTON_START := preload("res://assets/ui/controls/button_start.png")
+const ICON_BUTTON_OPTIONS := preload("res://assets/ui/controls/button_options.png")
 
 # モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
 const ITEMS := {
@@ -80,6 +84,19 @@ const PAD_ICONS := {
     },
 }
 
+# PlayStation の世代（GameMenu.ps_generation）ごとの、左側の小さいボタン（SELECT・SHARE・CREATE）と右側の小さいボタン（START・OPTIONS）のアイコン。
+# リセットは左側のボタンに割り当てている
+const PS_BACK_ICONS := {
+    "ps3": ICON_BUTTON_SELECT,
+    "ps4": ICON_BUTTON_SHARE,
+    "ps5": ICON_BUTTON_CREATE,
+}
+const PS_START_ICONS := {
+    "ps3": ICON_BUTTON_START,
+    "ps4": ICON_BUTTON_OPTIONS,
+    "ps5": ICON_BUTTON_OPTIONS,
+}
+
 # 画面端からの余白（px）
 const MARGIN := 16
 # アイコンの表示高さ（px）。幅は元画像の縦横比から決める
@@ -118,11 +135,16 @@ func _ready() -> void:
 func _connect_menu() -> void:
     GameMenu.pad_layout_changed.connect(_on_pad_layout_changed)
     GameMenu.swap_confirm_changed.connect(_on_swap_confirm_changed)
+    GameMenu.ps_generation_changed.connect(_on_ps_generation_changed)
     # 読み込んだ設定を反映する
     _rebuild()
 
 
 func _on_pad_layout_changed(_layout: String) -> void:
+    _rebuild()
+
+
+func _on_ps_generation_changed(_generation: String) -> void:
     _rebuild()
 
 
@@ -162,7 +184,10 @@ func _set_mode(mode: Mode) -> void:
 func _items_for(mode: Mode) -> Array:
     if mode != Mode.GAMEPAD:
         return ITEMS[mode]
-    var icons: Dictionary = PAD_ICONS[GameMenu.pad_layout]
+    var icons: Dictionary = PAD_ICONS[GameMenu.pad_layout].duplicate()
+    # PlayStation のリセットは、選んだ世代の左側の小さいボタンにする
+    if GameMenu.pad_layout == "playstation":
+        icons["reset"] = get_ps_back_icon(GameMenu.ps_generation)
     return [
         [ICON_STICK_LEFT, "Steer"],
         # コントローラの実際の左右の位置に合わせて、LT（左）を RT（右）より先に並べる
@@ -215,6 +240,16 @@ func get_confirm_icon_for(layout: String) -> Texture2D:
 # 指定した表記でのキャンセルのボタンのアイコン。入れ替えの設定が有効なら決定のボタンのアイコンを返す
 func get_cancel_icon_for(layout: String) -> Texture2D:
     return PAD_ICONS[layout]["interact" if GameMenu.swap_confirm else "cancel"]
+
+
+# PlayStation の指定した世代での、左の小さいボタン（SELECT・SHARE・CREATE）のアイコン
+func get_ps_back_icon(generation: String) -> Texture2D:
+    return PS_BACK_ICONS[generation]
+
+
+# PlayStation の指定した世代での、右の小さいボタン（START・OPTIONS）のアイコン
+func get_ps_start_icon(generation: String) -> Texture2D:
+    return PS_START_ICONS[generation]
 
 
 # 現在のモードの項目で HBox の中身を作り直す

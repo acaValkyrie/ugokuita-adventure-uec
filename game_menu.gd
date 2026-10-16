@@ -2,11 +2,13 @@ extends CanvasLayer
 # 左上のメニューボタンと、ESC/STARTで開く一時停止メニュー。
 # メニュー内で全体音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体（Neo / Classic）を選べる。
 # 決定とキャンセルのボタンを入れ替える設定もある。
-# 画面は左に項目（音量・コントローラーの設定・決定とキャンセル・ロボットタイプ・閉じる）、右に選んでいる項目の詳細を出す。
+# PlayStation の SELECT・START のボタンの表記（PS3 以前・PS4・PS5）も選べる。
+# 画面は左に項目（音量・コントローラーの設定［見出し。下に ボタンの表示形式・決定とキャンセル・PlayStation の表記］・ロボットタイプ・閉じる）、右に選んでいる項目の詳細を出す。
 
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
 signal swap_confirm_changed(swapped: bool)
+signal ps_generation_changed(generation: String)
 
 # Master バスの既定音量（default_bus_layout.tres）
 const BASE_DB := -6.0206
@@ -22,6 +24,12 @@ const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
 # 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
 const PAD_LAYOUTS := ["nintendo", "playstation", "xbox"]
 const PAD_LAYOUT_NAMES := ["Nintendo", "PlayStation", "Xbox"]
+# PlayStation の SELECT・START のボタンの表記（設定ファイルに保存する値）
+const PS_GENERATIONS := ["ps3", "ps4", "ps5"]
+const PS_GENERATION_NAMES := ["PS3 以前", "PS4", "PS5"]
+# PS_GENERATIONS の順に、左右の小さいボタンの名前
+const PS_BACK_LABELS := ["SELECT", "SHARE", "CREATE"]
+const PS_START_LABELS := ["START", "OPTIONS", "OPTIONS"]
 # 操作する機体（設定ファイルに保存する値）
 const ROBOT_MODELS := ["neo", "classic"]
 const ROBOT_MODEL_NAMES := ["Ugokuita Neo", "Ugokuita Classic"]
@@ -55,25 +63,35 @@ const ITEM_ICONS := [
     preload("res://assets/ui/menu/icon_volume.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
+    preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_robot.png"),
 ]
+# 左の列の「コントローラーの設定」の見出し（選べない行。アイコンは ITEM_ICONS と同じ）
+const CONTROLLER_HEADING := "コントローラーの設定"
+const CONTROLLER_HEADING_ICON := preload("res://assets/ui/menu/icon_controller.png")
+# 見出しの下に字下げして並べる項目
+const CHILD_ITEMS := [1, 2, 3]
+# 子の行の字下げ（px）
+const CHILD_INDENT := 30
 # ROBOT_MODELS の順
 const ROBOT_SCENES := [
     preload("res://assets/ugokuita-neo.glb"),
     preload("res://assets/ugokuita-classic.fbx"),
 ]
-# 左の項目（0: 音量、1: コントローラーの設定、2: 決定とキャンセル、3: ロボットタイプ）
-const ITEM_NAMES := ["音量", "コントローラーの設定", "決定とキャンセル", "ロボットタイプ"]
+# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: PlayStation の表記、4: ロボットタイプ）
+const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "PlayStation の表記", "ロボットタイプ"]
 const ITEM_DESCRIPTIONS := [
     "ゲーム全体の音量を調整します",
     "ボタンの表示形式を切り替えます",
     "決定とキャンセルのボタンを入れ替えます",
+    "SELECT・START のボタンの表記を選びます",
     "操作する機体を切り替えます",
 ]
 const ITEM_VOLUME := 0
 const ITEM_PAD := 1
 const ITEM_CONFIRM := 2
-const ITEM_ROBOT := 3
+const ITEM_PS := 3
+const ITEM_ROBOT := 4
 # 決定とキャンセルの選択肢の名前（SWAP_CONFIRM_VALUES の順）
 const SWAP_CONFIRM_NAMES := ["標準", "入れ替え"]
 const SWAP_CONFIRM_VALUES := [false, true]
@@ -100,6 +118,8 @@ var pad_layout: String = "nintendo"
 var robot_model: String = "neo"
 # true なら決定とキャンセルのボタンを標準から入れ替える
 var swap_confirm: bool = false
+# PlayStation の SELECT・START のボタンの表記（PS_GENERATIONS のどれか）
+var ps_generation: String = "ps5"
 var _volume: int = 100
 var _menu_button: Button
 var _dimmer: ColorRect
@@ -137,6 +157,12 @@ var _confirm_name_label: Label
 var _confirm_dots: Array[ColorRect] = []
 var _confirm_icon: TextureRect
 var _confirm_cancel_icon: TextureRect
+var _ps_name_label: Label
+var _ps_dots: Array[ColorRect] = []
+var _ps_back_icon: TextureRect
+var _ps_start_icon: TextureRect
+var _ps_back_label: Label
+var _ps_start_label: Label
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
 # 機体の3D表示
@@ -167,6 +193,7 @@ func _ready() -> void:
     _refresh_volume_labels()
     _refresh_pad()
     _refresh_confirm()
+    _refresh_ps()
     _refresh_robot_names()
     _set_current_item(ITEM_VOLUME, true)
 
@@ -440,6 +467,9 @@ func _build_left_column() -> Control:
     rows_box.add_theme_constant_override("separation", 6)
     vbox.add_child(rows_box)
     for i in ITEM_NAMES.size():
+        # 「コントローラーの設定」の見出しは、ボタンの表示形式の行の前に入れる
+        if i == CHILD_ITEMS[0]:
+            rows_box.add_child(_build_heading_row())
         rows_box.add_child(_build_item_row(i))
 
     # デバッグ用: パワーアップを1つずつ ON/OFF（SHOW_DEBUG_PANEL が false のときと、release の書き出しでは作らない）
@@ -459,7 +489,10 @@ func _build_left_column() -> Control:
 
 # 項目の行。文字は持たせず、中に背景・縦帯・アイコン・項目名・右側の部品を置く
 func _build_item_row(index: int) -> Button:
-    var row := _make_flat_button(58, Control.FOCUS_ALL)
+    # 子の行は高さ 48・字下げ・アイコン無し・文字 18px
+    var is_child := index in CHILD_ITEMS
+    var indent := CHILD_INDENT if is_child else 0
+    var row := _make_flat_button(48 if is_child else 58, Control.FOCUS_ALL)
     _rows.append(row)
 
     # 選んでいる行の背景（左から右へ赤いグラデーション）
@@ -478,6 +511,7 @@ func _build_item_row(index: int) -> Button:
     background.stretch_mode = TextureRect.STRETCH_SCALE
     background.mouse_filter = Control.MOUSE_FILTER_IGNORE
     background.set_anchors_preset(Control.PRESET_FULL_RECT)
+    background.offset_left = indent
     row.add_child(background)
     _row_backgrounds.append(background)
 
@@ -486,12 +520,13 @@ func _build_item_row(index: int) -> Button:
     stripe.color = TEXT_BODY
     stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
     stripe.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-    stripe.offset_left = 0
-    stripe.offset_right = 5
+    stripe.offset_left = indent
+    stripe.offset_right = indent + 5
     row.add_child(stripe)
     _row_stripes.append(stripe)
 
-    var margin := _make_margin(22, 0, 18, 0)
+    # 子の行の左の余白は、親のアイコン（30）と間（22）の分まで深くする
+    var margin := _make_margin(22 + indent, 0, 18, 0)
     margin.set_anchors_preset(Control.PRESET_FULL_RECT)
     row.add_child(margin)
     var hbox := HBoxContainer.new()
@@ -500,12 +535,13 @@ func _build_item_row(index: int) -> Button:
     hbox.add_theme_constant_override("separation", 22)
     margin.add_child(hbox)
 
-    var icon := _make_icon(ITEM_ICONS[index], 30)
-    icon.custom_minimum_size = Vector2(30, 30)
-    icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-    hbox.add_child(icon)
+    if not is_child:
+        var icon := _make_icon(ITEM_ICONS[index], 30)
+        icon.custom_minimum_size = Vector2(30, 30)
+        icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+        hbox.add_child(icon)
 
-    var name_label := _make_label(ITEM_NAMES[index], 21, TEXT_BODY)
+    var name_label := _make_label(ITEM_NAMES[index], 18 if is_child else 21, TEXT_BODY)
     name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     hbox.add_child(name_label)
 
@@ -530,6 +566,25 @@ func _build_item_row(index: int) -> Button:
     row.mouse_entered.connect(_on_row_mouse_entered.bind(index))
     row.gui_input.connect(_on_row_gui_input.bind(index))
     return row
+
+
+# 「コントローラーの設定」の見出しの行（選べない。フォーカスもマウスも受け取らず、選択の背景も「>」も出さない）
+func _build_heading_row() -> Control:
+    var margin := _make_margin(22, 0, 18, 0)
+    margin.custom_minimum_size = Vector2(0, 58)
+    var hbox := HBoxContainer.new()
+    hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+    hbox.add_theme_constant_override("separation", 22)
+    margin.add_child(hbox)
+    var icon := _make_icon(CONTROLLER_HEADING_ICON, 30)
+    icon.custom_minimum_size = Vector2(30, 30)
+    icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+    hbox.add_child(icon)
+    var name_label := _make_label(CONTROLLER_HEADING, 21, TEXT_BODY)
+    name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    hbox.add_child(name_label)
+    return margin
 
 
 # 音量バー（マウス・タッチでドラッグできる。つまみは見せない）
@@ -699,7 +754,7 @@ func _build_right_column() -> Control:
     holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
     holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
     vbox.add_child(holder)
-    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_robot_content()]
+    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_ps_content(), _build_robot_content()]
     for content in contents:
         content.set_anchors_preset(Control.PRESET_FULL_RECT)
         content.visible = false
@@ -813,6 +868,27 @@ func _make_confirm_icon_rect() -> TextureRect:
     icon.custom_minimum_size = Vector2(0, 72)
     icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
     return icon
+
+
+# PlayStation の表記。中央に、左の小さいボタン（SELECT など）と右の小さいボタン（START など）のアイコンと名前を横に並べる
+func _build_ps_content() -> Control:
+    var center := HBoxContainer.new()
+    center.alignment = BoxContainer.ALIGNMENT_CENTER
+    center.add_theme_constant_override("separation", 40)
+    center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    center.custom_minimum_size = Vector2(0, 250)
+    _ps_back_icon = _make_confirm_icon_rect()
+    var back_column := _make_confirm_column(_ps_back_icon, "")
+    _ps_back_label = back_column.get_child(1) as Label
+    center.add_child(back_column)
+    _ps_start_icon = _make_confirm_icon_rect()
+    var start_column := _make_confirm_column(_ps_start_icon, "")
+    _ps_start_label = start_column.get_child(1) as Label
+    center.add_child(start_column)
+    var parts := _build_selector(center, PS_GENERATIONS.size(), _step_ps)
+    _ps_name_label = parts.name_label
+    _ps_dots = parts.dots
+    return parts.box
 
 
 func _build_robot_content() -> Control:
@@ -964,6 +1040,8 @@ func _step_row(index: int, direction: int) -> void:
             _step_pad(direction)
         ITEM_CONFIRM:
             _step_confirm(direction)
+        ITEM_PS:
+            _step_ps(direction)
         ITEM_ROBOT:
             _step_robot(direction)
 
@@ -986,6 +1064,15 @@ func _step_confirm(_direction: int) -> void:
     _refresh_confirm()
     # コントローラーの設定の中の「決定・キャンセル」の行も追従させる
     _refresh_pad()
+
+
+func _step_ps(direction: int) -> void:
+    var count := PS_GENERATIONS.size()
+    var next := (PS_GENERATIONS.find(ps_generation) + direction + count) % count
+    ps_generation = PS_GENERATIONS[next]
+    _save_settings()
+    ps_generation_changed.emit(ps_generation)
+    _refresh_ps()
 
 
 func _step_robot(direction: int) -> void:
@@ -1021,6 +1108,16 @@ func _refresh_confirm() -> void:
     _set_dots(_confirm_dots, index)
     _confirm_icon.texture = ControlsHelp.get_confirm_icon_for(pad_layout)
     _confirm_cancel_icon.texture = ControlsHelp.get_cancel_icon_for(pad_layout)
+
+
+func _refresh_ps() -> void:
+    var index := PS_GENERATIONS.find(ps_generation)
+    _ps_name_label.text = PS_GENERATION_NAMES[index]
+    _set_dots(_ps_dots, index)
+    _ps_back_icon.texture = ControlsHelp.get_ps_back_icon(ps_generation)
+    _ps_start_icon.texture = ControlsHelp.get_ps_start_icon(ps_generation)
+    _ps_back_label.text = PS_BACK_LABELS[index]
+    _ps_start_label.text = PS_START_LABELS[index]
 
 
 func _refresh_robot_names() -> void:
@@ -1163,6 +1260,9 @@ func _load_settings() -> void:
     if layout in PAD_LAYOUTS:
         pad_layout = layout
     swap_confirm = bool(config.get_value("controls", "swap_confirm", false))
+    var generation := str(config.get_value("controls", "ps_generation", "ps5"))
+    if generation in PS_GENERATIONS:
+        ps_generation = generation
     var model := str(config.get_value("robot", "model", "neo"))
     if model in ROBOT_MODELS:
         robot_model = model
@@ -1173,5 +1273,6 @@ func _save_settings() -> void:
     config.set_value("audio", "volume", _volume)
     config.set_value("controls", "pad_layout", pad_layout)
     config.set_value("controls", "swap_confirm", swap_confirm)
+    config.set_value("controls", "ps_generation", ps_generation)
     config.set_value("robot", "model", robot_model)
     config.save(SETTINGS_PATH)
