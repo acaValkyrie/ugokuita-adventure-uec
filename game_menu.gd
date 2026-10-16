@@ -20,6 +20,14 @@ const PAD_LAYOUT_NAMES := ["Nintendo", "PlayStation", "Xbox"]
 # 操作する機体（設定ファイルに保存する値）
 const ROBOT_MODELS := ["neo", "classic"]
 const ROBOT_MODEL_NAMES := ["Ugokuita Neo", "Ugokuita Classic"]
+# デバッグ欄に出すパワーアップの名前
+const DEBUG_POWER_UP_NAMES := {
+    "boost_charge": "Boost Charge",
+    "double_jump": "Double Jump",
+    "torque": "Torque",
+    "jump_up": "Jump Up",
+    "jet": "Jet",
+}
 
 var is_open: bool = false
 var pad_layout: String = "nintendo"
@@ -31,6 +39,8 @@ var _slider: HSlider
 var _volume_label: Label
 var _pad_buttons: Array[Button] = []
 var _robot_buttons: Array[Button] = []
+# デバッグ欄のトグル（パワーアップのキー → ボタン）
+var _debug_buttons := {}
 var _player: AudioStreamPlayer
 # メニューを閉じたときの物理フレーム番号
 var _closed_physics_frame: int = -100
@@ -59,6 +69,9 @@ func open() -> void:
     if is_open:
         return
     is_open = true
+    # デバッグ欄のトグルを、いま取っている状態に合わせる（シグナルは出さない）
+    for key in _debug_buttons:
+        _debug_buttons[key].set_pressed_no_signal(PowerUps.has(key))
     _dimmer.visible = true
     get_tree().paused = true
     # ゲームパッドやキーボードの左右で音量を調整できるようにする
@@ -249,6 +262,28 @@ func _build_menu() -> void:
         robot_row.add_child(robot_button)
         _robot_buttons.append(robot_button)
 
+    # デバッグ用: パワーアップを1つずつ ON/OFF（release の書き出しでは作らない）
+    if OS.is_debug_build():
+        var debug_title := Label.new()
+        debug_title.text = "Power-ups (debug)"
+        debug_title.add_theme_font_size_override("font_size", 20)
+        vbox.add_child(debug_title)
+
+        var debug_grid := GridContainer.new()
+        debug_grid.columns = 3
+        debug_grid.add_theme_constant_override("h_separation", 12)
+        debug_grid.add_theme_constant_override("v_separation", 12)
+        vbox.add_child(debug_grid)
+
+        for key in PowerUps.ITEMS:
+            var debug_button := Button.new()
+            debug_button.text = DEBUG_POWER_UP_NAMES[key]
+            debug_button.toggle_mode = true
+            debug_button.add_theme_font_size_override("font_size", 20)
+            debug_button.toggled.connect(_on_debug_power_up_toggled.bind(key))
+            debug_grid.add_child(debug_button)
+            _debug_buttons[key] = debug_button
+
     var close_button := Button.new()
     close_button.text = "Close"
     close_button.add_theme_font_size_override("font_size", 20)
@@ -274,6 +309,10 @@ func _on_pad_layout_pressed(layout: String) -> void:
     _apply_pad_buttons()
     _save_settings()
     pad_layout_changed.emit(pad_layout)
+
+
+func _on_debug_power_up_toggled(on: bool, key: String) -> void:
+    PowerUps.set_acquired(key, on)
 
 
 func _on_robot_model_pressed(model: String) -> void:

@@ -170,6 +170,20 @@ func acquire(key: String) -> void:
         _open_next()
 
 
+# デバッグ用。ポップアップを出さずに、取った状態を直接切り替える
+func set_acquired(key: String, on: bool) -> void:
+    if not ITEMS.has(key):
+        push_warning("パワーアップの種類が不明: %s" % key)
+        return
+    if on:
+        _acquired[key] = true
+    else:
+        _acquired.erase(key)
+        # ジェットを外したら、屋上のヒントがまた出るようにする
+        if key == "jet":
+            Map.has_hint = false
+
+
 # 閉じた直後か。閉じるのに使ったボタンがジャンプ・ブースト・看板と同じとき、再開した瞬間に発動させないために使う
 func is_just_closed() -> bool:
     return Engine.get_physics_frames() - _closed_physics_frame <= 1
