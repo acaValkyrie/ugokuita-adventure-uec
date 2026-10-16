@@ -9,6 +9,10 @@ const DISC_COLOR := Color("#d4a017")
 # アイコンの1辺 [m] と、円盤の表裏からの距離 [m]
 const ICON_SIZE := 0.7
 const ICON_OFFSET := 0.035
+# ヒントのメダルの「?」: 文字の高さ [m]（円盤の直径 0.72m に収まる）、フォントの大きさ [px]、縁取りの太さ [px]
+const QUESTION_SIZE := 0.5
+const QUESTION_FONT_SIZE := 128
+const QUESTION_OUTLINE_SIZE := 16
 # 回る速さ [度/秒]、上下の揺れの幅 [m] と周期 [s]
 const SPIN_SPEED := 90.0
 const BOB_AMPLITUDE := 0.1
@@ -22,6 +26,8 @@ const PICKUP_HEIGHT := 1.2
 const PICKUP_BOTTOM := -0.7
 
 @export var kind: String = ""
+# 空でないときはヒントのメダル（PowerUps.HINTS のキー）。アイコンの代わりに「?」を出し、触れるとヒントを使う
+@export var hint_id: String = ""
 
 var _visual: Node3D
 var _time := 0.0
@@ -58,12 +64,33 @@ func _ready() -> void:
     disc.rotation_degrees.x = 90.0
     _visual.add_child(disc)
 
+    if hint_id != "":
+        # ヒントのメダル: アイコンの代わりに「?」（表と裏）
+        _add_question_mark(ICON_OFFSET, 0.0)
+        _add_question_mark(-ICON_OFFSET, 180.0)
+        return
     # アイコン（表と裏）
     var texture: Texture2D = null
     if PowerUps.ITEMS.has(kind):
         texture = PowerUps.ITEMS[kind]["icon"]
     _add_icon(texture, ICON_OFFSET, 0.0)
     _add_icon(texture, -ICON_OFFSET, 180.0)
+
+
+func _add_question_mark(z: float, angle_y: float) -> void:
+    var label := Label3D.new()
+    label.text = "?"
+    label.font = PowerUps.FONT
+    label.font_size = QUESTION_FONT_SIZE
+    label.pixel_size = QUESTION_SIZE / QUESTION_FONT_SIZE
+    label.modulate = Color.WHITE
+    label.outline_modulate = Color.BLACK
+    label.outline_size = QUESTION_OUTLINE_SIZE
+    label.shaded = false
+    label.double_sided = false
+    label.position.z = z
+    label.rotation_degrees.y = angle_y
+    _visual.add_child(label)
 
 
 func _add_icon(texture: Texture2D, z: float, angle_y: float) -> void:
@@ -88,5 +115,8 @@ func _on_body_entered(body: Node3D) -> void:
         return
     # 二重に取らない
     set_deferred("monitoring", false)
-    PowerUps.acquire(kind)
+    if hint_id != "":
+        PowerUps.use_hint(hint_id)
+    else:
+        PowerUps.acquire(kind)
     queue_free()

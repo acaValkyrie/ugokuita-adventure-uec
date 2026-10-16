@@ -95,20 +95,16 @@ const E3_ROOF_ITEM_POSITIONS := [
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
 const CLOSE_DELAY_MSEC := 300
 
-# 屋上のヒント。図書館以外の建物の屋上（か屋上の手前の非常階段の一番上の踊り場）に着いたら、マップにジェットの場所の印を出す。
-# 「接地している」「高さが ROOF_HINT_MIN_HEIGHT 以上」「足もとが hi_ の建物（図書館＝hi_東図書館A を除く）」
-# 「真上が空いている（途中の踊り場は上の踊り場にふさがれるので外れる）」をすべて満たしたときに判定する
-const ROOF_HINT_MIN_HEIGHT := 3.0
-const ROOF_HINT_BUILDING_PREFIX := "hi_"
-const ROOF_HINT_EXCLUDED_PREFIX := "hi_東図書館A"
-# 判定の間隔 [物理フレーム]
-const ROOF_HINT_INTERVAL := 10
-# 足もとのレイ: 機体の 0.5m 上から 2m 下へ。真上のレイ: 機体の 0.5m 上から 100m 上へ
-const ROOF_HINT_RAY_UP_OFFSET := 0.5
-const ROOF_HINT_RAY_DOWN := 2.0
-const ROOF_HINT_RAY_UP := 100.0
+# ヒントの種類: 印を付けるパワーアップのキー。ヒント1はジャンプ力UPと二段ジャンプ、ヒント2はジェット（図書館の屋上の上）
+const HINTS := {
+    "hint1": {"keys": ["jump_up", "double_jump"]},
+    "hint2": {"keys": ["jet"]},
+}
+# ヒントのメダルを置く場所（キーは HINTS のキー）。まだ決まっていないので空。決まったら足す。
+# 置く位置の高さの決め方は ITEM_PLACEMENTS と同じ（機体の基準点 + 0.4m）
+const HINT_PLACEMENTS := {}
 # お知らせ（画面の上の中央）
-const NOTICE_TEXT := "屋上到達！マップにヒントの印が付いたぞ！！"
+const NOTICE_TEXT := "マップにヒントの印が付いたぞ！！"
 const NOTICE_SECONDS := 4.0
 const NOTICE_FADE_SECONDS := 0.5
 const NOTICE_TOP := 120.0
@@ -116,6 +112,8 @@ const NOTICE_TOP := 120.0
 var is_open: bool = false
 # 取った種類
 var _acquired := {}
+# 使ったヒント（HINTS のキー）。取った種類と同じく、シーンが変わっても残す
+var _used_hints := {}
 # 出すのを待っているポップアップ（種類のキー）
 var _queue: Array[String] = []
 var _shown_scene: Node = null
@@ -179,9 +177,35 @@ func set_acquired(key: String, on: bool) -> void:
         _acquired[key] = true
     else:
         _acquired.erase(key)
-        # ジェットを外したら、屋上のヒントがまた出るようにする
-        if key == "jet":
-            Map.hide_hints(["jet"])
+
+
+# ヒントを使った（メダルに触れた）ことを覚えて、マップに印を付け、お知らせを出す
+func use_hint(id: String) -> void:
+    if not HINTS.has(id):
+        push_warning("ヒントの種類が不明: %s" % id)
+        return
+    if _used_hints.has(id):
+        return
+    _used_hints[id] = true
+    Map.reveal_hints(HINTS[id]["keys"])
+    _notice_left = NOTICE_SECONDS
+
+
+# デバッグ用。お知らせを出さずに、使った状態を直接切り替える
+func set_hint_used(id: String, on: bool) -> void:
+    if not HINTS.has(id):
+        push_warning("ヒントの種類が不明: %s" % id)
+        return
+    if on:
+        _used_hints[id] = true
+        Map.reveal_hints(HINTS[id]["keys"])
+    else:
+        _used_hints.erase(id)
+        Map.hide_hints(HINTS[id]["keys"])
+
+
+func is_hint_used(id: String) -> bool:
+    return _used_hints.has(id)
 
 
 # 閉じた直後か。閉じるのに使ったボタンがジャンプ・ブースト・看板と同じとき、再開した瞬間に発動させないために使う
@@ -201,34 +225,6 @@ func _process(delta: float) -> void:
     if is_open:
         _update_hint()
     _update_notice(delta)
-
-
-# 屋上に着いたかを、ROOF_HINT_INTERVAL 物理フレームに1回調べる
-func _physics_process(_delta: float) -> void:
-    if Engine.get_physics_frames() % ROOF_HINT_INTERVAL != 0:
-        return
-    if get_tree().paused or has("jet") or Map.revealed_hints.has("jet"):
-        return
-    var player := get_tree().get_first_node_in_group("player") as VehicleBody3D
-    if player == null or not player._is_on_ground():
-        return
-    var pos := player.global_position
-    if pos.y < ROOF_HINT_MIN_HEIGHT:
-        return
-    var space := player.get_world_3d().direct_space_state
-    var origin := pos + Vector3.UP * ROOF_HINT_RAY_UP_OFFSET
-    var down := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.DOWN * (ROOF_HINT_RAY_UP_OFFSET + ROOF_HINT_RAY_DOWN), 1, [player.get_rid()])
-    var hit := space.intersect_ray(down)
-    if hit.is_empty():
-        return
-    var collider_name := String((hit["collider"] as Node).name)
-    if not collider_name.begins_with(ROOF_HINT_BUILDING_PREFIX) or collider_name.begins_with(ROOF_HINT_EXCLUDED_PREFIX):
-        return
-    var up := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.UP * ROOF_HINT_RAY_UP, 1, [player.get_rid()])
-    if not space.intersect_ray(up).is_empty():
-        return
-    Map.reveal_hints(["jet"])
-    _notice_left = NOTICE_SECONDS
 
 
 # お知らせを出している間、残り時間に合わせて表示し、最後の NOTICE_FADE_SECONDS で薄くする（ゲームは止めない）
@@ -261,8 +257,16 @@ func _reset() -> void:
         get_tree().paused = false
 
 
-# ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く。取った種類は置かない）
+# ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く。取った種類は置かない）。HINT_PLACEMENTS のヒントのメダルも置く
 func _place_items() -> void:
+    # ヒントのメダル（使っていないものだけ）
+    for id in HINT_PLACEMENTS:
+        if _used_hints.has(id):
+            continue
+        var hint_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
+        hint_item.hint_id = id
+        _shown_scene.add_child(hint_item)
+        hint_item.global_position = HINT_PLACEMENTS[id]
     if DEBUG_ITEMS_ON_E3_ROOF:
         return
     for key in ITEM_PLACEMENTS:
