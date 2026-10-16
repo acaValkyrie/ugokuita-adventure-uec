@@ -9,15 +9,23 @@
 [ext_resource type="Texture2D" uid="uid://bi4y8kf8cqctn" path="res://assets/boards/github_poster.png" id="8_poster"]
 [ext_resource type="Texture2D" uid="uid://bjf3i0q7yh614" path="res://assets/boards/ugokuita_project_poster.png" id="9_poster_ugokuita"]
 [ext_resource type="Texture2D" uid="uid://b85fb4kew3npi" path="res://assets/boards/giving_campaign_poster.png" id="10_poster_giving"]
+[ext_resource type="Shader" uid="uid://bn6eij41x21wr" path="res://assets/shaders/space_sky.gdshader" id="11_spacesky"]
+[ext_resource type="Script" uid="uid://7rg4gk6wkpao" path="res://space_sky.gd" id="12_spacesky"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_gyfs4"]
-sky_top_color = Color(0.56, 0.7, 0.84, 1)
-sky_horizon_color = Color(0.9, 0.88, 0.8, 1)
-ground_bottom_color = Color(0.45, 0.43, 0.4, 1)
-ground_horizon_color = Color(0.9, 0.88, 0.8, 1)
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_spacesky"]
+shader = ExtResource("11_spacesky")
+shader_parameter/day_top_color = Color(0.56, 0.7, 0.84, 1)
+shader_parameter/day_horizon_color = Color(0.9, 0.88, 0.8, 1)
+shader_parameter/ground_bottom_color = Color(0.45, 0.43, 0.4, 1)
+shader_parameter/ground_horizon_color = Color(0.9, 0.88, 0.8, 1)
+shader_parameter/space_top_color = Color(0, 0, 0.02, 1)
+shader_parameter/space_horizon_color = Color(0.04, 0.06, 0.14, 1)
+shader_parameter/space_ground_color = Color(0.02, 0.02, 0.04, 1)
+shader_parameter/space_amount = 0.0
+shader_parameter/star_energy = 4.0
 
 [sub_resource type="Sky" id="Sky_hq1ik"]
-sky_material = SubResource("ProceduralSkyMaterial_gyfs4")
+sky_material = SubResource("ShaderMaterial_spacesky")
 
 [sub_resource type="Environment" id="Environment_nfk4m"]
 background_mode = 2
@@ -59,6 +67,7 @@ vehicle_path = NodePath("../VehicleBody3D")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=575119180]
 environment = SubResource("Environment_nfk4m")
+script = ExtResource("12_spacesky")
 
 [node name="VehicleBody3D" parent="." unique_id=1710109078 instance=ExtResource("3_d5x1h")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.1656, 0.259146, -112.579)
