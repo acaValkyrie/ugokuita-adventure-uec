@@ -12,7 +12,7 @@ uniform vec4 ground_horizon_color : source_color = vec4(0.9, 0.88, 0.8, 1.0);
 uniform vec4 space_top_color : source_color = vec4(0.0, 0.0, 0.02, 1.0);
 uniform vec4 atmosphere_color : source_color = vec4(0.25, 0.5, 1.0, 1.0);
 uniform vec4 earth_haze_color : source_color = vec4(0.55, 0.7, 0.9, 1.0);
-uniform vec4 earth_color : source_color = vec4(0.05, 0.15, 0.35, 1.0);
+uniform vec4 earth_color : source_color = vec4(0.46, 0.45, 0.4, 1.0);
 uniform vec4 limb_color : source_color = vec4(0.7, 0.85, 1.0, 1.0);
 uniform vec4 sun_glow_color : source_color = vec4(1.0, 0.55, 0.2, 1.0);
 
@@ -143,6 +143,8 @@ vec3 space_base_color(vec3 eyedir, float horizon, bool cubemap_pass) {
             float clouds = smoothstep(0.55, 0.75, fbm2(uv));
             // 地平線のすぐ近くは投影でノイズが細かくなりすぎるので消す
             clouds *= smoothstep(0.0, 0.05, h - e);
+            // ステージの端に近い急な見下ろし角では出さず、遠く（地平線寄り）だけに出す
+            clouds *= 1.0 - smoothstep(0.1, 0.3, h - e);
             earth = mix(earth, vec3(0.9), clouds * 0.6);
         }
         col = earth;

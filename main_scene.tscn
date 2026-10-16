@@ -19,6 +19,11 @@ shader_parameter/day_horizon_color = Color(0.9, 0.88, 0.8, 1)
 shader_parameter/ground_bottom_color = Color(0.45, 0.43, 0.4, 1)
 shader_parameter/ground_horizon_color = Color(0.9, 0.88, 0.8, 1)
 shader_parameter/space_top_color = Color(0, 0, 0.02, 1)
+shader_parameter/atmosphere_color = Color(0.25, 0.5, 1, 1)
+shader_parameter/earth_haze_color = Color(0.55, 0.7, 0.9, 1)
+shader_parameter/earth_color = Color(0.46, 0.45, 0.4, 1)
+shader_parameter/limb_color = Color(0.7, 0.85, 1, 1)
+shader_parameter/sun_glow_color = Color(1, 0.55, 0.2, 1)
 shader_parameter/space_amount = 0.0
 shader_parameter/star_energy = 4.0
 
