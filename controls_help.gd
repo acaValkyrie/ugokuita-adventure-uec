@@ -59,17 +59,17 @@ const PAD_ICONS := {
     "nintendo": {
         "rt": ICON_TRIGGER_ZR, "lt": ICON_TRIGGER_ZL,
         "jump": ICON_BUTTON_B, "boost": ICON_BUTTON_Y, "reset": ICON_BUTTON_MINUS,
-        "interact": ICON_BUTTON_A, "map": ICON_BUTTON_X,
+        "interact": ICON_BUTTON_A, "map": ICON_BUTTON_X, "cancel": ICON_BUTTON_B,
     },
     "playstation": {
         "rt": ICON_TRIGGER_R2, "lt": ICON_TRIGGER_L2,
         "jump": ICON_BUTTON_CROSS, "boost": ICON_BUTTON_SQUARE, "reset": ICON_BUTTON_CREATE,
-        "interact": ICON_BUTTON_CIRCLE, "map": ICON_BUTTON_TRIANGLE,
+        "interact": ICON_BUTTON_CIRCLE, "map": ICON_BUTTON_TRIANGLE, "cancel": ICON_BUTTON_CROSS,
     },
     "xbox": {
         "rt": ICON_TRIGGER_RT, "lt": ICON_TRIGGER_LT,
         "jump": ICON_BUTTON_A, "boost": ICON_BUTTON_X, "reset": ICON_BUTTON_BACK,
-        "interact": ICON_BUTTON_A, "map": ICON_BUTTON_Y,
+        "interact": ICON_BUTTON_A, "map": ICON_BUTTON_Y, "cancel": ICON_BUTTON_B,
     },
 }
 
@@ -177,6 +177,18 @@ func get_interact_icon() -> Texture2D:
             return ICON_KEY_E
         Mode.GAMEPAD:
             return PAD_ICONS[GameMenu.pad_layout]["interact"]
+    return null
+
+
+# いまの入力方式
+func get_mode() -> Mode:
+    return _mode
+
+
+# キャンセルのボタンのアイコン（メニューの「閉じる」に出す）。コントローラ以外は null
+func get_cancel_icon() -> Texture2D:
+    if _mode == Mode.GAMEPAD:
+        return PAD_ICONS[GameMenu.pad_layout]["cancel"]
     return null
 
 
