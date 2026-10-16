@@ -33,6 +33,8 @@ const DEBUG_HINT_NAMES := {
     "hint1": "Hint 1",
     "hint2": "Hint 2",
 }
+# デバッグ欄を出すか。false なら debug ビルドでも出さない
+const SHOW_DEBUG_PANEL := false
 
 var is_open: bool = false
 var pad_layout: String = "nintendo"
@@ -271,8 +273,8 @@ func _build_menu() -> void:
         robot_row.add_child(robot_button)
         _robot_buttons.append(robot_button)
 
-    # デバッグ用: パワーアップを1つずつ ON/OFF（release の書き出しでは作らない）
-    if OS.is_debug_build():
+    # デバッグ用: パワーアップを1つずつ ON/OFF（SHOW_DEBUG_PANEL が false のときと、release の書き出しでは作らない）
+    if SHOW_DEBUG_PANEL and OS.is_debug_build():
         var debug_title := Label.new()
         debug_title.text = "Power-ups (debug)"
         debug_title.add_theme_font_size_override("font_size", 20)
