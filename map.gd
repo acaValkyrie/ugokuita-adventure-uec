@@ -28,6 +28,9 @@ const ARROW_WIDTH := 16.0
 # 目的地のマーカー
 const MARKER_COLOR := Color("#ffd600")
 const MARKER_3D_SCRIPT := preload("res://map_marker_3d.gd")
+# ジェットの場所のヒントの印（金色の丸に「?」。色はメダルと同じ）
+const HINT_MARK_COLOR := Color("#d4a017")
+const HINT_MARK_RADIUS := 12.0
 # 水平の距離がこれ（m）より近づいたら、着いたとしてマーカーを消す
 const ARRIVE_DISTANCE := 5.0
 # 押した点からこの距離（px）以内にマーカーがあれば消す
@@ -49,6 +52,9 @@ var is_open: bool = false
 # 目的地のマーカー（ワールドの x・z）。1つだけ置ける
 var marker_xz := Vector2.ZERO
 var has_marker: bool = false
+# ジェットの場所のヒント（ワールドの x・z）。ユーザーのマーカーとは別。Autoload なのでシーンを読み込み直しても残る
+var hint_xz := Vector2.ZERO
+var has_hint: bool = false
 var _button: Button
 var _overlay: Control
 var _texture_rect: TextureRect
@@ -126,6 +132,16 @@ func clear_marker() -> void:
     has_marker = false
     marker_changed.emit()
 
+
+# ジェットの場所のヒントの印を出す
+func set_hint(xz: Vector2) -> void:
+    hint_xz = xz
+    has_hint = true
+
+
+# ヒントの印を描く条件（ヒントがあり、まだジェットを取っていない）
+func is_hint_visible() -> bool:
+    return has_hint and not PowerUps.has("jet")
 
 func _process(delta: float) -> void:
     _update_marker_3d()
@@ -399,6 +415,8 @@ func _on_marker_draw() -> void:
         var pos := _world_to_map(board.global_position)
         _marker_layer.draw_circle(pos, BOARD_RADIUS, BOARD_COLOR, true, -1.0, true)
         _marker_layer.draw_arc(pos, BOARD_RADIUS, 0.0, TAU, 24, OUTLINE_COLOR, OUTLINE_WIDTH, true)
+    if is_hint_visible():
+        draw_hint_mark(_marker_layer, _world_to_map(Vector3(hint_xz.x, 0.0, hint_xz.y)), HINT_MARK_RADIUS)
     if has_marker:
         draw_marker_pin(_marker_layer, _world_to_map(Vector3(marker_xz.x, 0.0, marker_xz.y)), 1.0)
     _draw_cursor_and_hint()
@@ -439,6 +457,19 @@ static func draw_marker_pin(canvas: CanvasItem, pos: Vector2, scale: float) -> v
     canvas.draw_colored_polygon(triangle, MARKER_COLOR)
     canvas.draw_circle(center, radius, MARKER_COLOR, true, -1.0, true)
     canvas.draw_circle(center, 3.0 * scale, Color.BLACK, true, -1.0, true)
+
+
+# ジェットの場所のヒントの印。中心が pos、金色の丸に黒の縁取りと白い「?」。ミニマップでも使う
+static func draw_hint_mark(canvas: CanvasItem, pos: Vector2, radius: float) -> void:
+    canvas.draw_circle(pos, radius, HINT_MARK_COLOR, true, -1.0, true)
+    canvas.draw_arc(pos, radius, 0.0, TAU, 32, Color.BLACK, 2.0, true)
+    var font_size := int(radius * 1.5)
+    var text_size := LABEL_FONT.get_string_size("?", HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size)
+    # 文字の中心が pos に来るよう、ベースラインをずらす
+    var base := Vector2(pos.x - text_size.x * 0.5,
+            pos.y + (LABEL_FONT.get_ascent(font_size) - LABEL_FONT.get_descent(font_size)) * 0.5)
+    canvas.draw_string_outline(LABEL_FONT, base, "?", HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 4, Color.BLACK)
+    canvas.draw_string(LABEL_FONT, base, "?", HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, Color.WHITE)
 
 
 # カーソル（表示中のみ）と、地図の下の説明の文字を描く

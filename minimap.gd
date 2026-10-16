@@ -15,6 +15,9 @@ const BOARD_RADIUS := 5.0
 # 目的地のマーカー（範囲の外では、枠からこの距離の内側に寄せる）
 const MARKER_SCALE := 0.8
 const MARKER_INSET := 12.0
+# ジェットのヒントの印
+const HINT_MARK_RADIUS := 9.0
+const HINT_MARK_INSET := 12.0
 # 自分の矢印
 const ARROW_LENGTH := 18.0
 const ARROW_WIDTH := 13.0
@@ -115,6 +118,16 @@ func _on_draw() -> void:
         if over > limit:
             pos = center + offset * (limit / over)
         Map.draw_marker_pin(_view, pos, MARKER_SCALE)
+
+    # ジェットのヒントの印（範囲の外なら、目的地のマーカーと同じく方向を保って枠の内側に寄せる）
+    if Map.is_hint_visible():
+        var hint_pos := _to_view(Map.hint_xz)
+        var hint_offset := hint_pos - center
+        var hint_limit := SIZE * 0.5 - HINT_MARK_INSET
+        var hint_over := maxf(absf(hint_offset.x), absf(hint_offset.y))
+        if hint_over > hint_limit:
+            hint_pos = center + hint_offset * (hint_limit / hint_over)
+        Map.draw_hint_mark(_view, hint_pos, HINT_MARK_RADIUS)
 
     # 自分（機体の前を指す赤い矢印）。機体の前は global_basis.z
     var forward := Vector2(player.global_basis.z.x, player.global_basis.z.z).rotated(_angle)
