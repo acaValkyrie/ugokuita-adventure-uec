@@ -1,6 +1,6 @@
 extends CanvasLayer
 # 左上のメニューボタンと、ESC/STARTで開く一時停止メニュー。
-# メニュー内で全体音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体（Neo / Classic）を選べる。
+# メニュー内でBGM と効果音の音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体（Neo / Classic）を選べる。
 # 決定とキャンセルのボタンを入れ替える設定もある。
 # PlayStation の SELECT・START のボタンの表記（PS3 以前・PS4・PS5）も選べる。
 # 画面は左に項目（音量・コントローラーの設定［下に ボタンの表示形式・決定とキャンセル・PlayStation の表記］・ロボットタイプ・閉じる）、右に選んでいる項目の詳細を出す。
@@ -22,6 +22,10 @@ const MARGIN := 16
 const RING_COLOR := UiStyle.TEXT_COLOR
 const FACE_COLOR := UiStyle.PANEL_COLOR
 const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
+# BGM の試聴に流す曲（ending.gd の BGM と同じ）
+const BGM_PREVIEW_SOUND := preload("res://assets/audio/bgm/これにてお開き、また来週！.mp3")
+# 音量バーの埋まった部分の色（EDIT のカーソルがあるときは ACCENT_COLOR）
+const VOLUME_FILL_COLOR := Color(0.88, 0.88, 0.88)
 # 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
 const PAD_LAYOUTS := ["nintendo", "playstation", "xbox"]
 const PAD_LAYOUT_NAMES := ["Nintendo", "PlayStation", "Xbox"]
@@ -83,7 +87,7 @@ const ROBOT_SCENES := [
 # 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: PlayStation の表記、4: ロボットタイプ、5: コントローラーの設定）
 const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "PlayStation の表記", "ロボットタイプ", CONTROLLER_HEADING]
 const ITEM_DESCRIPTIONS := [
-    "ゲーム全体の音量を調整します",
+    "BGM と効果音の音量を調整します。決定ボタンで試聴できます",
     "ボタンの表示形式を切り替えます",
     "決定とキャンセルのボタンを入れ替えます",
     "SELECT・START のボタンの表記を選びます",
@@ -132,15 +136,29 @@ var robot_model: String = "neo"
 var swap_confirm: bool = false
 # PlayStation の SELECT・START のボタンの表記（PS_GENERATIONS のどれか）
 var ps_generation: String = "ps5"
-var _volume: int = 100
+# BGM と効果音の音量（0〜100）
+var _bgm_volume: int = 100
+var _se_volume: int = 100
 var _menu_button: Button
 var _dimmer: ColorRect
 var _panel: PanelContainer
-var _slider: HSlider
-# 左の列の音量の行の「30%」
-var _volume_label: Label
-# 右の列（音量の中身）の「30%」
-var _volume_big_label: Label
+# 右の列（音量の中身）の BGM・SE の行（HBoxContainer）、名前、バー、バーの埋まった部分のスタイル、「30%」、試聴ボタン、ボタンの中の印
+var _bgm_row: HBoxContainer
+var _bgm_name_label: Label
+var _bgm_slider: HSlider
+var _bgm_fill: StyleBoxFlat
+var _bgm_percent_label: Label
+var _bgm_preview_button: Button
+var _bgm_preview_mark: Control
+var _se_row: HBoxContainer
+var _se_name_label: Label
+var _se_slider: HSlider
+var _se_fill: StyleBoxFlat
+var _se_percent_label: Label
+var _se_preview_button: Button
+var _se_preview_mark: Control
+# BGM の試聴用
+var _preview_player: AudioStreamPlayer
 # 左の項目の行（Button）、背景、白い縦帯、項目名（いずれも項目の番号で引く）、右端の山形
 var _rows: Array[Button] = []
 var _row_backgrounds: Array[Control] = []
@@ -149,8 +167,6 @@ var _row_name_labels: Array[Label] = []
 var _row_chevrons: Array[Control] = []
 # 右の列の「<」「>」の矢印の絵
 var _arrow_marks: Array[Control] = []
-# 音量バーの埋まった部分のスタイル
-var _slider_fill: StyleBoxFlat
 var _close_button: Button
 var _close_label: Label
 var _close_hint_box: HBoxContainer
@@ -216,7 +232,8 @@ func _ready() -> void:
     _build_button()
     _build_menu()
     # 起動時の初期表示では保存や音を走らせない
-    _slider.set_value_no_signal(_volume)
+    _bgm_slider.set_value_no_signal(_bgm_volume)
+    _se_slider.set_value_no_signal(_se_volume)
     _refresh_volume_labels()
     _refresh_pad()
     _refresh_confirm()
@@ -261,6 +278,7 @@ func close() -> void:
     if not is_open:
         return
     is_open = false
+    _stop_bgm_preview()
     _dimmer.visible = false
     get_tree().paused = false
     _closed_physics_frame = Engine.get_physics_frames()
@@ -460,9 +478,16 @@ func _build_menu() -> void:
 
     # 一時停止中も鳴らすため、このノードの PROCESS_MODE_ALWAYS を継承させる
     _player = AudioStreamPlayer.new()
-    _player.bus = "Master"
+    _player.bus = "SE"
     _player.stream = BUMP_SOUND
     add_child(_player)
+
+    # BGM の試聴用（これも一時停止中に鳴らす）。最後まで流れたら印を再生に戻す
+    _preview_player = AudioStreamPlayer.new()
+    _preview_player.bus = "BGM"
+    _preview_player.stream = BGM_PREVIEW_SOUND
+    _preview_player.finished.connect(_refresh_preview_marks)
+    add_child(_preview_player)
 
 
 # 画面の大きさに合わせてパネルの位置と大きさを決める
@@ -580,20 +605,14 @@ func _build_item_row(index: int) -> Button:
     hbox.add_child(name_label)
     _row_name_labels[index] = name_label
 
-    if index == ITEM_VOLUME:
-        _volume_label = _make_label("", 19, TEXT_DIM)
-        _volume_label.custom_minimum_size = Vector2(52, 0)
-        _volume_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-        hbox.add_child(_volume_label)
-    else:
-        # 右端の「>」の山形（コントローラーの設定は下向きの「∨」）
-        var chevron := Control.new()
-        chevron.mouse_filter = Control.MOUSE_FILTER_IGNORE
-        chevron.custom_minimum_size = Vector2(9, 16)
-        chevron.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-        chevron.draw.connect(_on_chevron_draw.bind(chevron, index))
-        hbox.add_child(chevron)
-        _row_chevrons.append(chevron)
+    # 右端の「>」の山形（コントローラーの設定は下向きの「∨」）
+    var chevron := Control.new()
+    chevron.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    chevron.custom_minimum_size = Vector2(9, 16)
+    chevron.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+    chevron.draw.connect(_on_chevron_draw.bind(chevron, index))
+    hbox.add_child(chevron)
+    _row_chevrons.append(chevron)
 
     row.mouse_entered.connect(_on_row_mouse_entered.bind(index))
     row.pressed.connect(_on_row_pressed.bind(index))
@@ -601,32 +620,33 @@ func _build_item_row(index: int) -> Button:
 
 
 # 音量バー（マウス・タッチでドラッグできる。つまみは見せない）
-func _make_volume_slider() -> HSlider:
+func _make_volume_slider(fill: StyleBoxFlat, on_changed: Callable) -> HSlider:
     var slider := HSlider.new()
     slider.min_value = 0
     slider.max_value = 100
     # キーボード・ゲームパッドで1回押すごとに5%ずつ動かす
     slider.step = 5
     slider.focus_mode = Control.FOCUS_NONE
-    slider.custom_minimum_size = Vector2(320, 24)
+    slider.custom_minimum_size = Vector2(260, 24)
     slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     # 溝と埋まった部分（高さ 8px）
     var groove := _make_style(Color(1, 1, 1, 0.18), 4)
     groove.content_margin_top = 4
     groove.content_margin_bottom = 4
-    # 埋まった部分の色は、EDIT のあいだだけ ACCENT_COLOR にする（_update_cursor_visuals）
-    _slider_fill = _make_style(Color(0.88, 0.88, 0.88), 4)
-    _slider_fill.content_margin_top = 4
-    _slider_fill.content_margin_bottom = 4
+    # 埋まった部分の色は、その行に EDIT のカーソルがあるあいだだけ ACCENT_COLOR にする（_update_cursor_visuals）
+    fill.bg_color = VOLUME_FILL_COLOR
+    fill.set_corner_radius_all(4)
+    fill.content_margin_top = 4
+    fill.content_margin_bottom = 4
     slider.add_theme_stylebox_override("slider", groove)
-    slider.add_theme_stylebox_override("grabber_area", _slider_fill)
-    slider.add_theme_stylebox_override("grabber_area_highlight", _slider_fill)
+    slider.add_theme_stylebox_override("grabber_area", fill)
+    slider.add_theme_stylebox_override("grabber_area_highlight", fill)
     # つまみの絵は透明な 1px にして見せない
     var blank := ImageTexture.create_from_image(Image.create(1, 1, false, Image.FORMAT_RGBA8))
     slider.add_theme_icon_override("grabber", blank)
     slider.add_theme_icon_override("grabber_highlight", blank)
     slider.add_theme_icon_override("grabber_disabled", blank)
-    slider.value_changed.connect(_on_volume_changed)
+    slider.value_changed.connect(on_changed)
     return slider
 
 
@@ -786,23 +806,89 @@ func _build_right_column() -> Control:
 func _build_volume_content() -> Control:
     var box := VBoxContainer.new()
     box.alignment = BoxContainer.ALIGNMENT_CENTER
-    box.add_theme_constant_override("separation", 12)
+    box.add_theme_constant_override("separation", 18)
     box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    var icon := _make_icon(ITEM_ICONS[ITEM_VOLUME], 96)
+    var icon := _make_icon(ITEM_ICONS[ITEM_VOLUME], 72)
     icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
     icon.modulate = Color(1, 1, 1, 0.35)
     box.add_child(icon)
-    _volume_big_label = _make_label("", 44, TEXT_BODY)
-    _volume_big_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    box.add_child(_volume_big_label)
-    # 音量バー（大きなラベルとの間に少し間を空ける）
-    _slider = _make_volume_slider()
-    var slider_margin := _make_margin(0, 8, 0, 0)
-    slider_margin.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-    slider_margin.add_child(_slider)
-    box.add_child(slider_margin)
-    _add_edit_control(ITEM_VOLUME, _slider, _step_volume, Callable())
+
+    # BGM の行
+    _bgm_fill = StyleBoxFlat.new()
+    _bgm_row = HBoxContainer.new()
+    _bgm_name_label = _make_label("BGM", 20, TEXT_BODY)
+    _bgm_slider = _make_volume_slider(_bgm_fill, _on_bgm_volume_changed)
+    _bgm_percent_label = _make_label("", 19, TEXT_DIM)
+    _bgm_preview_button = _make_preview_button()
+    _bgm_preview_mark = _make_preview_mark(_bgm_preview_button, _bgm_row, true)
+    _fill_volume_row(_bgm_row, _bgm_name_label, _bgm_slider, _bgm_percent_label, _bgm_preview_button)
+    _bgm_preview_button.pressed.connect(_toggle_bgm_preview)
+    box.add_child(_bgm_row)
+    _add_edit_control(ITEM_VOLUME, _bgm_row, _step_bgm_volume, _toggle_bgm_preview)
+
+    # SE の行
+    _se_fill = StyleBoxFlat.new()
+    _se_row = HBoxContainer.new()
+    _se_name_label = _make_label("SE", 20, TEXT_BODY)
+    _se_slider = _make_volume_slider(_se_fill, _on_se_volume_changed)
+    _se_percent_label = _make_label("", 19, TEXT_DIM)
+    _se_preview_button = _make_preview_button()
+    _se_preview_mark = _make_preview_mark(_se_preview_button, _se_row, false)
+    _fill_volume_row(_se_row, _se_name_label, _se_slider, _se_percent_label, _se_preview_button)
+    _se_preview_button.pressed.connect(_play_se_preview)
+    box.add_child(_se_row)
+    _add_edit_control(ITEM_VOLUME, _se_row, _step_se_volume, _play_se_preview)
     return box
+
+
+# 音量の1行（名前・バー・%・試聴ボタンを左から並べる）
+func _fill_volume_row(row: HBoxContainer, name_label: Label, slider: HSlider, percent_label: Label, preview_button: Button) -> void:
+    row.alignment = BoxContainer.ALIGNMENT_CENTER
+    row.add_theme_constant_override("separation", 14)
+    row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    name_label.custom_minimum_size = Vector2(56, 0)
+    name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+    row.add_child(name_label)
+    row.add_child(slider)
+    percent_label.custom_minimum_size = Vector2(56, 0)
+    percent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+    row.add_child(percent_label)
+    row.add_child(preview_button)
+
+
+# 44×40 の試聴ボタン（印は _make_preview_mark で中に描く）
+func _make_preview_button() -> Button:
+    var button := _make_flat_button(40, Control.FOCUS_NONE)
+    button.custom_minimum_size = Vector2(44, 40)
+    button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+    return button
+
+
+# 試聴ボタンの中に再生「▶」/停止「■」の印を描く Control を足す
+func _make_preview_mark(button: Button, row: Control, is_bgm: bool) -> Control:
+    var mark := Control.new()
+    mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    mark.set_anchors_preset(Control.PRESET_FULL_RECT)
+    mark.draw.connect(_on_preview_mark_draw.bind(mark, button, row, is_bgm))
+    button.add_child(mark)
+    button.mouse_entered.connect(mark.queue_redraw)
+    button.mouse_exited.connect(mark.queue_redraw)
+    return mark
+
+
+func _on_preview_mark_draw(mark: Control, button: Button, row: Control, is_bgm: bool) -> void:
+    # その行が EDIT のカーソルを持っているか、マウスが乗っているときは白にする
+    var color := TEXT_BODY if _has_edit_cursor(row) or button.is_hovered() else TEXT_DIM
+    var center := mark.size * 0.5
+    if is_bgm and _preview_player != null and _preview_player.playing:
+        # 停止「■」（12×12）
+        mark.draw_rect(Rect2(center - Vector2(6, 6), Vector2(12, 12)), color)
+    else:
+        # 再生「▶」（幅 12・高さ 14）
+        var points := PackedVector2Array([Vector2(-5, -7), Vector2(7, 0), Vector2(-5, 7)])
+        for i in points.size():
+            points[i] += center
+        mark.draw_colored_polygon(points, color)
 
 
 # コントローラーの設定。音量の中身と同じ作りで、アイコンを薄く中央に出すだけ
@@ -1070,7 +1156,12 @@ func _update_cursor_visuals() -> void:
         chevron.queue_redraw()
     for mark in _arrow_marks:
         mark.queue_redraw()
-    _slider_fill.bg_color = ACCENT_COLOR if _has_edit_cursor(_slider) else Color(0.88, 0.88, 0.88)
+    _bgm_fill.bg_color = ACCENT_COLOR if _has_edit_cursor(_bgm_row) else VOLUME_FILL_COLOR
+    _se_fill.bg_color = ACCENT_COLOR if _has_edit_cursor(_se_row) else VOLUME_FILL_COLOR
+    # EDIT の音量から出たら、BGM の試聴は止める
+    if _level != Level.EDIT or _cursor != ITEM_VOLUME:
+        _stop_bgm_preview()
+    _refresh_preview_marks()
     _update_close_color()
 
 
@@ -1210,8 +1301,41 @@ func _exit_edit() -> void:
 
 
 # 音量は 5 ずつ動かす
-func _step_volume(direction: int) -> void:
-    _slider.value += 5.0 * direction
+func _step_bgm_volume(direction: int) -> void:
+    _bgm_slider.value += 5.0 * direction
+
+
+func _step_se_volume(direction: int) -> void:
+    _se_slider.value += 5.0 * direction
+
+
+# BGM の試聴。止まっていれば頭から再生、再生中なら止める
+func _toggle_bgm_preview() -> void:
+    if _preview_player.playing:
+        _preview_player.stop()
+    else:
+        _preview_player.play()
+    _refresh_preview_marks()
+
+
+func _stop_bgm_preview() -> void:
+    if _preview_player != null and _preview_player.playing:
+        _preview_player.stop()
+        _refresh_preview_marks()
+
+
+# SE の試聴。確認音を鳴らし直す
+func _play_se_preview() -> void:
+    _player.stop()
+    _player.play()
+
+
+# 試聴ボタンの印（再生/停止、色）を描き直す
+func _refresh_preview_marks() -> void:
+    if _bgm_preview_mark != null:
+        _bgm_preview_mark.queue_redraw()
+    if _se_preview_mark != null:
+        _se_preview_mark.queue_redraw()
 
 
 func _step_pad(direction: int) -> void:
@@ -1256,9 +1380,8 @@ func _set_dots(dots: Array[ColorRect], active: int) -> void:
 
 
 func _refresh_volume_labels() -> void:
-    var text := "%d%%" % _volume
-    _volume_label.text = text
-    _volume_big_label.text = text
+    _bgm_percent_label.text = "%d%%" % _bgm_volume
+    _se_percent_label.text = "%d%%" % _se_volume
 
 
 func _refresh_pad() -> void:
@@ -1390,14 +1513,21 @@ func _set_joy_button(action: StringName, button: JoyButton) -> void:
     InputMap.action_add_event(action, joy)
 
 
-func _on_volume_changed(value: float) -> void:
-    _volume = int(value)
+func _on_bgm_volume_changed(value: float) -> void:
+    _bgm_volume = int(value)
+    _apply_volume()
+    _refresh_volume_labels()
+    _save_settings()
+    # BGM のバーは音を鳴らさない（試聴中なら音量がそのまま反映される）
+
+
+func _on_se_volume_changed(value: float) -> void:
+    _se_volume = int(value)
     _apply_volume()
     _refresh_volume_labels()
     _save_settings()
     # 音量の確認用に、bump の音を鳴らし直す
-    _player.stop()
-    _player.play()
+    _play_se_preview()
 
 
 # Web 版で走行中に看板のリンクを開くと、別のタブが前に出てゲームが止まり、走行音が鳴りっぱなしになる。
@@ -1409,21 +1539,35 @@ func _notification(what: int) -> void:
         _apply_volume()
 
 
-# 0% はミュート、それ以外は既定音量からの比率で下げる
+# Master は既定音量に固定してミュートも外し、BGM・SE のバスに設定の音量をかける
 func _apply_volume() -> void:
-    var ratio := _volume / 100.0
+    AudioServer.set_bus_mute(0, false)
+    AudioServer.set_bus_volume_db(0, BASE_DB)
+    _apply_bus_volume("BGM", _bgm_volume)
+    _apply_bus_volume("SE", _se_volume)
+
+
+# 0% はミュート、それ以外はミュートを外して比率で下げる
+func _apply_bus_volume(bus_name: String, volume: int) -> void:
+    var bus := AudioServer.get_bus_index(bus_name)
+    if bus < 0:
+        return
+    var ratio := volume / 100.0
     if ratio <= 0.0:
-        AudioServer.set_bus_mute(0, true)
+        AudioServer.set_bus_mute(bus, true)
     else:
-        AudioServer.set_bus_mute(0, false)
-        AudioServer.set_bus_volume_db(0, BASE_DB + linear_to_db(ratio))
+        AudioServer.set_bus_mute(bus, false)
+        AudioServer.set_bus_volume_db(bus, linear_to_db(ratio))
 
 
 func _load_settings() -> void:
     var config := ConfigFile.new()
     if config.load(SETTINGS_PATH) != OK:
         return
-    _volume = clampi(int(config.get_value("audio", "volume", 100)), 0, 100)
+    # 古い設定ファイルの audio/volume は、BGM・SE の初期値に引き継ぐ
+    var legacy_volume := clampi(int(config.get_value("audio", "volume", 100)), 0, 100)
+    _bgm_volume = clampi(int(config.get_value("audio", "bgm_volume", legacy_volume)), 0, 100)
+    _se_volume = clampi(int(config.get_value("audio", "se_volume", legacy_volume)), 0, 100)
     var layout := str(config.get_value("controls", "pad_layout", "nintendo"))
     if layout in PAD_LAYOUTS:
         pad_layout = layout
@@ -1438,7 +1582,8 @@ func _load_settings() -> void:
 
 func _save_settings() -> void:
     var config := ConfigFile.new()
-    config.set_value("audio", "volume", _volume)
+    config.set_value("audio", "bgm_volume", _bgm_volume)
+    config.set_value("audio", "se_volume", _se_volume)
     config.set_value("controls", "pad_layout", pad_layout)
     config.set_value("controls", "swap_confirm", swap_confirm)
     config.set_value("controls", "ps_generation", ps_generation)
