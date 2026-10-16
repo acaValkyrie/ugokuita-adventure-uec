@@ -546,8 +546,6 @@ func _build_item_row(index: int) -> Button:
     hbox.add_child(name_label)
 
     if index == ITEM_VOLUME:
-        _slider = _make_volume_slider()
-        hbox.add_child(_slider)
         _volume_label = _make_label("", 19, TEXT_DIM)
         _volume_label.custom_minimum_size = Vector2(52, 0)
         _volume_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -595,15 +593,15 @@ func _make_volume_slider() -> HSlider:
     # キーボード・ゲームパッドで1回押すごとに5%ずつ動かす
     slider.step = 5
     slider.focus_mode = Control.FOCUS_NONE
-    slider.custom_minimum_size = Vector2(140, 20)
+    slider.custom_minimum_size = Vector2(320, 24)
     slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-    # 溝と埋まった部分（高さ 6px）
-    var groove := _make_style(Color(1, 1, 1, 0.18), 3)
-    groove.content_margin_top = 3
-    groove.content_margin_bottom = 3
-    var fill := _make_style(Color(0.88, 0.88, 0.88), 3)
-    fill.content_margin_top = 3
-    fill.content_margin_bottom = 3
+    # 溝と埋まった部分（高さ 8px）
+    var groove := _make_style(Color(1, 1, 1, 0.18), 4)
+    groove.content_margin_top = 4
+    groove.content_margin_bottom = 4
+    var fill := _make_style(Color(0.88, 0.88, 0.88), 4)
+    fill.content_margin_top = 4
+    fill.content_margin_bottom = 4
     slider.add_theme_stylebox_override("slider", groove)
     slider.add_theme_stylebox_override("grabber_area", fill)
     slider.add_theme_stylebox_override("grabber_area_highlight", fill)
@@ -775,6 +773,12 @@ func _build_volume_content() -> Control:
     _volume_big_label = _make_label("", 44, TEXT_BODY)
     _volume_big_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     box.add_child(_volume_big_label)
+    # 音量バー（大きなラベルとの間に少し間を空ける）
+    _slider = _make_volume_slider()
+    var slider_margin := _make_margin(0, 8, 0, 0)
+    slider_margin.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    slider_margin.add_child(_slider)
+    box.add_child(slider_margin)
     return box
 
 
