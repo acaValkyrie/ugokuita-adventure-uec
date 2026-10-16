@@ -1,12 +1,15 @@
 extends WorldEnvironment
 
-# 高く上がるほど空を宇宙のように暗くして星を出す。霞も薄くする
+# 高く上がるほど空を宇宙のように暗くして星を出す。霧は空の色にして、ステージの縁をまぎれさせる
 
 # space_amount を設定し直す最小の差。設定するたびに反射用の radiance を描き直すので、細かく設定しない
 const UPDATE_STEP := 0.005
+# 宇宙まで上がったときの霧の濃さ。上から見たステージの縁を、空の地表の色にまぎれさせる
+const SPACE_FOG_DENSITY := 0.005
 
 var _material: ShaderMaterial
 var _base_fog_density := 0.0
+var _base_fog_aerial_perspective := 0.0
 var _base_fog_sky_affect := 0.0
 # 前回設定した space_amount
 var _last_amount := -1.0
@@ -17,6 +20,7 @@ func _ready() -> void:
     _material = environment.sky.sky_material as ShaderMaterial
     _base_fog_density = environment.fog_density
     _base_fog_sky_affect = environment.fog_sky_affect
+    _base_fog_aerial_perspective = environment.fog_aerial_perspective
     if _material == null:
         push_warning("SpaceSky: 空のマテリアルが ShaderMaterial ではない")
         set_process(false)
@@ -31,5 +35,7 @@ func _process(_delta: float) -> void:
         return
     _last_amount = amount
     _material.set_shader_parameter("space_amount", amount)
-    environment.fog_density = lerpf(_base_fog_density, 0.0, amount)
+    # 高いほど霧の色を背後の空の色にして、遠くの地面を空の地表にまぎれさせる。空そのものには霧をかけない
+    environment.fog_density = lerpf(_base_fog_density, SPACE_FOG_DENSITY, amount)
+    environment.fog_aerial_perspective = lerpf(_base_fog_aerial_perspective, 1.0, amount)
     environment.fog_sky_affect = lerpf(_base_fog_sky_affect, 0.0, amount)
