@@ -1,14 +1,14 @@
 extends CanvasLayer
 # エンディングを出す。画面左上にクレジットとスタート地点に戻るボタンを出し、BGMを流す。Reset でステージに戻ったときも閉じる。
 # エンディング1: ステージから落ちたとき（集中線が出始めるほど速く落ちているとき）。
-# エンディング2: 東3号館の屋上の1.5倍の高さまで上がったとき。無重力になる（機体の側で is_zero_gravity() を見て漂わせる）。
+# エンディング2: 東3号館の屋上の5倍の高さまで上がったとき。無重力になる（機体の側で is_zero_gravity() を見て漂わせる）。
 
 # この高さ [m] より下で、集中線が出る速さ（最高速度超え）で落ちていたらエンディングにする
 const FALL_HEIGHT := -10.0
 # 東3号館（高層棟）の屋上の高さ [m]
 const E3_ROOF_HEIGHT := 42.5
 # この高さ [m] より上に来たら無重力になってエンディング2にする
-const ENDING2_HEIGHT := E3_ROOF_HEIGHT * 1.5
+const ENDING2_HEIGHT := E3_ROOF_HEIGHT * 5.0
 const BGM := preload("res://assets/audio/bgm/これにてお開き、また来週！.mp3")
 # エンディング2のBGM。Fanfare 1 (tcarisland) CC BY 4.0。クレジットは assets/audio/CREDITS.md
 const BGM2 := preload("res://assets/audio/bgm/ending2_fanfare_1.mp3")
