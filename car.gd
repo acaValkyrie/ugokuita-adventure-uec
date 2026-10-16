@@ -129,7 +129,8 @@ func _physics_process(delta: float) -> void:
     # 満タンのときだけ発動できる。後退の入力中なら後ろ向き、それ以外は前向き
     # （発動したフレームからモーターに効かせるため、モーターの処理より前に置く）
     if Input.is_action_just_pressed("boost") and not GameMenu.is_just_closed() \
-            and not PowerUps.is_just_closed() and boost_gauge >= 1.0:
+            and not PowerUps.is_just_closed() and not Map.is_just_closed() \
+            and boost_gauge >= 1.0:
         boost_gauge = 0.0
         _boost_time = BOOST_DURATION
         _boost_dir = -1.0 if throttle < 0.0 else 1.0
@@ -161,7 +162,7 @@ func _physics_process(delta: float) -> void:
     if on_ground:
         _air_jump_used = false
     if Input.is_action_just_pressed("jump") and not GameMenu.is_just_closed() \
-            and not PowerUps.is_just_closed() \
+            and not PowerUps.is_just_closed() and not Map.is_just_closed() \
             and not (LinkBoard.is_player_near() and Input.is_action_just_pressed("interact")):
         if on_ground:
             apply_central_impulse(Vector3.UP * _jump_speed() * mass)
@@ -188,7 +189,8 @@ func _physics_process(delta: float) -> void:
 func _apply_jet(delta: float, throttle: float, on_ground: bool) -> void:
     var gravity := get_gravity()
     if Input.is_action_pressed("jump") and not GameMenu.is_just_closed() \
-            and not PowerUps.is_just_closed() and not gravity.is_zero_approx():
+            and not PowerUps.is_just_closed() and not Map.is_just_closed() \
+            and not gravity.is_zero_approx():
         # 上がる速さが上限に達したら、重力を打ち消すだけにする
         var lift := 0.0 if linear_velocity.y >= JET_MAX_RISE_SPEED else JET_LIFT_ACCEL
         apply_central_force(-gravity * mass + Vector3.UP * mass * lift)
