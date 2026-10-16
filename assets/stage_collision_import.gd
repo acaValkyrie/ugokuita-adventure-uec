@@ -6,8 +6,8 @@ const COLLIDABLE_PREFIXES := ["hi_", "ground", "object", "UEC", "本館B"]
 
 # 木の日なた判定の光線を遮る物理レイヤー（レイヤー3）。幹は機体ともぶつかり、葉は日なた判定の光線だけを遮る
 const SUN_OCCLUDER_LAYER := 1 << 2
-# 機体ともぶつからせる木の幹のノード名の先頭
-const TRUNK_PREFIX := "幹"
+# 機体ともぶつからせる木の幹のノード名の先頭（広葉樹・低木の「幹」と、松の幹「メッシュ ボディ4」）
+const TRUNK_PREFIXES := ["幹", "メッシュ ボディ4"]
 
 # キャンパス用テクスチャのシェーダーとテクスチャの置き場所
 const SHADER_PATH := "res://assets/shaders/campus_triplanar.gdshader"
@@ -387,6 +387,13 @@ func _is_collidable(node_name: String) -> bool:
 	return false
 
 
+func _is_trunk(node_name: String) -> bool:
+	for prefix in TRUNK_PREFIXES:
+		if node_name.begins_with(prefix):
+			return true
+	return false
+
+
 func _add_collisions(node: Node) -> void:
 	for child in node.get_children():
 		_add_collisions(child)
@@ -405,7 +412,7 @@ func _add_sun_occluders(node: Node) -> void:
 		var body := node.get_child(node.get_child_count() - 1)
 		if body is StaticBody3D:
 			body.collision_layer = SUN_OCCLUDER_LAYER
-			if String(node.name).begins_with(TRUNK_PREFIX):
+			if _is_trunk(String(node.name)):
 				body.collision_layer |= 1
 			body.collision_mask = 0
 
