@@ -117,11 +117,6 @@ const HINT_PLACEMENTS := {
     "e9_n": {"position": Vector3(147.75, 11.99, -250.99), "hint": "hint1"},  # 東9号館 北の非常階段
     "e8_e": {"position": Vector3(158.17, 13.35, -222.21), "hint": "hint1"},  # 東8号館 東の非常階段
 }
-# お知らせ（画面の上の中央）
-const NOTICE_TEXT := "マップにヒントの印が付いたぞ！！"
-const NOTICE_SECONDS := 4.0
-const NOTICE_FADE_SECONDS := 0.5
-const NOTICE_TOP := 120.0
 
 var is_open: bool = false
 # 取った種類
@@ -145,16 +140,11 @@ var _desc_label: Label
 var _hint_icon: TextureRect
 var _hint_label: Label
 var _fanfare_player: AudioStreamPlayer
-var _notice_label: Label
-# お知らせの残り時間 [秒]
-var _notice_left := 0.0
 
 func _ready() -> void:
     # メニュー（layer 20）より下、マップ（layer 18）より上に描く
     layer = 19
     process_mode = Node.PROCESS_MODE_ALWAYS
-    # お知らせはポップアップより先に追加して、ポップアップが開いているときはポップアップを上にする
-    _build_notice()
     _build_popup()
     # ファンファーレ用のプレイヤー。一時停止中も鳴らす。ファイルにループ設定があっても繰り返さない
     var stream := FANFARE.duplicate() as AudioStreamOggVorbis
@@ -212,17 +202,16 @@ func use_hint_place(place_id: String) -> void:
     use_hint(choose_hint(place_id))
 
 
-# ヒントを使ったことを覚えて、マップに印を付け、お知らせを出す（使ったヒントでも、別の場所で触れたらお知らせを出す）
+# ヒントを使ったことを覚えて、マップに印を付ける（使ったヒントでも、別の場所で触れたら毎回印を付ける）
 func use_hint(id: String) -> void:
     if not HINTS.has(id):
         push_warning("ヒントの種類が不明: %s" % id)
         return
     _used_hints[id] = true
     Map.reveal_hints(HINTS[id]["keys"])
-    _notice_left = NOTICE_SECONDS
 
 
-# デバッグ用。お知らせを出さずに、使った状態を直接切り替える
+# デバッグ用。使った状態を直接切り替える
 func set_hint_used(id: String, on: bool) -> void:
     if not HINTS.has(id):
         push_warning("ヒントの種類が不明: %s" % id)
@@ -244,7 +233,7 @@ func is_just_closed() -> bool:
     return Engine.get_physics_frames() - _closed_physics_frame <= 1
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
     var scene := get_tree().current_scene
     if scene != null and scene != _shown_scene:
         _shown_scene = scene
@@ -255,27 +244,6 @@ func _process(delta: float) -> void:
         _spawn_debug_items()
     if is_open:
         _update_hint()
-    _update_notice(delta)
-
-
-# お知らせを出している間、残り時間に合わせて表示し、最後の NOTICE_FADE_SECONDS で薄くする（ゲームは止めない）
-func _update_notice(delta: float) -> void:
-    if _notice_left <= 0.0:
-        _notice_label.visible = false
-        return
-    _notice_left -= delta
-    _notice_label.visible = _notice_left > 0.0
-    _notice_label.modulate.a = clampf(_notice_left / NOTICE_FADE_SECONDS, 0.0, 1.0)
-
-
-# 画面の上の中央のお知らせ
-func _build_notice() -> void:
-    _notice_label = _make_label(32, Color.WHITE)
-    _notice_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
-    _notice_label.offset_top = NOTICE_TOP
-    _notice_label.text = NOTICE_TEXT
-    _notice_label.visible = false
-    add_child(_notice_label)
 
 
 # シーンが変わったので、ポップアップを初めに戻す（取った効果は残す）
