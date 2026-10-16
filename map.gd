@@ -181,8 +181,11 @@ func _process(delta: float) -> void:
     if GameMenu.is_open:
         close(false)
         return
-    # 方向の入力があればカーソルを出して動かす
-    var dir := Input.get_vector("left", "right", "up", "down")
+    # 方向の入力があればカーソルを出して動かす。
+    # left / right / up / down は運転用で、up・down はキーボードの W・S とトリガー（RT・LT）なので、スティックの上下では動かない。
+    # 左スティック・十字キー・矢印キーが入っている ui_* も足す
+    var dir := (Input.get_vector("left", "right", "up", "down") \
+            + Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")).limit_length(1.0)
     if dir != Vector2.ZERO:
         _cursor_visible = true
         _cursor_pos = _clamp_to_map(_cursor_pos + dir * CURSOR_SPEED * delta)
