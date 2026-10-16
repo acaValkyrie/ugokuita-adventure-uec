@@ -32,41 +32,41 @@ func _ready() -> void:
     _panel = PanelContainer.new()
     # 画面中央の機体に被らないよう、左上のメニューボタンの下に置く
     _panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-    _panel.offset_left = 48
+    _panel.offset_left = 16
     _panel.offset_top = 96
-    var style := UiStyle.make_panel_style(true, 14, true)
-    style.content_margin_left = 36
-    style.content_margin_right = 36
-    style.content_margin_top = 28
-    style.content_margin_bottom = 28
+    var style := UiStyle.make_panel_style(false, 12, true)
+    style.content_margin_left = 24
+    style.content_margin_right = 24
+    style.content_margin_top = 18
+    style.content_margin_bottom = 18
     _panel.add_theme_stylebox_override("panel", style)
     _panel.visible = false
     add_child(_panel)
 
     _box = VBoxContainer.new()
-    _box.add_theme_constant_override("separation", 16)
+    _box.add_theme_constant_override("separation", 8)
     _panel.add_child(_box)
 
     # タイトルの左に赤い縦帯を置く
     var title_row := HBoxContainer.new()
-    title_row.add_theme_constant_override("separation", 16)
+    title_row.add_theme_constant_override("separation", 12)
     _box.add_child(title_row)
     var accent_bar := ColorRect.new()
     accent_bar.color = UiStyle.ACCENT_COLOR
-    accent_bar.custom_minimum_size = Vector2(6, 48)
+    accent_bar.custom_minimum_size = Vector2(5, 32)
     accent_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     title_row.add_child(accent_bar)
-    title_row.add_child(_make_label("Thank you for Playing!", 48))
+    title_row.add_child(_make_label("Thank you for Playing!", 30))
 
-    _box.add_child(_make_ending2_label("- ENDING 2 -", 28))
-    _box.add_child(_make_label("製作：動く板製作委員会", 28))
+    _box.add_child(_make_ending2_label("- ENDING 2 -", 18))
+    _box.add_child(_make_label("製作：動く板製作委員会", 18))
     # 音楽のクレジット（CC BY / CC BY-SA の表記。詳しくは assets/audio/CREDITS.md）。Fanfare 1 はエンディング2の曲なので、ネタバレにならないようエンディング2だけで表記する
-    _box.add_child(_make_ending2_label("Music: \"Fanfare 1\" by tcarisland (CC BY 4.0)", 18, UiStyle.TEXT_DIM_COLOR))
-    _box.add_child(_make_label("Music: \"Fanfare 02\" by Beau Buckley (CC BY-SA 4.0)", 18, UiStyle.TEXT_DIM_COLOR))
+    _box.add_child(_make_ending2_label("Music: \"Fanfare 1\" by tcarisland (CC BY 4.0)", 13, UiStyle.TEXT_DIM_COLOR))
+    _box.add_child(_make_label("Music: \"Fanfare 02\" by Beau Buckley (CC BY-SA 4.0)", 13, UiStyle.TEXT_DIM_COLOR))
 
-    # ボタンは左寄せ。上の文字との間を 8 あける
+    # ボタンは左寄せ。上の文字との間を 4 あける
     var button_margin := MarginContainer.new()
-    button_margin.add_theme_constant_override("margin_top", 8)
+    button_margin.add_theme_constant_override("margin_top", 4)
     button_margin.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
     _box.add_child(button_margin)
 
@@ -74,7 +74,7 @@ func _ready() -> void:
     _button.text = "Back to Start"
     UiStyle.make_accent_button_styles(_button)
     _button.add_theme_font_override("font", FONT)
-    _button.add_theme_font_size_override("font_size", 22)
+    _button.add_theme_font_size_override("font_size", 17)
     _button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
     _button.pressed.connect(_on_back_pressed)
     button_margin.add_child(_button)
