@@ -22,8 +22,8 @@ const MARGIN := 16
 const RING_COLOR := UiStyle.TEXT_COLOR
 const FACE_COLOR := UiStyle.PANEL_COLOR
 const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
-# BGM の試聴に流す曲（パワーアップを取ったときのファンファーレ。power_ups.gd の FANFARE と同じ）
-const BGM_PREVIEW_SOUND := preload("res://assets/audio/fanfare/fanfare_02.ogg")
+# BGM の試聴に流す音（普段流している街の鳥の声。ending.gd の AMBIENT と同じ）
+const BGM_PREVIEW_SOUND := preload("res://assets/audio/bgm/city_bird.ogg")
 # 音量バーの埋まった部分の色（EDIT のカーソルがあるときは ACCENT_COLOR）
 const VOLUME_FILL_COLOR := Color(0.88, 0.88, 0.88)
 # 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
