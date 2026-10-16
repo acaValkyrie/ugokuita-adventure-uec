@@ -17,6 +17,7 @@ const FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 var _shown := false
 # 出しているエンディング（1か2）
 var _ending := 1
+var _panel: PanelContainer
 var _box: VBoxContainer
 var _button: Button
 var _player: AudioStreamPlayer
@@ -28,29 +29,55 @@ var _bgm2: AudioStreamMP3
 func _ready() -> void:
     # 操作説明などの表示（layer 10）より上、メニュー（layer 20）より下に描く
     layer = 15
-    _box = VBoxContainer.new()
+    _panel = PanelContainer.new()
     # 画面中央の機体に被らないよう、左上のメニューボタンの下に置く
-    _box.set_anchors_preset(Control.PRESET_TOP_LEFT)
-    _box.offset_left = 48
-    _box.offset_top = 120
-    _box.add_theme_constant_override("separation", 16)
-    _box.visible = false
-    add_child(_box)
+    _panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+    _panel.offset_left = 48
+    _panel.offset_top = 96
+    var style := UiStyle.make_panel_style(true, 14, true)
+    style.content_margin_left = 36
+    style.content_margin_right = 36
+    style.content_margin_top = 28
+    style.content_margin_bottom = 28
+    _panel.add_theme_stylebox_override("panel", style)
+    _panel.visible = false
+    add_child(_panel)
 
-    _box.add_child(_make_label("Thank you for Playing!", 48))
+    _box = VBoxContainer.new()
+    _box.add_theme_constant_override("separation", 16)
+    _panel.add_child(_box)
+
+    # タイトルの左に赤い縦帯を置く
+    var title_row := HBoxContainer.new()
+    title_row.add_theme_constant_override("separation", 16)
+    _box.add_child(title_row)
+    var accent_bar := ColorRect.new()
+    accent_bar.color = UiStyle.ACCENT_COLOR
+    accent_bar.custom_minimum_size = Vector2(6, 48)
+    accent_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+    title_row.add_child(accent_bar)
+    title_row.add_child(_make_label("Thank you for Playing!", 48))
+
     _box.add_child(_make_ending2_label("- ENDING 2 -", 28))
     _box.add_child(_make_label("製作：動く板製作委員会", 28))
     # 音楽のクレジット（CC BY / CC BY-SA の表記。詳しくは assets/audio/CREDITS.md）。Fanfare 1 はエンディング2の曲なので、ネタバレにならないようエンディング2だけで表記する
-    _box.add_child(_make_ending2_label("Music: \"Fanfare 1\" by tcarisland (CC BY 4.0)", 18))
-    _box.add_child(_make_label("Music: \"Fanfare 02\" by Beau Buckley (CC BY-SA 4.0)", 18))
+    _box.add_child(_make_ending2_label("Music: \"Fanfare 1\" by tcarisland (CC BY 4.0)", 18, UiStyle.TEXT_DIM_COLOR))
+    _box.add_child(_make_label("Music: \"Fanfare 02\" by Beau Buckley (CC BY-SA 4.0)", 18, UiStyle.TEXT_DIM_COLOR))
+
+    # ボタンは左寄せ。上の文字との間を 8 あける
+    var button_margin := MarginContainer.new()
+    button_margin.add_theme_constant_override("margin_top", 8)
+    button_margin.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+    _box.add_child(button_margin)
 
     _button = Button.new()
     _button.text = "Back to Start"
+    UiStyle.make_accent_button_styles(_button)
     _button.add_theme_font_override("font", FONT)
-    _button.add_theme_font_size_override("font_size", 24)
+    _button.add_theme_font_size_override("font_size", 22)
     _button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
     _button.pressed.connect(_on_back_pressed)
-    _box.add_child(_button)
+    button_margin.add_child(_button)
 
     _player = AudioStreamPlayer.new()
     _player.bus = "Master"
@@ -81,7 +108,7 @@ func _process(_delta: float) -> void:
 
 
 func get_button_rect() -> Rect2:
-    if not _box.visible:
+    if not _panel.visible:
         return Rect2()
     return _button.get_global_rect()
 
@@ -96,21 +123,19 @@ func is_zero_gravity() -> bool:
     return _shown and _ending == 2
 
 
-# 白字に黒フチのラベル
-func _make_label(text: String, size: int) -> Label:
+# エンディング用フォントの縁取りなしのラベル
+func _make_label(text: String, size: int, color: Color = UiStyle.TEXT_COLOR) -> Label:
     var label := Label.new()
     label.text = text
     label.add_theme_font_override("font", FONT)
     label.add_theme_font_size_override("font_size", size)
-    label.add_theme_color_override("font_color", Color.WHITE)
-    label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-    label.add_theme_constant_override("outline_size", 8)
+    label.add_theme_color_override("font_color", color)
     return label
 
 
 # エンディング2だけで出すラベル
-func _make_ending2_label(text: String, size: int) -> Label:
-    var label := _make_label(text, size)
+func _make_ending2_label(text: String, size: int, color: Color = UiStyle.TEXT_COLOR) -> Label:
+    var label := _make_label(text, size, color)
     _ending2_labels.append(label)
     return label
 
@@ -120,7 +145,7 @@ func _show(ending: int) -> void:
     _ending = ending
     for label in _ending2_labels:
         label.visible = ending == 2
-    _box.visible = true
+    _panel.visible = true
     _player.stream = _bgm2 if ending == 2 else BGM
     _player.play()
     # ゲームパッドやキーボードの決定でも押せるようにする
@@ -129,7 +154,7 @@ func _show(ending: int) -> void:
 
 func _hide() -> void:
     _shown = false
-    _box.visible = false
+    _panel.visible = false
     _player.stop()
     _button.release_focus()
 

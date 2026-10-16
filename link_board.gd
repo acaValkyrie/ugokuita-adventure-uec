@@ -113,13 +113,11 @@ func _ready() -> void:
 
     _panel = PanelContainer.new()
     _panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    var style := StyleBoxFlat.new()
-    style.bg_color = Color(0, 0, 0, 0.6)
-    style.set_corner_radius_all(12)
+    var style := UiStyle.make_panel_style(false, 10)
     style.content_margin_left = 16
     style.content_margin_right = 16
-    style.content_margin_top = 10
-    style.content_margin_bottom = 10
+    style.content_margin_top = 8
+    style.content_margin_bottom = 8
     _panel.add_theme_stylebox_override("panel", style)
     _layer.add_child(_panel)
 
@@ -131,20 +129,15 @@ func _ready() -> void:
 
     _icon = TextureRect.new()
     _icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    _icon.custom_minimum_size = Vector2(0, 48)
+    _icon.custom_minimum_size = Vector2(0, 40)
     _icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     _icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     _icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     box.add_child(_icon)
 
-    _label = Label.new()
+    _label = UiStyle.make_label("", 22)
     _label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     _label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-    _label.add_theme_font_override("font", FONT)
-    _label.add_theme_font_size_override("font_size", 28)
-    _label.add_theme_color_override("font_color", Color.WHITE)
-    _label.add_theme_color_override("font_outline_color", Color.BLACK)
-    _label.add_theme_constant_override("outline_size", 6)
     box.add_child(_label)
 
 
@@ -182,8 +175,8 @@ func _process(_delta: float) -> void:
     _icon.visible = icon != null
     if icon != null:
         _icon.texture = icon
-        # 高さ48pxに合わせて、幅は画像の縦横比から決める
-        _icon.custom_minimum_size.x = 48.0 * icon.get_width() / icon.get_height()
+        # 高さ40pxに合わせて、幅は画像の縦横比から決める
+        _icon.custom_minimum_size.x = 40.0 * icon.get_width() / icon.get_height()
         _label.text = "ウェブで開く"
     else:
         _label.text = "タップしてウェブで開く"

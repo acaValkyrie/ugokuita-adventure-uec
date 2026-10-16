@@ -392,8 +392,8 @@ func _update_hint() -> void:
     _hint_icon.visible = icon != null
     if icon != null:
         _hint_icon.texture = icon
-        # 高さ40pxに合わせて、幅は画像の縦横比から決める
-        _hint_icon.custom_minimum_size.x = 40.0 * icon.get_width() / icon.get_height()
+        # 高さ36pxに合わせて、幅は画像の縦横比から決める
+        _hint_icon.custom_minimum_size.x = 36.0 * icon.get_width() / icon.get_height()
         _hint_label.text = "で続ける"
     else:
         _hint_label.text = "タップして続ける"
@@ -407,7 +407,7 @@ func _build_popup() -> void:
     add_child(_root)
 
     var dimmer := ColorRect.new()
-    dimmer.color = Color(0, 0, 0, 0.5)
+    dimmer.color = UiStyle.DIMMER_COLOR
     dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
     dimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
     _root.add_child(dimmer)
@@ -419,10 +419,12 @@ func _build_popup() -> void:
 
     var panel := PanelContainer.new()
     panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    var style := StyleBoxFlat.new()
-    style.bg_color = Color(0.1, 0.1, 0.15, 0.92)
-    style.set_corner_radius_all(16)
-    style.set_content_margin_all(24)
+    panel.custom_minimum_size.x = 520
+    var style := UiStyle.make_panel_style(true, 14, true)
+    style.content_margin_left = 40
+    style.content_margin_right = 40
+    style.content_margin_top = 28
+    style.content_margin_bottom = 24
     panel.add_theme_stylebox_override("panel", style)
     center.add_child(panel)
 
@@ -439,9 +441,37 @@ func _build_popup() -> void:
     _icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
     box.add_child(_icon)
 
-    _name_label = _make_label(32, Color.WHITE)
-    box.add_child(_name_label)
-    _desc_label = _make_label(24, Color("#ffd54f"))
+    # 名前の左に赤い縦帯を置き、帯と名前の組を中央に寄せる
+    var name_row := HBoxContainer.new()
+    name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    name_row.alignment = BoxContainer.ALIGNMENT_CENTER
+    name_row.add_theme_constant_override("separation", 14)
+    box.add_child(name_row)
+
+    var accent_bar := ColorRect.new()
+    accent_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    accent_bar.color = UiStyle.ACCENT_COLOR
+    accent_bar.custom_minimum_size = Vector2(6, 34)
+    accent_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+    name_row.add_child(accent_bar)
+
+    _name_label = _make_label(28, UiStyle.TEXT_COLOR)
+    name_row.add_child(_name_label)
+
+    # 区切り線（パネルの内側いっぱい、上下 6）
+    var divider_margin := MarginContainer.new()
+    divider_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    divider_margin.add_theme_constant_override("margin_top", 6)
+    divider_margin.add_theme_constant_override("margin_bottom", 6)
+    box.add_child(divider_margin)
+
+    var divider := ColorRect.new()
+    divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    divider.color = UiStyle.LINE_COLOR
+    divider.custom_minimum_size = Vector2(0, 1)
+    divider_margin.add_child(divider)
+
+    _desc_label = _make_label(19, UiStyle.TEXT_COLOR)
     box.add_child(_desc_label)
 
     var hint_row := HBoxContainer.new()
@@ -452,25 +482,20 @@ func _build_popup() -> void:
 
     _hint_icon = TextureRect.new()
     _hint_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    _hint_icon.custom_minimum_size = Vector2(0, 40)
+    _hint_icon.custom_minimum_size = Vector2(0, 36)
     _hint_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     _hint_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     _hint_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     hint_row.add_child(_hint_icon)
 
-    _hint_label = _make_label(22, Color.WHITE)
+    _hint_label = _make_label(17, UiStyle.TEXT_DIM_COLOR)
     _hint_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     hint_row.add_child(_hint_label)
 
 
-# 黒縁つきの中央ぞろえのラベル
+# 縁取りなしの中央ぞろえのラベル
 func _make_label(font_size: int, color: Color) -> Label:
-    var label := Label.new()
+    var label := UiStyle.make_label("", font_size, color)
     label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    label.add_theme_font_override("font", FONT)
-    label.add_theme_font_size_override("font_size", font_size)
-    label.add_theme_color_override("font_color", color)
-    label.add_theme_color_override("font_outline_color", Color.BLACK)
-    label.add_theme_constant_override("outline_size", 6)
     return label
