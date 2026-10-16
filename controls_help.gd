@@ -159,8 +159,9 @@ func _items_for(mode: Mode) -> Array:
     var icons: Dictionary = PAD_ICONS[GameMenu.pad_layout]
     return [
         [ICON_STICK_LEFT, "Steer"],
-        [icons.rt, "Accelerate"],
+        # コントローラの実際の左右の位置に合わせて、LT（左）を RT（右）より先に並べる
         [icons.lt, "Reverse"],
+        [icons.rt, "Accelerate"],
         [ICON_STICK_RIGHT, "Camera"],
         [icons.jump, "Jump", 0.8],
         [icons.reset, "Reset", 0.8],
