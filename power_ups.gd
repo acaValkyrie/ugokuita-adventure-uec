@@ -80,9 +80,9 @@ const E3_STAIRS_ITEM_POSITIONS := [
     Vector3(81.5, 37.83, -159.2),
 ]
 # 一時的なデバッグ用（宇宙の空の調整中）。true のとき、スタート地点（とリセットの戻り先）を東3号館（高層棟）の屋上にする。終わったら false に戻す
-const DEBUG_START_ON_E3_ROOF := true
+const DEBUG_START_ON_E3_ROOF := false
 # 一時的なデバッグ用。true のとき、ジェットだけは ITEM_PLACEMENTS の場所（斜めの屋根の先端）に置き、残りの種類のメダルを屋上（E3_ROOF_ITEM_POSITIONS）に並べる。false ならすべていつもの場所に置く
-const DEBUG_ITEMS_ON_E3_ROOF := true
+const DEBUG_ITEMS_ON_E3_ROOF := false
 # 屋上（高さ 42.5m、高層棟は x 74〜88・z −156〜−140）の南寄り、+Z 向き
 const E3_ROOF_START := Transform3D(Basis.IDENTITY, Vector3(81.0, 42.9, -154.0))
 # DEBUG_ITEMS_ON_E3_ROOF が true のときに屋上に並べる、ジェット以外のメダルの位置（ITEMS のキーの順、ジェットを除く）。機体の 3m 先に横一列
