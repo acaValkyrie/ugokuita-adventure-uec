@@ -79,11 +79,13 @@ const E3_STAIRS_ITEM_POSITIONS := [
     Vector3(80.8, 37.83, -159.2),
     Vector3(81.5, 37.83, -159.2),
 ]
-# 一時的なデバッグ用（宇宙の空の調整中）。true のとき、スタート地点（とリセットの戻り先）を東3号館（高層棟）の屋上にし、すべての種類のメダルを屋上に並べる（ITEM_PLACEMENTS には置かない）。終わったら false に戻す
+# 一時的なデバッグ用（宇宙の空の調整中）。true のとき、スタート地点（とリセットの戻り先）を東3号館（高層棟）の屋上にする。終わったら false に戻す
 const DEBUG_START_ON_E3_ROOF := true
+# 一時的なデバッグ用。true のとき、すべての種類のメダルを屋上（E3_ROOF_ITEM_POSITIONS）に並べ、ITEM_PLACEMENTS には置かない。false ならいつもの場所に置く
+const DEBUG_ITEMS_ON_E3_ROOF := false
 # 屋上（高さ 42.5m、高層棟は x 74〜88・z −156〜−140）の南寄り、+Z 向き
 const E3_ROOF_START := Transform3D(Basis.IDENTITY, Vector3(81.0, 42.9, -154.0))
-# 屋上に並べるメダルの位置（ITEMS のキーの順）。機体の 3m 先に横一列
+# DEBUG_ITEMS_ON_E3_ROOF が true のときに屋上に並べるメダルの位置（ITEMS のキーの順）。機体の 3m 先に横一列
 const E3_ROOF_ITEM_POSITIONS := [
     Vector3(78.6, 43.13, -151.0),
     Vector3(79.8, 43.13, -151.0),
@@ -179,7 +181,7 @@ func _reset() -> void:
 
 # ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く）
 func _place_items() -> void:
-    if DEBUG_START_ON_E3_ROOF:
+    if DEBUG_ITEMS_ON_E3_ROOF:
         return
     for key in ITEM_PLACEMENTS:
         var item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
@@ -196,12 +198,13 @@ func _spawn_debug_items() -> void:
     _need_spawn = false
     if DEBUG_START_ON_E3_ROOF:
         _move_player_to(player, E3_ROOF_START)
-        var roof_keys := ITEMS.keys()
-        for i in roof_keys.size():
-            var roof_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
-            roof_item.kind = roof_keys[i]
-            _shown_scene.add_child(roof_item)
-            roof_item.global_position = E3_ROOF_ITEM_POSITIONS[i]
+        if DEBUG_ITEMS_ON_E3_ROOF:
+            var roof_keys := ITEMS.keys()
+            for i in roof_keys.size():
+                var roof_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
+                roof_item.kind = roof_keys[i]
+                _shown_scene.add_child(roof_item)
+                roof_item.global_position = E3_ROOF_ITEM_POSITIONS[i]
         return
     if DEBUG_START_AT_E3_STAIRS:
         _move_player_to(player, E3_STAIRS_START)
