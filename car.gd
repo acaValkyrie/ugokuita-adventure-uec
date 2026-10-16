@@ -64,6 +64,8 @@ var _boost_time := 0.0
 var _boost_dir := 1.0
 # 空中でのジャンプ（二段ジャンプ）を使ったか。接地すると戻る
 var _air_jump_used := false
+# 無重力（エンディング2）の最初のフレームを済ませたか
+var _zero_gravity := false
 # ジャンプと激突の効果音
 # 実機を録音したガッタン音。ジャンプと激突で鳴らす
 const BUMP_SOUNDS: Array[AudioStream] = [
@@ -82,6 +84,23 @@ var _sweep_dv_timer := 0.0
 var crash_count := 0
 
 func _physics_process(delta: float) -> void:
+    # エンディング2は無重力でふわふわ漂い、操作を受け付けない（機体の入れ替えでも続くよう毎フレーム設定する）
+    if Ending.is_zero_gravity():
+        gravity_scale = 0.0
+        if not _zero_gravity:
+            _zero_gravity = true
+            # 最初だけ、ゆっくり上へ漂いながら回る
+            linear_velocity = Vector3(0.0, 0.5, 0.0)
+            angular_velocity = Vector3(randf_range(-0.3, 0.3), randf_range(-0.3, 0.3), randf_range(-0.3, 0.3))
+        engine_force = 0.0
+        brake = 0.0
+        _check_crash(delta)
+        _prev_velocity = linear_velocity
+        _prevent_tunneling(delta)
+        return
+    gravity_scale = 1.0
+    _zero_gravity = false
+
     steering = move_toward(steering, Input.get_axis("right", "left") * MAX_STEER, delta * 10)
 
     var throttle = Input.get_axis("down", "up")
