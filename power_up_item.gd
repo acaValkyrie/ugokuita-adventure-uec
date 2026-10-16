@@ -26,8 +26,8 @@ const PICKUP_HEIGHT := 1.2
 const PICKUP_BOTTOM := -0.7
 
 @export var kind: String = ""
-# 空でないときはヒントのメダル（PowerUps.HINTS のキー）。アイコンの代わりに「?」を出し、触れるとヒントを使う
-@export var hint_id: String = ""
+# 空でないときはヒントのメダル（PowerUps.HINT_PLACEMENTS のキー）。アイコンの代わりに「?」を出し、触れるとその場所のヒントを使う
+@export var hint_place: String = ""
 
 var _visual: Node3D
 var _time := 0.0
@@ -64,7 +64,7 @@ func _ready() -> void:
     disc.rotation_degrees.x = 90.0
     _visual.add_child(disc)
 
-    if hint_id != "":
+    if hint_place != "":
         # ヒントのメダル: アイコンの代わりに「?」（表と裏）
         _add_question_mark(ICON_OFFSET, 0.0)
         _add_question_mark(-ICON_OFFSET, 180.0)
@@ -115,8 +115,8 @@ func _on_body_entered(body: Node3D) -> void:
         return
     # 二重に取らない
     set_deferred("monitoring", false)
-    if hint_id != "":
-        PowerUps.use_hint(hint_id)
+    if hint_place != "":
+        PowerUps.use_hint_place(hint_place)
     else:
         PowerUps.acquire(kind)
     queue_free()

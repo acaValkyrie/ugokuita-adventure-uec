@@ -100,9 +100,23 @@ const HINTS := {
     "hint1": {"keys": ["jump_up", "double_jump"]},
     "hint2": {"keys": ["jet"]},
 }
-# ヒントのメダルを置く場所（キーは HINTS のキー）。まだ決まっていないので空。決まったら足す。
+# ヒントのメダルを置く場所（キーは場所のID、"hint" は HINTS のキー）。
+# ヒント1の場所でも、ジャンプ系を両方持っていればヒント2を出す（choose_hint）
 # 置く位置の高さの決め方は ITEM_PLACEMENTS と同じ（機体の基準点 + 0.4m）
-const HINT_PLACEMENTS := {}
+const HINT_PLACEMENTS := {
+    "w11_s": {"position": Vector3(-188.9, 20.63, -132.2), "hint": "hint1"},  # 西11号館 南の非常階段
+    "w4_e": {"position": Vector3(-180.1, 22.60, -103.0), "hint": "hint1"},  # 西4号館 東の非常階段
+    "w4_e2": {"position": Vector3(-178.4, 20.50, -107.3), "hint": "hint2"},  # 西4号館 東の非常階段（南隣）
+    "w6_w": {"position": Vector3(-126.9, 27.83, -131.4), "hint": "hint2"},  # 西6号館 西の非常階段
+    "w6_w2": {"position": Vector3(-133.2, 21.03, -133.1), "hint": "hint1"},  # 西6号館 もう1つの非常階段
+    "w8_e": {"position": Vector3(-149.4, 26.03, 9.8), "hint": "hint1"},  # 西8号館 東の非常階段
+    "w9_n": {"position": Vector3(-206.3, 25.23, -36.5), "hint": "hint1"},  # 西9号館 北の非常階段
+    "port_ac_e": {"position": Vector3(-197.1, 18.13, 66.9), "hint": "hint1"},  # UECポートアライアンスセンター 東の非常階段
+    "e_lissajous_w": {"position": Vector3(46.6, 11.16, 78.6), "hint": "hint1"},  # 東リサージュ 西の非常階段
+    "e_intl_n": {"position": Vector3(117.9, 9.91, -336.5), "hint": "hint1"},  # 東国際交流会館 北の非常階段
+    "e9_n": {"position": Vector3(151.7, 10.19, -252.0), "hint": "hint1"},  # 東9号館 北の非常階段
+    "e8_e": {"position": Vector3(159.2, 11.45, -226.7), "hint": "hint1"},  # 東8号館 東の非常階段
+}
 # お知らせ（画面の上の中央）
 const NOTICE_TEXT := "マップにヒントの印が付いたぞ！！"
 const NOTICE_SECONDS := 4.0
@@ -114,6 +128,8 @@ var is_open: bool = false
 var _acquired := {}
 # 使ったヒント（HINTS のキー）。取った種類と同じく、シーンが変わっても残す
 var _used_hints := {}
+# 触れたヒントのメダルの場所（HINT_PLACEMENTS のキー）。シーンが変わっても残し、置き直さない
+var _used_hint_places := {}
 # 出すのを待っているポップアップ（種類のキー）
 var _queue: Array[String] = []
 var _shown_scene: Node = null
@@ -179,12 +195,27 @@ func set_acquired(key: String, on: bool) -> void:
         _acquired.erase(key)
 
 
-# ヒントを使った（メダルに触れた）ことを覚えて、マップに印を付け、お知らせを出す
+# 場所のヒントのメダルに触れたときに出すヒントを決める。ヒント1の場所でも、ジャンプ系を両方持っていればヒント2にする
+func choose_hint(place_id: String) -> String:
+    var hint: String = HINT_PLACEMENTS[place_id]["hint"]
+    if hint == "hint1" and has("jump_up") and has("double_jump"):
+        return "hint2"
+    return hint
+
+
+# 場所のヒントのメダルに触れたことを覚えて、その場所のヒントを使う
+func use_hint_place(place_id: String) -> void:
+    if not HINT_PLACEMENTS.has(place_id):
+        push_warning("ヒントの場所が不明: %s" % place_id)
+        return
+    _used_hint_places[place_id] = true
+    use_hint(choose_hint(place_id))
+
+
+# ヒントを使ったことを覚えて、マップに印を付け、お知らせを出す（使ったヒントでも、別の場所で触れたらお知らせを出す）
 func use_hint(id: String) -> void:
     if not HINTS.has(id):
         push_warning("ヒントの種類が不明: %s" % id)
-        return
-    if _used_hints.has(id):
         return
     _used_hints[id] = true
     Map.reveal_hints(HINTS[id]["keys"])
@@ -257,16 +288,16 @@ func _reset() -> void:
         get_tree().paused = false
 
 
-# ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く。取った種類は置かない）。HINT_PLACEMENTS のヒントのメダルも置く
+# ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く。取った種類は置かない）。HINT_PLACEMENTS の場所にヒントのメダルも置く（触れた場所は置かない）
 func _place_items() -> void:
-    # ヒントのメダル（使っていないものだけ）
-    for id in HINT_PLACEMENTS:
-        if _used_hints.has(id):
+    # ヒントのメダル（触れていない場所だけ）
+    for place_id in HINT_PLACEMENTS:
+        if _used_hint_places.has(place_id):
             continue
         var hint_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
-        hint_item.hint_id = id
+        hint_item.hint_place = place_id
         _shown_scene.add_child(hint_item)
-        hint_item.global_position = HINT_PLACEMENTS[id]
+        hint_item.global_position = HINT_PLACEMENTS[place_id]["position"]
     if DEBUG_ITEMS_ON_E3_ROOF:
         return
     for key in ITEM_PLACEMENTS:
