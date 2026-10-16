@@ -1049,6 +1049,15 @@ func _on_volume_changed(value: float) -> void:
     _player.play()
 
 
+# Web 版で走行中に看板のリンクを開くと、別のタブが前に出てゲームが止まり、走行音が鳴りっぱなしになる。
+# ゲームの画面からフォーカスが外れている間は音を消し、戻ったら音量の設定どおりに戻す（0% ならミュートのまま）
+func _notification(what: int) -> void:
+    if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+        AudioServer.set_bus_mute(0, true)
+    elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+        _apply_volume()
+
+
 # 0% はミュート、それ以外は既定音量からの比率で下げる
 func _apply_volume() -> void:
     var ratio := _volume / 100.0
