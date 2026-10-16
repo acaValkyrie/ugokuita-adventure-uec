@@ -1,6 +1,6 @@
 extends CanvasLayer
 # パワーアップアイテム。取った種類を覚えて機体の効果に反映し、取ったときは一時停止して名前と説明のポップアップを出す。
-# シーンが変わったら（Back to Start など）取った効果を空に戻す。
+# シーンが変わっても（Back to Start など）取った効果は残す。取った種類のメダルは置き直さない。
 
 const FONT := preload("res://assets/fonts/noto_sans_cjk_jp_bold_ui.otf")
 const ITEM_SCRIPT := preload("res://power_up_item.gd")
@@ -167,9 +167,8 @@ func _process(_delta: float) -> void:
         _update_hint()
 
 
-# シーンが変わったので、取った効果とポップアップを初めに戻す
+# シーンが変わったので、ポップアップを初めに戻す（取った効果は残す）
 func _reset() -> void:
-    _acquired.clear()
     _queue.clear()
     _fanfare_player.stop()
     if is_open:
@@ -178,11 +177,13 @@ func _reset() -> void:
         get_tree().paused = false
 
 
-# ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く）
+# ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く。取った種類は置かない）
 func _place_items() -> void:
     if DEBUG_ITEMS_ON_E3_ROOF:
         return
     for key in ITEM_PLACEMENTS:
+        if _acquired.has(key):
+            continue
         var item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
         item.kind = key
         _shown_scene.add_child(item)
@@ -202,18 +203,23 @@ func _spawn_debug_items() -> void:
             var roof_keys := ITEMS.keys()
             roof_keys.erase("jet")
             for i in roof_keys.size():
+                if _acquired.has(roof_keys[i]):
+                    continue
                 var roof_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
                 roof_item.kind = roof_keys[i]
                 _shown_scene.add_child(roof_item)
                 roof_item.global_position = E3_ROOF_ITEM_POSITIONS[i]
-            var jet_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
-            jet_item.kind = "jet"
-            _shown_scene.add_child(jet_item)
-            jet_item.global_position = ITEM_PLACEMENTS["jet"]
+            if not _acquired.has("jet"):
+                var jet_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
+                jet_item.kind = "jet"
+                _shown_scene.add_child(jet_item)
+                jet_item.global_position = ITEM_PLACEMENTS["jet"]
         return
     if DEBUG_START_AT_E3_STAIRS:
         _move_player_to(player, E3_STAIRS_START)
         for i in SPAWN_KEYS.size():
+            if _acquired.has(SPAWN_KEYS[i]):
+                continue
             var stairs_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
             stairs_item.kind = SPAWN_KEYS[i]
             _shown_scene.add_child(stairs_item)
@@ -224,6 +230,8 @@ func _spawn_debug_items() -> void:
     forward = forward.normalized()
     var side := forward.cross(Vector3.UP).normalized()
     for i in SPAWN_KEYS.size():
+        if _acquired.has(SPAWN_KEYS[i]):
+            continue
         var item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
         item.kind = SPAWN_KEYS[i]
         _shown_scene.add_child(item)
