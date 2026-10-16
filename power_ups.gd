@@ -95,8 +95,25 @@ const E3_ROOF_ITEM_POSITIONS := [
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
 const CLOSE_DELAY_MSEC := 300
 
-var is_open: bool = false
+# 屋上のヒント。図書館以外の建物の屋上（か屋上の手前の非常階段の一番上の踊り場）に着いたら、マップにジェットの場所の印を出す。
+# 「接地している」「高さが ROOF_HINT_MIN_HEIGHT 以上」「足もとが hi_ の建物（図書館＝hi_東図書館A を除く）」
+# 「真上が空いている（途中の踊り場は上の踊り場にふさがれるので外れる）」をすべて満たしたときに判定する
+const ROOF_HINT_MIN_HEIGHT := 3.0
+const ROOF_HINT_BUILDING_PREFIX := "hi_"
+const ROOF_HINT_EXCLUDED_PREFIX := "hi_東図書館A"
+# 判定の間隔 [物理フレーム]
+const ROOF_HINT_INTERVAL := 10
+# 足もとのレイ: 機体の 0.5m 上から 2m 下へ。真上のレイ: 機体の 0.5m 上から 100m 上へ
+const ROOF_HINT_RAY_UP_OFFSET := 0.5
+const ROOF_HINT_RAY_DOWN := 2.0
+const ROOF_HINT_RAY_UP := 100.0
+# お知らせ（画面の上の中央）
+const NOTICE_TEXT := "屋上到達！マップにヒントの印が付いたぞ！！"
+const NOTICE_SECONDS := 4.0
+const NOTICE_FADE_SECONDS := 0.5
+const NOTICE_TOP := 120.0
 
+var is_open: bool = false
 # 取った種類
 var _acquired := {}
 # 出すのを待っているポップアップ（種類のキー）
@@ -114,12 +131,16 @@ var _desc_label: Label
 var _hint_icon: TextureRect
 var _hint_label: Label
 var _fanfare_player: AudioStreamPlayer
-
+var _notice_label: Label
+# お知らせの残り時間 [秒]
+var _notice_left := 0.0
 
 func _ready() -> void:
     # メニュー（layer 20）より下、マップ（layer 18）より上に描く
     layer = 19
     process_mode = Node.PROCESS_MODE_ALWAYS
+    # お知らせはポップアップより先に追加して、ポップアップが開いているときはポップアップを上にする
+    _build_notice()
     _build_popup()
     # ファンファーレ用のプレイヤー。一時停止中も鳴らす。ファイルにループ設定があっても繰り返さない
     var stream := FANFARE.duplicate() as AudioStreamOggVorbis
@@ -154,7 +175,7 @@ func is_just_closed() -> bool:
     return Engine.get_physics_frames() - _closed_physics_frame <= 1
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
     var scene := get_tree().current_scene
     if scene != null and scene != _shown_scene:
         _shown_scene = scene
@@ -165,6 +186,56 @@ func _process(_delta: float) -> void:
         _spawn_debug_items()
     if is_open:
         _update_hint()
+    _update_notice(delta)
+
+
+# 屋上に着いたかを、ROOF_HINT_INTERVAL 物理フレームに1回調べる
+func _physics_process(_delta: float) -> void:
+    if Engine.get_physics_frames() % ROOF_HINT_INTERVAL != 0:
+        return
+    if get_tree().paused or has("jet") or Map.has_hint:
+        return
+    var player := get_tree().get_first_node_in_group("player") as VehicleBody3D
+    if player == null or not player._is_on_ground():
+        return
+    var pos := player.global_position
+    if pos.y < ROOF_HINT_MIN_HEIGHT:
+        return
+    var space := player.get_world_3d().direct_space_state
+    var origin := pos + Vector3.UP * ROOF_HINT_RAY_UP_OFFSET
+    var down := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.DOWN * (ROOF_HINT_RAY_UP_OFFSET + ROOF_HINT_RAY_DOWN), 1, [player.get_rid()])
+    var hit := space.intersect_ray(down)
+    if hit.is_empty():
+        return
+    var collider_name := String((hit["collider"] as Node).name)
+    if not collider_name.begins_with(ROOF_HINT_BUILDING_PREFIX) or collider_name.begins_with(ROOF_HINT_EXCLUDED_PREFIX):
+        return
+    var up := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.UP * ROOF_HINT_RAY_UP, 1, [player.get_rid()])
+    if not space.intersect_ray(up).is_empty():
+        return
+    var jet: Vector3 = ITEM_PLACEMENTS["jet"]
+    Map.set_hint(Vector2(jet.x, jet.z))
+    _notice_left = NOTICE_SECONDS
+
+
+# お知らせを出している間、残り時間に合わせて表示し、最後の NOTICE_FADE_SECONDS で薄くする（ゲームは止めない）
+func _update_notice(delta: float) -> void:
+    if _notice_left <= 0.0:
+        _notice_label.visible = false
+        return
+    _notice_left -= delta
+    _notice_label.visible = _notice_left > 0.0
+    _notice_label.modulate.a = clampf(_notice_left / NOTICE_FADE_SECONDS, 0.0, 1.0)
+
+
+# 画面の上の中央のお知らせ
+func _build_notice() -> void:
+    _notice_label = _make_label(32, Color.WHITE)
+    _notice_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+    _notice_label.offset_top = NOTICE_TOP
+    _notice_label.text = NOTICE_TEXT
+    _notice_label.visible = false
+    add_child(_notice_label)
 
 
 # シーンが変わったので、ポップアップを初めに戻す（取った効果は残す）
