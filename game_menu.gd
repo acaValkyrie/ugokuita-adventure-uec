@@ -22,8 +22,8 @@ const MARGIN := 16
 const RING_COLOR := UiStyle.TEXT_COLOR
 const FACE_COLOR := UiStyle.PANEL_COLOR
 const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
-# BGM の試聴に流す曲（ending.gd の BGM と同じ）
-const BGM_PREVIEW_SOUND := preload("res://assets/audio/bgm/これにてお開き、また来週！.mp3")
+# BGM の試聴に流す曲（パワーアップを取ったときのファンファーレ。power_ups.gd の FANFARE と同じ）
+const BGM_PREVIEW_SOUND := preload("res://assets/audio/fanfare/fanfare_02.ogg")
 # 音量バーの埋まった部分の色（EDIT のカーソルがあるときは ACCENT_COLOR）
 const VOLUME_FILL_COLOR := Color(0.88, 0.88, 0.88)
 # 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
@@ -485,7 +485,10 @@ func _build_menu() -> void:
     # BGM の試聴用（これも一時停止中に鳴らす）。最後まで流れたら印を再生に戻す
     _preview_player = AudioStreamPlayer.new()
     _preview_player.bus = "BGM"
-    _preview_player.stream = BGM_PREVIEW_SOUND
+    # ファイルにループ設定があっても繰り返さない
+    var preview_stream := BGM_PREVIEW_SOUND.duplicate() as AudioStreamOggVorbis
+    preview_stream.loop = false
+    _preview_player.stream = preview_stream
     _preview_player.finished.connect(_refresh_preview_marks)
     add_child(_preview_player)
 
