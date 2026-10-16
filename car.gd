@@ -1,5 +1,7 @@
 extends VehicleBody3D
 
+const JetExhaustScript := preload("res://jet_exhaust.gd")
+
 @export var MAX_STEER = 0.5
 @export var ENGINE_POWER = 80.0
 @export var MAX_SPEED = 6.0
@@ -82,8 +84,12 @@ var _sweep_dv_sum := 0.0
 var _sweep_dv_timer := 0.0
 # 激突の音を鳴らした回数（テスト用）
 var crash_count := 0
+# ジェットで上向きの力を出しているか（噴射の見た目に使う）
+var jet_thrusting := false
 
 func _physics_process(delta: float) -> void:
+    # 上向きの力をかけたフレームだけ true にする（エンディング2で return する場合も含め、毎フレーム戻す）
+    jet_thrusting = false
     # エンディング2は無重力でふわふわ漂い、操作を受け付けない（機体の入れ替えでも続くよう毎フレーム設定する）
     if Ending.is_zero_gravity():
         gravity_scale = 0.0
@@ -186,6 +192,7 @@ func _apply_jet(delta: float, throttle: float, on_ground: bool) -> void:
         # 上がる速さが上限に達したら、重力を打ち消すだけにする
         var lift := 0.0 if linear_velocity.y >= JET_MAX_RISE_SPEED else JET_LIFT_ACCEL
         apply_central_force(-gravity * mass + Vector3.UP * mass * lift)
+        jet_thrusting = true
     if on_ground:
         return
     # ブースト中は水平の速度をいじらない（ブーストを打ち消さないため）
@@ -389,6 +396,9 @@ func _ready() -> void:
     # 3Dの音は max_db（既定 +3dB）で頭打ちになり、距離でも小さくなるため、激突の音は位置を持たない音で鳴らす
     _crash_sound = AudioStreamPlayer.new()
     add_child(_crash_sound)
+    var exhaust := JetExhaustScript.new()
+    exhaust.name = "JetExhaust"
+    add_child(exhaust)
     var config: Dictionary = MODELS[robot_key]
     var model := get_node_or_null(NodePath(config["node"])) as Node3D
     if model == null:
