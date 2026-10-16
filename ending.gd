@@ -80,7 +80,7 @@ func _ready() -> void:
     button_margin.add_child(_button)
 
     _player = AudioStreamPlayer.new()
-    _player.bus = "Master"
+    _player.bus = "BGM"
     _player.stream = BGM
     add_child(_player)
     # エンディング2のBGMは1回だけ流す。ファイルにループ設定があっても繰り返さない

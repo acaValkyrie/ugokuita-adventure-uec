@@ -152,7 +152,7 @@ func _ready() -> void:
     stream.loop = false
     _fanfare_player = AudioStreamPlayer.new()
     _fanfare_player.stream = stream
-    _fanfare_player.bus = "Master"
+    _fanfare_player.bus = "BGM"
     _fanfare_player.process_mode = Node.PROCESS_MODE_ALWAYS
     add_child(_fanfare_player)
 

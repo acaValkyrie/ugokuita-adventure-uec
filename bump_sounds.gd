@@ -30,10 +30,12 @@ func _ready() -> void:
         # タイヤの位置から音が鳴るようにタイヤの子にする
         var player := AudioStreamPlayer3D.new()
         player.unit_size = 3.0
+        player.bus = "SE"
         wheel.add_child(player)
         # 段差の音に重ねるカチャカチャ音用
         var rattle := AudioStreamPlayer3D.new()
         rattle.unit_size = 3.0
+        rattle.bus = "SE"
         wheel.add_child(rattle)
         _wheels.append({"wheel": wheel, "player": player, "rattle": rattle, "prev_y": 0.0, "prev_contact": false, "timer": 0.0})
 

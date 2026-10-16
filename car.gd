@@ -394,9 +394,11 @@ func _ready() -> void:
     _setup_run_sound()
     _jump_sound = AudioStreamPlayer3D.new()
     _jump_sound.unit_size = 3.0
+    _jump_sound.bus = "SE"
     add_child(_jump_sound)
     # 3Dの音は max_db（既定 +3dB）で頭打ちになり、距離でも小さくなるため、激突の音は位置を持たない音で鳴らす
     _crash_sound = AudioStreamPlayer.new()
+    _crash_sound.bus = "SE"
     add_child(_crash_sound)
     var exhaust := JetExhaustScript.new()
     exhaust.name = "JetExhaust"
@@ -467,6 +469,8 @@ func _setup_run_sound() -> void:
     _run_sound = get_node_or_null("RunningSound") as AudioStreamPlayer3D
     if _run_sound == null:
         return
+    # .tscn のノードなので、バスはコードで SE に振り分ける
+    _run_sound.bus = "SE"
     var wav := _run_sound.stream as AudioStreamWAV
     if wav != null:
         wav.loop_mode = AudioStreamWAV.LOOP_FORWARD

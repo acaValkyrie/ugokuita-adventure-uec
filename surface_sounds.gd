@@ -31,6 +31,7 @@ func _ready() -> void:
         var player := AudioStreamPlayer3D.new()
         player.unit_size = 3.0
         player.max_db = 0.0
+        player.bus = "SE"
         add_child(player)
         _pool.append(player)
     _next_step = grass_step
