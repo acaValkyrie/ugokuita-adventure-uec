@@ -79,9 +79,10 @@ const MARGIN := 16
 const ICON_HEIGHT := 72
 # ラベルの文字サイズ
 const FONT_SIZE := 14
+# ラベルの縁取りの太さ（px）
+const LABEL_OUTLINE_SIZE := 4
 
 var _mode: Mode = Mode.KEYBOARD
-var _panel: PanelContainer
 var _hbox: HBoxContainer
 
 
@@ -91,24 +92,14 @@ func _ready() -> void:
         _mode = Mode.TOUCH
 
     # 左下に固定し、内容に合わせて上・右方向へ伸ばす
-    _panel = PanelContainer.new()
-    _panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    var style := UiStyle.make_panel_style()
-    style.content_margin_left = 14
-    style.content_margin_right = 14
-    style.content_margin_top = 10
-    style.content_margin_bottom = 8
-    _panel.add_theme_stylebox_override("panel", style)
-    _panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-    _panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-    _panel.offset_left = MARGIN
-    _panel.offset_bottom = -MARGIN
-    add_child(_panel)
-
     _hbox = HBoxContainer.new()
     _hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
     _hbox.add_theme_constant_override("separation", 18)
-    _panel.add_child(_hbox)
+    _hbox.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+    _hbox.grow_vertical = Control.GROW_DIRECTION_BEGIN
+    _hbox.offset_left = MARGIN
+    _hbox.offset_bottom = -MARGIN
+    add_child(_hbox)
 
     _rebuild()
     # GameMenu はこのノードより後に追加される Autoload なので、全 Autoload の準備後に接続する
@@ -228,7 +219,10 @@ func _make_item(icon: Texture2D, text: String, icon_scale: float) -> VBoxContain
     rect.custom_minimum_size = Vector2(roundf(height * aspect), height)
     box.add_child(rect)
 
-    var label := UiStyle.make_label(text, FONT_SIZE, UiStyle.TEXT_DIM_COLOR)
+    # パネルが無いので、地面の上でも読めるよう縁取りを付ける
+    var label := UiStyle.make_label(text, FONT_SIZE, UiStyle.TEXT_COLOR)
+    label.add_theme_constant_override("outline_size", LABEL_OUTLINE_SIZE)
+    label.add_theme_color_override("font_outline_color", UiStyle.OUTLINE_COLOR)
     label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     box.add_child(label)
