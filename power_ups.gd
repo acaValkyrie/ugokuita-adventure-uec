@@ -104,17 +104,17 @@ const HINTS := {
 # ヒント1の場所でも、ジャンプ系を両方持っていればヒント2を出す（choose_hint）
 # 置く位置の高さの決め方は ITEM_PLACEMENTS と同じ（機体の基準点 + 0.4m）
 const HINT_PLACEMENTS := {
-    "w11_s": {"position": Vector3(-188.9, 20.63, -132.2), "hint": "hint1"},  # 西11号館 南の非常階段
-    "w4_e": {"position": Vector3(-180.1, 22.60, -103.0), "hint": "hint1"},  # 西4号館 東の非常階段
-    "w4_e2": {"position": Vector3(-178.4, 20.50, -107.3), "hint": "hint2"},  # 西4号館 東の非常階段（南隣）
-    "w6_w": {"position": Vector3(-126.9, 27.83, -131.4), "hint": "hint2"},  # 西6号館 西の非常階段
-    "w6_w2": {"position": Vector3(-133.2, 21.03, -133.1), "hint": "hint1"},  # 西6号館 もう1つの非常階段
-    "w8_e": {"position": Vector3(-149.4, 26.03, 9.8), "hint": "hint1"},  # 西8号館 東の非常階段
-    "w9_n": {"position": Vector3(-206.3, 25.23, -36.5), "hint": "hint1"},  # 西9号館 北の非常階段
-    "port_ac_e": {"position": Vector3(-197.1, 18.13, 66.9), "hint": "hint1"},  # UECポートアライアンスセンター 東の非常階段
-    "e_lissajous_w": {"position": Vector3(46.6, 11.16, 78.6), "hint": "hint1"},  # 東リサージュ 西の非常階段
-    "e_intl_n": {"position": Vector3(117.9, 9.91, -336.5), "hint": "hint1"},  # 東国際交流会館 北の非常階段
-    "e9_n": {"position": Vector3(151.7, 10.19, -252.0), "hint": "hint1"},  # 東9号館 北の非常階段
+    "w11_s": {"position": Vector3(-179.75, 22.83, -152.14), "hint": "hint1"},  # 西11号館 南の非常階段
+    "w4_e": {"position": Vector3(-181.39, 22.60, -103.25), "hint": "hint1"},  # 西4号館 東の非常階段
+    "w4_e2": {"position": Vector3(-198.76, 23.37, -107.95), "hint": "hint2"},  # 西4号館 東の非常階段（南隣）
+    "w6_w": {"position": Vector3(-134.33, 24.93, -130.39), "hint": "hint2"},  # 西6号館 西の非常階段
+    "w6_w2": {"position": Vector3(-138.36, 28.83, -133.16), "hint": "hint1"},  # 西6号館 もう1つの非常階段
+    "w8_e": {"position": Vector3(-153.61, 27.83, 9.10), "hint": "hint1"},  # 西8号館 東の非常階段
+    "w9_n": {"position": Vector3(-210.49, 27.23, -36.81), "hint": "hint1"},  # 西9号館 北の非常階段
+    "port_ac_e": {"position": Vector3(-197.84, 18.13, 66.57), "hint": "hint1"},  # UECポートアライアンスセンター 東の非常階段
+    "e_lissajous_w": {"position": Vector3(57.37, 13.03, 75.69), "hint": "hint1"},  # 東リサージュ 西の非常階段
+    "e_intl_n": {"position": Vector3(117.73, 9.92, -336.11), "hint": "hint1"},  # 東国際交流会館 北の非常階段
+    "e9_n": {"position": Vector3(147.75, 11.99, -250.99), "hint": "hint1"},  # 東9号館 北の非常階段
     "e8_e": {"position": Vector3(158.17, 13.35, -222.21), "hint": "hint1"},  # 東8号館 東の非常階段
 }
 # お知らせ（画面の上の中央）
