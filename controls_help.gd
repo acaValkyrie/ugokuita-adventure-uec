@@ -83,6 +83,8 @@ const PAD_ICONS := {
 const MARGIN := 16
 # アイコンの表示高さ（px）。幅は元画像の縦横比から決める
 const ICON_HEIGHT := 72
+# アイコンとラベルの間（px）。キーの中心が、右下のブーストの「BOOST」の文字と同じ高さになる値
+const ICON_LABEL_GAP := 4.5
 # ラベルの文字サイズ
 const FONT_SIZE := 14
 # ラベルの縁取りの太さ（px）
@@ -244,7 +246,7 @@ func _make_item(icon: Texture2D, text: String, icon_scale: float, spacer_height:
     var box := VBoxContainer.new()
     box.mouse_filter = Control.MOUSE_FILTER_IGNORE
     box.alignment = BoxContainer.ALIGNMENT_END
-    box.add_theme_constant_override("separation", 4)
+    box.add_theme_constant_override("separation", 0)
 
     var rect := TextureRect.new()
     rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -258,7 +260,7 @@ func _make_item(icon: Texture2D, text: String, icon_scale: float, spacer_height:
 
     var spacer := Control.new()
     spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    spacer.custom_minimum_size.y = spacer_height
+    spacer.custom_minimum_size.y = spacer_height + ICON_LABEL_GAP
     box.add_child(spacer)
 
     # パネルが無いので、地面の上でも読めるよう縁取りを付ける
