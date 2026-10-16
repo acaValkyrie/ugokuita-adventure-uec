@@ -115,7 +115,7 @@ const HINT_PLACEMENTS := {
     "e_lissajous_w": {"position": Vector3(46.6, 11.16, 78.6), "hint": "hint1"},  # 東リサージュ 西の非常階段
     "e_intl_n": {"position": Vector3(117.9, 9.91, -336.5), "hint": "hint1"},  # 東国際交流会館 北の非常階段
     "e9_n": {"position": Vector3(151.7, 10.19, -252.0), "hint": "hint1"},  # 東9号館 北の非常階段
-    "e8_e": {"position": Vector3(159.2, 11.45, -226.7), "hint": "hint1"},  # 東8号館 東の非常階段
+    "e8_e": {"position": Vector3(158.17, 13.35, -222.21), "hint": "hint1"},  # 東8号館 東の非常階段
 }
 # お知らせ（画面の上の中央）
 const NOTICE_TEXT := "マップにヒントの印が付いたぞ！！"
