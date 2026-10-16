@@ -28,7 +28,7 @@ const ARROW_WIDTH := 16.0
 # 目的地のマーカー
 const MARKER_COLOR := Color("#ffd600")
 const MARKER_3D_SCRIPT := preload("res://map_marker_3d.gd")
-# ジェットの場所のヒントの印（金色の丸に「?」。色はメダルと同じ）
+# パワーアップの場所のヒントの印（金色の丸に「?」。色はメダルと同じ）
 const HINT_MARK_COLOR := Color("#d4a017")
 const HINT_MARK_RADIUS := 12.0
 # 水平の距離がこれ（m）より近づいたら、着いたとしてマーカーを消す
@@ -52,9 +52,8 @@ var is_open: bool = false
 # 目的地のマーカー（ワールドの x・z）。1つだけ置ける
 var marker_xz := Vector2.ZERO
 var has_marker: bool = false
-# ジェットの場所のヒント（ワールドの x・z）。ユーザーのマーカーとは別。Autoload なのでシーンを読み込み直しても残る
-var hint_xz := Vector2.ZERO
-var has_hint: bool = false
+# ヒントの印を出しているパワーアップのキー（キー → true）。ユーザーのマーカーとは別。Autoload なのでシーンを読み込み直しても残る
+var revealed_hints := {}
 var _button: Button
 var _overlay: Control
 var _texture_rect: TextureRect
@@ -133,15 +132,28 @@ func clear_marker() -> void:
     marker_changed.emit()
 
 
-# ジェットの場所のヒントの印を出す
-func set_hint(xz: Vector2) -> void:
-    hint_xz = xz
-    has_hint = true
+# 指定したパワーアップの場所のヒントの印を出す
+func reveal_hints(keys: Array) -> void:
+    for key in keys:
+        revealed_hints[key] = true
 
 
-# ヒントの印を描く条件（ヒントがあり、まだジェットを取っていない）
-func is_hint_visible() -> bool:
-    return has_hint and not PowerUps.has("jet")
+# 指定したパワーアップの場所のヒントの印を消す
+func hide_hints(keys: Array) -> void:
+    for key in keys:
+        revealed_hints.erase(key)
+
+
+# いま描くヒントの印のワールドの x・z（印を出していて、まだ取っていないパワーアップの場所）
+func get_visible_hint_points() -> Array[Vector2]:
+    var points: Array[Vector2] = []
+    for key in revealed_hints:
+        if PowerUps.has(key) or not PowerUps.ITEM_PLACEMENTS.has(key):
+            continue
+        var place: Vector3 = PowerUps.ITEM_PLACEMENTS[key]
+        points.append(Vector2(place.x, place.z))
+    return points
+
 
 func _process(delta: float) -> void:
     _update_marker_3d()
@@ -415,7 +427,7 @@ func _on_marker_draw() -> void:
         var pos := _world_to_map(board.global_position)
         _marker_layer.draw_circle(pos, BOARD_RADIUS, BOARD_COLOR, true, -1.0, true)
         _marker_layer.draw_arc(pos, BOARD_RADIUS, 0.0, TAU, 24, OUTLINE_COLOR, OUTLINE_WIDTH, true)
-    if is_hint_visible():
+    for hint_xz in get_visible_hint_points():
         draw_hint_mark(_marker_layer, _world_to_map(Vector3(hint_xz.x, 0.0, hint_xz.y)), HINT_MARK_RADIUS)
     if has_marker:
         draw_marker_pin(_marker_layer, _world_to_map(Vector3(marker_xz.x, 0.0, marker_xz.y)), 1.0)
@@ -459,7 +471,7 @@ static func draw_marker_pin(canvas: CanvasItem, pos: Vector2, scale: float) -> v
     canvas.draw_circle(center, 3.0 * scale, Color.BLACK, true, -1.0, true)
 
 
-# ジェットの場所のヒントの印。中心が pos、金色の丸に黒の縁取りと白い「?」。ミニマップでも使う
+# パワーアップの場所のヒントの印。中心が pos、金色の丸に黒の縁取りと白い「?」。ミニマップでも使う
 static func draw_hint_mark(canvas: CanvasItem, pos: Vector2, radius: float) -> void:
     canvas.draw_circle(pos, radius, HINT_MARK_COLOR, true, -1.0, true)
     canvas.draw_arc(pos, radius, 0.0, TAU, 32, Color.BLACK, 2.0, true)

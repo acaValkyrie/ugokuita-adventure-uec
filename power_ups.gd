@@ -181,7 +181,7 @@ func set_acquired(key: String, on: bool) -> void:
         _acquired.erase(key)
         # ジェットを外したら、屋上のヒントがまた出るようにする
         if key == "jet":
-            Map.has_hint = false
+            Map.hide_hints(["jet"])
 
 
 # 閉じた直後か。閉じるのに使ったボタンがジャンプ・ブースト・看板と同じとき、再開した瞬間に発動させないために使う
@@ -207,7 +207,7 @@ func _process(delta: float) -> void:
 func _physics_process(_delta: float) -> void:
     if Engine.get_physics_frames() % ROOF_HINT_INTERVAL != 0:
         return
-    if get_tree().paused or has("jet") or Map.has_hint:
+    if get_tree().paused or has("jet") or Map.revealed_hints.has("jet"):
         return
     var player := get_tree().get_first_node_in_group("player") as VehicleBody3D
     if player == null or not player._is_on_ground():
@@ -227,8 +227,7 @@ func _physics_process(_delta: float) -> void:
     var up := PhysicsRayQueryParameters3D.create(origin, origin + Vector3.UP * ROOF_HINT_RAY_UP, 1, [player.get_rid()])
     if not space.intersect_ray(up).is_empty():
         return
-    var jet: Vector3 = ITEM_PLACEMENTS["jet"]
-    Map.set_hint(Vector2(jet.x, jet.z))
+    Map.reveal_hints(["jet"])
     _notice_left = NOTICE_SECONDS
 
 
