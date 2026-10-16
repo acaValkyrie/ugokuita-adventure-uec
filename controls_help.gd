@@ -39,7 +39,7 @@ const ITEMS := {
     Mode.KEYBOARD: [
         [ICON_KEYS_WASD, "Drive"],
         [ICON_KEYS_ARROWS, "Camera"],
-        [ICON_KEY_SPACE, "Jump", 0.6],
+        [ICON_KEY_SPACE, "Jump", 1.0],  # 絵の中のキーが平たいので、キーの高さを R・M のキー（倍率 0.6）とそろえる
         [ICON_KEY_R, "Reset", 0.6],
         [ICON_KEY_M, "Map", 0.6],
     ],
