@@ -9,9 +9,11 @@ var _material: ShaderMaterial
 var _base_fog_density := 0.0
 var _base_fog_sky_affect := 0.0
 # 前回設定した space_amount
-var _last_amount := 0.0
+var _last_amount := -1.0
 
 func _ready() -> void:
+    # シーンを読み込み直しても同じリソースが使い回されるので、自分用の複製だけを書き換える
+    environment = environment.duplicate(true)
     _material = environment.sky.sky_material as ShaderMaterial
     _base_fog_density = environment.fog_density
     _base_fog_sky_affect = environment.fog_sky_affect
