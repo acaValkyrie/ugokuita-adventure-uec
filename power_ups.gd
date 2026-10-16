@@ -79,6 +79,18 @@ const E3_STAIRS_ITEM_POSITIONS := [
     Vector3(80.8, 37.83, -159.2),
     Vector3(81.5, 37.83, -159.2),
 ]
+# 一時的なデバッグ用（宇宙の空の調整中）。true のとき、スタート地点（とリセットの戻り先）を東3号館（高層棟）の屋上にし、すべての種類のメダルを屋上に並べる（ITEM_PLACEMENTS には置かない）。終わったら false に戻す
+const DEBUG_START_ON_E3_ROOF := true
+# 屋上（高さ 42.5m、高層棟は x 74〜88・z −156〜−140）の南寄り、+Z 向き
+const E3_ROOF_START := Transform3D(Basis.IDENTITY, Vector3(81.0, 42.9, -154.0))
+# 屋上に並べるメダルの位置（ITEMS のキーの順）。機体の 3m 先に横一列
+const E3_ROOF_ITEM_POSITIONS := [
+    Vector3(78.6, 43.13, -151.0),
+    Vector3(79.8, 43.13, -151.0),
+    Vector3(81.0, 43.13, -151.0),
+    Vector3(82.2, 43.13, -151.0),
+    Vector3(83.4, 43.13, -151.0),
+]
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
 const CLOSE_DELAY_MSEC := 300
 
@@ -147,7 +159,7 @@ func _process(_delta: float) -> void:
         _shown_scene = scene
         _reset()
         _place_items()
-        _need_spawn = DEBUG_SPAWN_ITEMS
+        _need_spawn = DEBUG_SPAWN_ITEMS or DEBUG_START_ON_E3_ROOF
     if _need_spawn:
         _spawn_debug_items()
     if is_open:
@@ -167,6 +179,8 @@ func _reset() -> void:
 
 # ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く）
 func _place_items() -> void:
+    if DEBUG_START_ON_E3_ROOF:
+        return
     for key in ITEM_PLACEMENTS:
         var item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
         item.kind = key
@@ -180,8 +194,17 @@ func _spawn_debug_items() -> void:
     if player == null:
         return
     _need_spawn = false
+    if DEBUG_START_ON_E3_ROOF:
+        _move_player_to(player, E3_ROOF_START)
+        var roof_keys := ITEMS.keys()
+        for i in roof_keys.size():
+            var roof_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
+            roof_item.kind = roof_keys[i]
+            _shown_scene.add_child(roof_item)
+            roof_item.global_position = E3_ROOF_ITEM_POSITIONS[i]
+        return
     if DEBUG_START_AT_E3_STAIRS:
-        _move_player_to_e3_stairs(player)
+        _move_player_to(player, E3_STAIRS_START)
         for i in SPAWN_KEYS.size():
             var stairs_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
             stairs_item.kind = SPAWN_KEYS[i]
@@ -200,19 +223,19 @@ func _spawn_debug_items() -> void:
                 + side * SPAWN_SIDE * (i - (SPAWN_KEYS.size() - 1) / 2.0) + Vector3.UP * SPAWN_HEIGHT
 
 
-# 機体を東3号館の非常階段の一番上に移し、リセットの戻り先もそこにする（デバッグ用）
-func _move_player_to_e3_stairs(player: Node3D) -> void:
+# 機体を start の位置に移し、リセットの戻り先もそこにする（デバッグ用）
+func _move_player_to(player: Node3D, start: Transform3D) -> void:
     var rid := (player as VehicleBody3D).get_rid()
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, E3_STAIRS_START)
+    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, start)
     PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
     PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
-    player.global_transform = E3_STAIRS_START
+    player.global_transform = start
     player._prev_velocity = Vector3.ZERO
     var respawn := player.get_node_or_null("Respawn")
     if respawn != null:
         # _points は型付き配列なので、置き換えずに中身を入れ替える
         respawn._points.clear()
-        respawn._points.append(E3_STAIRS_START)
+        respawn._points.append(start)
 
 
 func _open_next() -> void:
