@@ -1,6 +1,6 @@
 extends CanvasLayer
 # エンディングを出す。画面左上にクレジットとスタート地点に戻るボタンを出し、BGMを流す。Reset でステージに戻ったときも閉じる。
-# 普段は街の鳥の声を BGM として流し、エンディング中は止める。
+# 普段は街の鳥の声を BGM として流し、エンディング中は止める。高く上がるほど小さくする（10m〜80m）。
 # エンディング1: ステージから落ちたとき（集中線が出始めるほど速く落ちているとき）。
 # エンディング2: 東3号館の屋上の5倍の高さまで上がったとき。無重力になる（機体の側で is_zero_gravity() を見て漂わせる）。
 
@@ -15,6 +15,12 @@ const BGM := preload("res://assets/audio/bgm/これにてお開き、また来�
 const BGM2 := preload("res://assets/audio/bgm/ending2_fanfare_1.mp3")
 # 普段ずっと流す街の鳥の声。VSQ plus+ の効果音。クレジットは assets/audio/CREDITS.md
 const AMBIENT := preload("res://assets/audio/bgm/city_bird.ogg")
+# 鳥の声をそのままの大きさで流す高さの上限 [m]
+const AMBIENT_FULL_HEIGHT := 10.0
+# 鳥の声が聞こえなくなる高さ [m]
+const AMBIENT_SILENT_HEIGHT := 80.0
+# 鳥の声の大きさを目標へ近づける速さ（大きいほど素早い）
+const AMBIENT_FADE_SPEED := 3.0
 const FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 
 var _shown := false
@@ -26,6 +32,8 @@ var _button: Button
 var _player: AudioStreamPlayer
 # 普段流す街の鳥の声
 var _ambient_player: AudioStreamPlayer
+# 鳥の声の今の大きさ（0〜1 の倍率）
+var _ambient_gain := 1.0
 # エンディング2だけで出すラベル
 var _ending2_labels: Array[Label] = []
 var _bgm2: AudioStreamMP3
@@ -102,11 +110,17 @@ func _ready() -> void:
     _ambient_player.play()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
     var car := get_tree().get_first_node_in_group("player") as VehicleBody3D
     if car == null:
         return
     var height := car.global_position.y
+    # 上空で地上の鳥の声が聞こえないよう、機体が高いほど鳥の声を小さくする。
+    # メニューの BGM の音量はバスで別に掛かるので、ここでは鳥の声だけの大きさを決める。
+    # エンディング中は鳥の声を止めているので、毎フレーム計算しても聞こえない。
+    var target := 1.0 - smoothstep(AMBIENT_FULL_HEIGHT, AMBIENT_SILENT_HEIGHT, height)
+    _ambient_gain = lerpf(_ambient_gain, target, 1.0 - exp(-AMBIENT_FADE_SPEED * delta))
+    _ambient_player.volume_db = linear_to_db(_ambient_gain) if _ambient_gain >= 0.001 else -80.0
     if _shown:
         # Back to Start を押さずに Reset でステージに戻ったら閉じる
         if _ending == 1 and height >= FALL_HEIGHT:
