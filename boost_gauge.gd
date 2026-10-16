@@ -9,6 +9,8 @@ const RING_WIDTH := 8.0
 const MARGIN := 16.0
 # ゲージの横に出すボタンのアイコンの高さ [px]
 const HINT_HEIGHT := 44.0
+# SHIFT キーの絵はキーが平たいので、キーの高さを他のボタンとそろえるために大きく出す倍率
+const SHIFT_HINT_SCALE := 1.6
 const HINT_GAP := 8.0
 const FONT_SIZE := 13
 const COLOR_BACK := Color(1, 1, 1, 0.15)
@@ -53,13 +55,14 @@ func _process(_delta: float) -> void:
     _hint.visible = icon != null
     if icon:
         _hint.texture = icon
+        var height := HINT_HEIGHT * (SHIFT_HINT_SCALE if icon == ControlsHelp.ICON_KEY_SHIFT else 1.0)
         # リングの左に、リングと縦の中心をそろえて置く
-        var width := HINT_HEIGHT * icon.get_width() / icon.get_height()
+        var width := height * icon.get_width() / icon.get_height()
         var diameter := 2.0 * (RADIUS + RING_WIDTH / 2.0)
         _hint.offset_right = -(MARGIN + diameter + HINT_GAP)
         _hint.offset_left = _hint.offset_right - width
-        _hint.offset_bottom = -(MARGIN + (diameter - HINT_HEIGHT) / 2.0)
-        _hint.offset_top = _hint.offset_bottom - HINT_HEIGHT
+        _hint.offset_bottom = -(MARGIN + (diameter - height) / 2.0)
+        _hint.offset_top = _hint.offset_bottom - height
         # ゲージが満タンになるまでは薄くして、まだ使えないことを示す
         _hint.modulate.a = 1.0 if _gauge >= 1.0 else 0.4
     _view.queue_redraw()
