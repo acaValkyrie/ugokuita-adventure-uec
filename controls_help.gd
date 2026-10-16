@@ -227,19 +227,6 @@ func _below_center(icon: Texture2D, icon_scale: float) -> float:
     return (1.0 - ICON_ALIGN.get(icon, 0.5)) * _icon_height(icon_scale)
 
 
-# 操作説明のキーの縦の中心をそろえた線の、画面上の y 座標（項目が無いときは -1）
-func get_key_center_y() -> float:
-    if _hbox.get_child_count() == 0:
-        return -1.0
-    var box := _hbox.get_child(0)
-    if box.get_child_count() == 0:
-        return -1.0
-    var rect := box.get_child(0) as TextureRect
-    if rect == null or rect.size.y <= 0.0:
-        return -1.0
-    return rect.global_position.y + ICON_ALIGN.get(rect.texture, 0.5) * rect.size.y
-
-
 # アイコンとラベルを縦に並べた1項目を作る（下端を揃えてラベルを同じ高さにする）。
 # アイコンとラベルの間に spacer_height の隙間を入れて、基準のキーの中心を項目どうしでそろえる
 func _make_item(icon: Texture2D, text: String, icon_scale: float, spacer_height: float) -> VBoxContainer:
