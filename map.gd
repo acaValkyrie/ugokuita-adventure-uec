@@ -31,6 +31,10 @@ const MARKER_3D_SCRIPT := preload("res://map_marker_3d.gd")
 # パワーアップの場所のヒントの印（金色の丸に「?」。色はメダルと同じ）
 const HINT_MARK_COLOR := Color("#d4a017")
 const HINT_MARK_RADIUS := 12.0
+# ヒントの印が付いてからマップを開くまで、マップボタンの外側に付ける縁取りの太さ [px]、ボタンからの張り出し [px]、角の丸み [px]
+const BUTTON_HINT_RING_WIDTH := 6
+const BUTTON_HINT_RING_OUTSET := 4.0
+const BUTTON_HINT_RING_RADIUS := 18
 # 水平の距離がこれ（m）より近づいたら、着いたとしてマーカーを消す
 const ARRIVE_DISTANCE := 5.0
 # 押した点からこの距離（px）以内にマーカーがあれば消す
@@ -55,6 +59,9 @@ var has_marker: bool = false
 # ヒントの印を出しているパワーアップのキー（キー → true）。ユーザーのマーカーとは別。Autoload なのでシーンを読み込み直しても残る
 var revealed_hints := {}
 var _button: Button
+var _button_icon: Control
+# ヒントの印が付いてから、まだマップを開いていないか（マップボタンに縁取りを付ける）
+var _hint_unseen := false
 var _overlay: Control
 var _texture_rect: TextureRect
 var _label_root: Control
@@ -87,6 +94,9 @@ func open() -> void:
     if is_open:
         return
     is_open = true
+    _hint_unseen = false
+    if _button_icon != null:
+        _button_icon.queue_redraw()
     _layout()
     _rebuild_labels()
     # カーソルは自分の位置に置き、方向の入力があるまで隠す
@@ -132,10 +142,13 @@ func clear_marker() -> void:
     marker_changed.emit()
 
 
-# 指定したパワーアップの場所のヒントの印を出す
+# 指定したパワーアップの場所のヒントの印を出す。マップを開くまでマップボタンに縁取りを付ける
 func reveal_hints(keys: Array) -> void:
     for key in keys:
         revealed_hints[key] = true
+    _hint_unseen = true
+    if _button_icon != null:
+        _button_icon.queue_redraw()
 
 
 # 指定したパワーアップの場所のヒントの印を消す
@@ -299,6 +312,7 @@ func _build_button() -> void:
     var icon := Control.new()
     icon.set_anchors_preset(Control.PRESET_FULL_RECT)
     icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _button_icon = icon
     icon.draw.connect(_on_icon_draw.bind(icon))
     _button.add_child(icon)
 
@@ -308,7 +322,17 @@ func _build_button() -> void:
 
 
 # ボタンの見た目（メニューボタンと同じ角丸の枠と、折りたたんだ地図のアイコン）
+# ヒントの印が付いてからマップを開くまでは、外側に金色の縁取り
 func _on_icon_draw(icon: Control) -> void:
+    if _hint_unseen:
+        var ring := StyleBoxFlat.new()
+        ring.draw_center = false
+        ring.border_color = HINT_MARK_COLOR
+        ring.set_border_width_all(BUTTON_HINT_RING_WIDTH)
+        ring.set_corner_radius_all(BUTTON_HINT_RING_RADIUS)
+        ring.anti_aliasing = true
+        var outset := Vector2(BUTTON_HINT_RING_OUTSET, BUTTON_HINT_RING_OUTSET)
+        icon.draw_style_box(ring, Rect2(-outset, icon.size + outset * 2.0))
     var center := icon.size * 0.5
     var face := StyleBoxFlat.new()
     face.bg_color = GameMenu.FACE_COLOR
