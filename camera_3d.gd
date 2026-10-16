@@ -20,11 +20,21 @@ var vehicle
 @export var dash_in_speed: float = 2.0
 # エンディング中のカメラと機体の距離 [m]
 @export var ending_radius: float = 1.2
+# カメラを遮る物理レイヤー（建物・地面はレイヤー1。木の葉のレイヤー3は含めない）
+@export_flags_3d_physics var obstacle_mask: int = 1
+# 壁からカメラを離す距離 [m]
+@export var obstacle_margin: float = 0.2
+# 遮る物がなくなったあと元の距離へ戻る速さ（大きいほど素早い）
+@export var obstacle_return_speed: float = 3.0
+# 壁に寄せたときの、カメラと機体の最小距離 [m]
+@export var obstacle_min_distance: float = 0.4
 
 # 普段のカメラと機体の距離 [m]
 const BASE_RADIUS := 2.0
 
 var radius: float = BASE_RADIUS
+# カメラと機体の実際の距離 [m]（壁に遮られたときに縮む）
+var obstructed_distance: float = BASE_RADIUS
 var theta: float = - 0.5 * PI
 var phi: float = 0.3 * PI
 var theta_offset: float = 0.0
@@ -49,6 +59,7 @@ func _ready():
         push_error("Vehicle not found at path: " + str(vehicle_path))
     else:
         theta = behind_vehicle_theta()
+        obstructed_distance = radius
         # Set the camera to follow the vehicle
         global_transform.origin = vehicle.global_transform.origin + to_camera_position()
         look_at(vehicle.global_transform.origin, Vector3.UP)
@@ -93,6 +104,19 @@ func _physics_process(delta: float) -> void:
     var dash_speed := dash_out_speed if absf(target_radius - BASE_RADIUS) > absf(radius - BASE_RADIUS) else dash_in_speed
     radius = lerpf(radius, target_radius, 1.0 - exp(-dash_speed * delta))
 
-    # Update camera position based on theta and phi
-    global_transform.origin = vehicle.global_transform.origin + to_camera_position()
-    look_at(vehicle.global_transform.origin, Vector3.UP)
+    # 機体からカメラへ光線を飛ばし、壁に遮られたら壁の手前へ寄せる
+    # （寄るときは即座に、戻るときはゆっくり）
+    var origin: Vector3 = vehicle.global_transform.origin
+    var offset := to_camera_position()
+    var desired := offset.length()
+    var query := PhysicsRayQueryParameters3D.create(origin, origin + offset, obstacle_mask, [vehicle.get_rid()])
+    var hit := get_world_3d().direct_space_state.intersect_ray(query)
+    var allowed := desired
+    if not hit.is_empty():
+        allowed = maxf(origin.distance_to(hit.position) - obstacle_margin, obstacle_min_distance)
+    if allowed < obstructed_distance:
+        obstructed_distance = allowed
+    else:
+        obstructed_distance = lerpf(obstructed_distance, allowed, 1.0 - exp(-obstacle_return_speed * delta))
+    global_transform.origin = origin + offset.normalized() * obstructed_distance
+    look_at(origin, Vector3.UP)
