@@ -9,8 +9,8 @@ const RING_WIDTH := 8.0
 const MARGIN := 16.0
 # ゲージの横に出すボタンのアイコンの高さ [px]
 const HINT_HEIGHT := 44.0
-# SHIFT キーの絵はキーが平たいので、キーの高さを他のボタンとそろえるために大きく出す倍率
-const SHIFT_HINT_SCALE := 1.6
+# SHIFT キーの絵は上下の余白を切ってあるので、キーの高さを他のキーとそろえるための倍率
+const SHIFT_HINT_SCALE := 0.716
 const HINT_GAP := 8.0
 const FONT_SIZE := 13
 const COLOR_BACK := Color(1, 1, 1, 0.15)
