@@ -722,6 +722,15 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 結果: 持ち上げたノードは434個。3mm〜1.2cm がほとんどで、連鎖のため 1.5cm 以上が43個（最大は `ground/Body580` の2.7cm）。取り込み直したあとの調査では、重なる組は門（`gate`）の部品どうしの4組（合計約0.2m²）だけになった。
 - 確認: 指摘の場所で白線がきれいに描かれ、タイヤが埋まって見えないことを画面で確かめた。ちらつきが消えたことは、動かしたときの見た目ではまだ確かめていない（ユーザーに見てもらう）。持ち上げ量の大きい場所で、タイヤが埋まって見えないかもまだ見ていない。
 
+## 街の鳥の声を BGM として常に流す（2026-10-17）
+
+- 音源: VSQ plus+ の「VSQSE_0586_city_bird」（ユーザーが https://vsq.co.jp/plus/sound/category_sub/city/page/2/ から入手）。規約（https://vsq.co.jp/plus/tos/ ）では、ゲームへの組み込みは可、クレジット表記は不要。「オリジナルの状態での各種効果音および楽曲の頒布」（インターネットでの再配信を含む）は禁止なので、エンディングの曲と同じく暗号化して置く。
+- 元の mp3（320kbps・8.8MB・3分41秒）は `assets/audio/bgm/source/`（`.gdignore` あり、git も無視）へ移し、ffmpeg で Ogg 96kbps（2.4MB）の `assets/audio/bgm/city_bird.ogg` を作った（ユーザーの選択）。ogg 本体は `.gitignore` に入れ、暗号化した `city_bird.ogg.enc` だけをコミットした。`pages.yml` で `BGM_KEY` を使って復号する。
+- 鍵: 前の `BGM_KEY` は手元に残っていなかったので、ユーザーの判断で鍵を作り直し、エンディングの曲（`ending_bgm.mp3.enc`）も新しい鍵で暗号化し直した。`gh secret set` でシークレットを更新した（鍵は画面にもファイルにも残していない）。復号して元のファイルと一致することを確かめた。openssl は scoop の Git に付いているもの（`~/scoop/apps/git/current/usr/bin/openssl.exe`）を使った。
+- `ending.gd`: 起動時から鳥の声を bus BGM でループ再生する。エンディング（1・2）を出すと止め、閉じると頭から流し直す。メニューで一時停止しているあいだは止まる。メニューの BGM の試聴も鳥の声にした（ユーザーの指示）。
+- 確認: 起動後に再生中・ループ有効・bus BGM。エンディングを出すと止まり、閉じると再生された。エラーなし。耳での確認はまだ。
+- 注意: シークレットを更新したので、新しい `.enc` を push するまで GitHub Pages の書き出しは復号に失敗する。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
