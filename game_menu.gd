@@ -3,7 +3,8 @@ extends CanvasLayer
 # メニュー内で全体音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体（Neo / Classic）を選べる。
 # 決定とキャンセルのボタンを入れ替える設定もある。
 # PlayStation の SELECT・START のボタンの表記（PS3 以前・PS4・PS5）も選べる。
-# 画面は左に項目（音量・コントローラーの設定［見出し。下に ボタンの表示形式・決定とキャンセル・PlayStation の表記］・ロボットタイプ・閉じる）、右に選んでいる項目の詳細を出す。
+# 画面は左に項目（音量・コントローラーの設定［下に ボタンの表示形式・決定とキャンセル・PlayStation の表記］・ロボットタイプ・閉じる）、右に選んでいる項目の詳細を出す。
+# 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（コントローラーの設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。
 
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
@@ -65,11 +66,12 @@ const ITEM_ICONS := [
     preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_robot.png"),
+    preload("res://assets/ui/menu/icon_controller.png"),
 ]
-# 左の列の「コントローラーの設定」の見出し（選べない行。アイコンは ITEM_ICONS と同じ）
+# 左の列の「コントローラーの設定」の行
 const CONTROLLER_HEADING := "コントローラーの設定"
 const CONTROLLER_HEADING_ICON := preload("res://assets/ui/menu/icon_controller.png")
-# 見出しの下に字下げして並べる項目
+# コントローラーの設定の下に字下げして並べる項目
 const CHILD_ITEMS := [1, 2, 3]
 # 子の行の字下げ（px）
 const CHILD_INDENT := 30
@@ -78,20 +80,30 @@ const ROBOT_SCENES := [
     preload("res://assets/ugokuita-neo.glb"),
     preload("res://assets/ugokuita-classic.fbx"),
 ]
-# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: PlayStation の表記、4: ロボットタイプ）
-const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "PlayStation の表記", "ロボットタイプ"]
+# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: PlayStation の表記、4: ロボットタイプ、5: コントローラーの設定）
+const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "PlayStation の表記", "ロボットタイプ", CONTROLLER_HEADING]
 const ITEM_DESCRIPTIONS := [
     "ゲーム全体の音量を調整します",
     "ボタンの表示形式を切り替えます",
     "決定とキャンセルのボタンを入れ替えます",
     "SELECT・START のボタンの表記を選びます",
     "操作する機体を切り替えます",
+    "ボタンの表示形式、決定とキャンセル、PlayStation の表記を設定します",
 ]
 const ITEM_VOLUME := 0
 const ITEM_PAD := 1
 const ITEM_CONFIRM := 2
 const ITEM_PS := 3
 const ITEM_ROBOT := 4
+const ITEM_CONTROLLER := 5
+# 左の列に並べる順（項目の番号）
+const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_PS, ITEM_ROBOT]
+# カーソルが「閉じる」にあるときの番号
+const CURSOR_CLOSE := -1
+# TOP でカーソルが動く順
+const TOP_CURSORS := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_ROBOT, CURSOR_CLOSE]
+# 階層。TOP: 親の項目を選ぶ、SUB: コントローラーの設定の中の項目を選ぶ、EDIT: 右の列を左右で切り替える
+enum Level { TOP, SUB, EDIT }
 # 決定とキャンセルの選択肢の名前（SWAP_CONFIRM_VALUES の順）
 const SWAP_CONFIRM_NAMES := ["標準", "入れ替え"]
 const SWAP_CONFIRM_VALUES := [false, true]
@@ -129,11 +141,16 @@ var _slider: HSlider
 var _volume_label: Label
 # 右の列（音量の中身）の「30%」
 var _volume_big_label: Label
-# 左の項目の行（Button）、背景、白い縦帯、「>」の山形
+# 左の項目の行（Button）、背景、白い縦帯、項目名（いずれも項目の番号で引く）、右端の山形
 var _rows: Array[Button] = []
 var _row_backgrounds: Array[Control] = []
 var _row_stripes: Array[Control] = []
+var _row_name_labels: Array[Label] = []
 var _row_chevrons: Array[Control] = []
+# 右の列の「<」「>」の矢印の絵
+var _arrow_marks: Array[Control] = []
+# 音量バーの埋まった部分のスタイル
+var _slider_fill: StyleBoxFlat
 var _close_button: Button
 var _close_label: Label
 var _close_hint_box: HBoxContainer
@@ -142,7 +159,17 @@ var _close_hint_mark: Control
 var _close_hint_mode: int = -1
 var _close_hint_layout: String = ""
 var _close_hint_swap: bool = false
+# 右の列に出している項目
 var _current_item: int = ITEM_VOLUME
+# 階層と、カーソルの位置（項目の番号か CURSOR_CLOSE）
+var _level: Level = Level.TOP
+var _cursor: int = ITEM_VOLUME
+# EDIT に入る前の階層
+var _edit_return: Level = Level.TOP
+# 右の列の操作部品（項目の番号 → 部品の配列）。部品は {"node": 印を付ける Control, "step": 左右の処理（Callable か null）, "accept": 決定の処理（Callable か null）}
+var _edit_controls: Array = []
+# EDIT で今指している部品（_edit_controls[_cursor] の中の位置）
+var _edit_index: int = 0
 # 右の列
 var _header_name: Label
 var _header_line: ColorRect
@@ -195,7 +222,7 @@ func _ready() -> void:
     _refresh_confirm()
     _refresh_ps()
     _refresh_robot_names()
-    _set_current_item(ITEM_VOLUME, true)
+    _set_cursor(Level.TOP, ITEM_VOLUME)
 
 
 func _process(delta: float) -> void:
@@ -226,9 +253,8 @@ func open() -> void:
     get_tree().paused = true
     _layout_panel()
     _rebuild_close_hint()
-    # 今の項目を音量に戻し、ゲームパッドやキーボードの左右で音量を調整できるようにする
-    _set_current_item(ITEM_VOLUME, true)
-    _rows[ITEM_VOLUME].grab_focus()
+    # 階層とカーソルを最初（TOP の音量）に戻す
+    _set_cursor(Level.TOP, ITEM_VOLUME)
 
 
 func close() -> void:
@@ -256,10 +282,26 @@ func _input(event: InputEvent) -> void:
     if event.is_action_pressed("menu") and not event.is_echo():
         toggle()
         get_viewport().set_input_as_handled()
-    # ESC は上の menu で処理済み。コントローラはキャンセルのボタン（表記ごとに違う）で閉じる
-    elif is_open and event.is_action_pressed("ui_cancel"):
-        close()
-        get_viewport().set_input_as_handled()
+        return
+    if not is_open:
+        return
+    # 開いているあいだのキーボード・ゲームパッドの操作はここでまとめて処理する（Godot のフォーカスは使わない）。
+    # ESC は上の menu で処理済み。コントローラのキャンセルのボタンは表記ごとに違う
+    if event.is_action_pressed("ui_up", true):
+        _move_cursor(-1)
+    elif event.is_action_pressed("ui_down", true):
+        _move_cursor(1)
+    elif event.is_action_pressed("ui_left", true):
+        _edit_step(-1)
+    elif event.is_action_pressed("ui_right", true):
+        _edit_step(1)
+    elif event.is_action_pressed("ui_accept"):
+        _activate()
+    elif event.is_action_pressed("ui_cancel"):
+        _cancel()
+    else:
+        return
+    get_viewport().set_input_as_handled()
 
 
 # 左上のメニューボタン（三本線アイコン）
@@ -416,16 +458,6 @@ func _build_menu() -> void:
 
     columns.add_child(_build_right_column())
 
-    # 行の上下の移動と、左右でフォーカスが動かないようにする設定（全部ツリーに入ってから）
-    var order: Array[Button] = _rows.duplicate()
-    order.append(_close_button)
-    for i in order.size():
-        var button := order[i]
-        button.focus_neighbor_top = button.get_path_to(order[maxi(i - 1, 0)])
-        button.focus_neighbor_bottom = button.get_path_to(order[mini(i + 1, order.size() - 1)])
-        button.focus_neighbor_left = button.get_path_to(button)
-        button.focus_neighbor_right = button.get_path_to(button)
-
     # 一時停止中も鳴らすため、このノードの PROCESS_MODE_ALWAYS を継承させる
     _player = AudioStreamPlayer.new()
     _player.bus = "Master"
@@ -466,10 +498,12 @@ func _build_left_column() -> Control:
     var rows_box := VBoxContainer.new()
     rows_box.add_theme_constant_override("separation", 6)
     vbox.add_child(rows_box)
-    for i in ITEM_NAMES.size():
-        # 「コントローラーの設定」の見出しは、ボタンの表示形式の行の前に入れる
-        if i == CHILD_ITEMS[0]:
-            rows_box.add_child(_build_heading_row())
+    # 行の配列は項目の番号で引くので、先に枠を作っておく
+    _rows.resize(ITEM_NAMES.size())
+    _row_backgrounds.resize(ITEM_NAMES.size())
+    _row_stripes.resize(ITEM_NAMES.size())
+    _row_name_labels.resize(ITEM_NAMES.size())
+    for i in ROW_ORDER:
         rows_box.add_child(_build_item_row(i))
 
     # デバッグ用: パワーアップを1つずつ ON/OFF（SHOW_DEBUG_PANEL が false のときと、release の書き出しでは作らない）
@@ -492,8 +526,8 @@ func _build_item_row(index: int) -> Button:
     # 子の行は高さ 48・字下げ・アイコン無し・文字 18px
     var is_child := index in CHILD_ITEMS
     var indent := CHILD_INDENT if is_child else 0
-    var row := _make_flat_button(48 if is_child else 58, Control.FOCUS_ALL)
-    _rows.append(row)
+    var row := _make_flat_button(48 if is_child else 58, Control.FOCUS_NONE)
+    _rows[index] = row
 
     # 選んでいる行の背景（左から右へ赤いグラデーション）
     var gradient := Gradient.new()
@@ -513,7 +547,7 @@ func _build_item_row(index: int) -> Button:
     background.set_anchors_preset(Control.PRESET_FULL_RECT)
     background.offset_left = indent
     row.add_child(background)
-    _row_backgrounds.append(background)
+    _row_backgrounds[index] = background
 
     # 左端の白い縦帯
     var stripe := ColorRect.new()
@@ -523,7 +557,7 @@ func _build_item_row(index: int) -> Button:
     stripe.offset_left = indent
     stripe.offset_right = indent + 5
     row.add_child(stripe)
-    _row_stripes.append(stripe)
+    _row_stripes[index] = stripe
 
     # 子の行の左の余白は、親のアイコン（30）と間（22）の分まで深くする
     var margin := _make_margin(22 + indent, 0, 18, 0)
@@ -544,6 +578,7 @@ func _build_item_row(index: int) -> Button:
     var name_label := _make_label(ITEM_NAMES[index], 18 if is_child else 21, TEXT_BODY)
     name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     hbox.add_child(name_label)
+    _row_name_labels[index] = name_label
 
     if index == ITEM_VOLUME:
         _volume_label = _make_label("", 19, TEXT_DIM)
@@ -551,7 +586,7 @@ func _build_item_row(index: int) -> Button:
         _volume_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
         hbox.add_child(_volume_label)
     else:
-        # 右端の「>」の山形
+        # 右端の「>」の山形（コントローラーの設定は下向きの「∨」）
         var chevron := Control.new()
         chevron.mouse_filter = Control.MOUSE_FILTER_IGNORE
         chevron.custom_minimum_size = Vector2(9, 16)
@@ -560,29 +595,9 @@ func _build_item_row(index: int) -> Button:
         hbox.add_child(chevron)
         _row_chevrons.append(chevron)
 
-    row.focus_entered.connect(_set_current_item.bind(index, false))
     row.mouse_entered.connect(_on_row_mouse_entered.bind(index))
-    row.gui_input.connect(_on_row_gui_input.bind(index))
+    row.pressed.connect(_on_row_pressed.bind(index))
     return row
-
-
-# 「コントローラーの設定」の見出しの行（選べない。フォーカスもマウスも受け取らず、選択の背景も「>」も出さない）
-func _build_heading_row() -> Control:
-    var margin := _make_margin(22, 0, 18, 0)
-    margin.custom_minimum_size = Vector2(0, 58)
-    var hbox := HBoxContainer.new()
-    hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-    hbox.add_theme_constant_override("separation", 22)
-    margin.add_child(hbox)
-    var icon := _make_icon(CONTROLLER_HEADING_ICON, 30)
-    icon.custom_minimum_size = Vector2(30, 30)
-    icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-    hbox.add_child(icon)
-    var name_label := _make_label(CONTROLLER_HEADING, 21, TEXT_BODY)
-    name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    hbox.add_child(name_label)
-    return margin
 
 
 # 音量バー（マウス・タッチでドラッグできる。つまみは見せない）
@@ -599,12 +614,13 @@ func _make_volume_slider() -> HSlider:
     var groove := _make_style(Color(1, 1, 1, 0.18), 4)
     groove.content_margin_top = 4
     groove.content_margin_bottom = 4
-    var fill := _make_style(Color(0.88, 0.88, 0.88), 4)
-    fill.content_margin_top = 4
-    fill.content_margin_bottom = 4
+    # 埋まった部分の色は、EDIT のあいだだけ ACCENT_COLOR にする（_update_cursor_visuals）
+    _slider_fill = _make_style(Color(0.88, 0.88, 0.88), 4)
+    _slider_fill.content_margin_top = 4
+    _slider_fill.content_margin_bottom = 4
     slider.add_theme_stylebox_override("slider", groove)
-    slider.add_theme_stylebox_override("grabber_area", fill)
-    slider.add_theme_stylebox_override("grabber_area_highlight", fill)
+    slider.add_theme_stylebox_override("grabber_area", _slider_fill)
+    slider.add_theme_stylebox_override("grabber_area_highlight", _slider_fill)
     # つまみの絵は透明な 1px にして見せない
     var blank := ImageTexture.create_from_image(Image.create(1, 1, false, Image.FORMAT_RGBA8))
     slider.add_theme_icon_override("grabber", blank)
@@ -615,16 +631,19 @@ func _make_volume_slider() -> HSlider:
 
 
 func _on_chevron_draw(chevron: Control, index: int) -> void:
-    var color := TEXT_BODY if index == _current_item else TEXT_DIM
-    chevron.draw_polyline(PackedVector2Array([Vector2(1, 1), Vector2(8, 8), Vector2(1, 15)]), color, 2.5, true)
+    var color := TEXT_BODY if index == _cursor else TEXT_DIM
+    if index == ITEM_CONTROLLER:
+        # 下向きの「∨」（幅 14・高さ 8 を 9×16 の枠の中央に置く）
+        chevron.draw_polyline(PackedVector2Array([Vector2(-2.5, 4), Vector2(4.5, 12), Vector2(11.5, 4)]), color, 2.5, true)
+    else:
+        chevron.draw_polyline(PackedVector2Array([Vector2(1, 1), Vector2(8, 8), Vector2(1, 15)]), color, 2.5, true)
 
 
 # 「閉じる」の行
 func _build_close_row() -> Control:
-    _close_button = _make_flat_button(44, Control.FOCUS_ALL)
-    _close_button.pressed.connect(close)
-    _close_button.focus_entered.connect(_update_close_color)
-    _close_button.focus_exited.connect(_update_close_color)
+    _close_button = _make_flat_button(44, Control.FOCUS_NONE)
+    _close_button.pressed.connect(_on_close_pressed)
+    _close_button.mouse_entered.connect(_on_close_mouse_entered)
 
     var margin := _make_margin(22, 0, 18, 0)
     margin.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -642,7 +661,7 @@ func _build_close_row() -> Control:
 
 
 func _update_close_color() -> void:
-    _close_label.add_theme_color_override("font_color", TEXT_BODY if _close_button.has_focus() else TEXT_DIM)
+    _close_label.add_theme_color_override("font_color", TEXT_BODY if _cursor == CURSOR_CLOSE else TEXT_DIM)
 
 
 # 入力方式の印（キーボードは Esc の箱、コントローラはキャンセルのボタン、タッチは無し）を作り直す
@@ -752,7 +771,10 @@ func _build_right_column() -> Control:
     holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
     holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
     vbox.add_child(holder)
-    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_ps_content(), _build_robot_content()]
+    _edit_controls.resize(ITEM_NAMES.size())
+    for i in _edit_controls.size():
+        _edit_controls[i] = []
+    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_ps_content(), _build_robot_content(), _build_controller_content()]
     for content in contents:
         content.set_anchors_preset(Control.PRESET_FULL_RECT)
         content.visible = false
@@ -779,6 +801,20 @@ func _build_volume_content() -> Control:
     slider_margin.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
     slider_margin.add_child(_slider)
     box.add_child(slider_margin)
+    _add_edit_control(ITEM_VOLUME, _slider, _step_volume, Callable())
+    return box
+
+
+# コントローラーの設定。音量の中身と同じ作りで、アイコンを薄く中央に出すだけ
+func _build_controller_content() -> Control:
+    var box := VBoxContainer.new()
+    box.alignment = BoxContainer.ALIGNMENT_CENTER
+    box.add_theme_constant_override("separation", 12)
+    box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    var icon := _make_icon(CONTROLLER_HEADING_ICON, 96)
+    icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    icon.modulate = Color(1, 1, 1, 0.35)
+    box.add_child(icon)
     return box
 
 
@@ -788,7 +824,7 @@ func _build_pad_content() -> Control:
     _pad_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     _pad_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     _pad_texture_rect.custom_minimum_size = Vector2(0, 250)
-    var parts := _build_selector(_pad_texture_rect, PAD_LAYOUTS.size(), _step_pad)
+    var parts := _build_selector(_pad_texture_rect, PAD_LAYOUTS.size(), _step_pad, ITEM_PAD)
     _pad_name_label = parts.name_label
     _pad_dots = parts.dots
     parts.box.add_child(_build_pad_buttons_row())
@@ -845,7 +881,7 @@ func _build_confirm_content() -> Control:
     center.add_child(_make_confirm_column(_confirm_icon, "決定"))
     _confirm_cancel_icon = _make_confirm_icon_rect()
     center.add_child(_make_confirm_column(_confirm_cancel_icon, "キャンセル"))
-    var parts := _build_selector(center, SWAP_CONFIRM_VALUES.size(), _step_confirm)
+    var parts := _build_selector(center, SWAP_CONFIRM_VALUES.size(), _step_confirm, ITEM_CONFIRM)
     _confirm_name_label = parts.name_label
     _confirm_dots = parts.dots
     return parts.box
@@ -889,7 +925,7 @@ func _build_ps_content() -> Control:
     var start_column := _make_confirm_column(_ps_start_icon, "")
     _ps_start_label = start_column.get_child(1) as Label
     center.add_child(start_column)
-    var parts := _build_selector(center, PS_GENERATIONS.size(), _step_ps)
+    var parts := _build_selector(center, PS_GENERATIONS.size(), _step_ps, ITEM_PS)
     _ps_name_label = parts.name_label
     _ps_dots = parts.dots
     return parts.box
@@ -925,14 +961,24 @@ func _build_robot_content() -> Control:
     _robot_pivot = Node3D.new()
     viewport.add_child(_robot_pivot)
 
-    var parts := _build_selector(container, ROBOT_MODELS.size(), _step_robot)
+    var parts := _build_selector(container, ROBOT_MODELS.size(), _step_robot, ITEM_ROBOT)
     _robot_name_label = parts.name_label
     _robot_dots = parts.dots
     return parts.box
 
 
-# 「<」ボタン・中央の絵・「>」ボタン、その下の名前と点を並べた部品。{box, name_label, dots} を返す
-func _build_selector(center: Control, count: int, step: Callable) -> Dictionary:
+# 項目の操作部品を登録する（step・accept は無ければ空の Callable）
+func _add_edit_control(item: int, node: Control, step: Callable, accept: Callable) -> void:
+    _edit_controls[item].append({
+        "node": node,
+        "step": step if step.is_valid() else null,
+        "accept": accept if accept.is_valid() else null,
+    })
+
+
+# 「<」ボタン・中央の絵・「>」ボタン、その下の名前と点を並べた部品。{box, name_label, dots} を返す。
+# 「< 絵 >」の並びを item の操作部品として登録する
+func _build_selector(center: Control, count: int, step: Callable, item: int) -> Dictionary:
     var box := VBoxContainer.new()
     box.alignment = BoxContainer.ALIGNMENT_CENTER
     box.add_theme_constant_override("separation", 12)
@@ -942,10 +988,11 @@ func _build_selector(center: Control, count: int, step: Callable) -> Dictionary:
     row.add_theme_constant_override("separation", 8)
     row.mouse_filter = Control.MOUSE_FILTER_IGNORE
     box.add_child(row)
-    row.add_child(_make_arrow_button(-1, step))
+    row.add_child(_make_arrow_button(-1, step, row))
     center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     row.add_child(center)
-    row.add_child(_make_arrow_button(1, step))
+    row.add_child(_make_arrow_button(1, step, row))
+    _add_edit_control(item, row, step, Callable())
 
     var name_label := _make_label("", 22, TEXT_BODY)
     name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -967,7 +1014,7 @@ func _build_selector(center: Control, count: int, step: Callable) -> Dictionary:
 
 
 # 48×48 の flat なボタンに山形を描いた矢印（direction が -1 なら「<」、1 なら「>」）
-func _make_arrow_button(direction: int, step: Callable) -> Button:
+func _make_arrow_button(direction: int, step: Callable, target: Control) -> Button:
     var button := _make_flat_button(48, Control.FOCUS_NONE)
     button.custom_minimum_size = Vector2(48, 48)
     button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -975,15 +1022,17 @@ func _make_arrow_button(direction: int, step: Callable) -> Button:
     var mark := Control.new()
     mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
     mark.set_anchors_preset(Control.PRESET_FULL_RECT)
-    mark.draw.connect(_on_arrow_draw.bind(mark, button, direction))
+    mark.draw.connect(_on_arrow_draw.bind(mark, button, direction, target))
     button.add_child(mark)
+    _arrow_marks.append(mark)
     button.mouse_entered.connect(mark.queue_redraw)
     button.mouse_exited.connect(mark.queue_redraw)
     return button
 
 
-func _on_arrow_draw(mark: Control, button: Button, direction: int) -> void:
-    var color := TEXT_BODY if button.is_hovered() else TEXT_DIM
+func _on_arrow_draw(mark: Control, button: Button, direction: int, target: Control) -> void:
+    # この部品が EDIT のカーソルを持っているあいだは、マウスが乗っていなくても白にする
+    var color := TEXT_BODY if _has_edit_cursor(target) or button.is_hovered() else TEXT_DIM
     var origin := (mark.size - Vector2(14, 28)) * 0.5
     var points: PackedVector2Array
     if direction > 0:
@@ -997,16 +1046,47 @@ func _on_arrow_draw(mark: Control, button: Button, direction: int) -> void:
 
 # ---- 今の項目 ----
 
-# 今の項目を切り替えて、行の見た目と右の列を合わせる（force なら同じ項目でも作り直す）
+# 階層とカーソルを変えて、見た目をすべて合わせる（index は項目の番号か CURSOR_CLOSE）
+func _set_cursor(level: Level, index: int) -> void:
+    _level = level
+    _cursor = index
+    # 「閉じる」にカーソルがあるときの右の列は、直前の項目のまま
+    if index != CURSOR_CLOSE:
+        _set_current_item(index, true)
+    _update_cursor_visuals()
+
+
+# カーソルと階層に合わせて、左の列・右の矢印・音量バーの見た目を更新する
+func _update_cursor_visuals() -> void:
+    var background_alpha := 0.45 if _level == Level.EDIT else 1.0
+    for i in _rows.size():
+        _row_backgrounds[i].visible = i == _cursor
+        _row_backgrounds[i].modulate = Color(1, 1, 1, background_alpha)
+        _row_stripes[i].visible = i == _cursor
+    # TOP のあいだ、子の行の項目名は暗くする
+    for i in CHILD_ITEMS:
+        _row_name_labels[i].add_theme_color_override("font_color", TEXT_DIM if _level == Level.TOP else TEXT_BODY)
+    for chevron in _row_chevrons:
+        chevron.queue_redraw()
+    for mark in _arrow_marks:
+        mark.queue_redraw()
+    _slider_fill.bg_color = ACCENT_COLOR if _has_edit_cursor(_slider) else Color(0.88, 0.88, 0.88)
+    _update_close_color()
+
+
+# 今の EDIT で、この部品がカーソルを持っているか
+func _has_edit_cursor(node: Control) -> bool:
+    if _level != Level.EDIT or _cursor < 0:
+        return false
+    var controls: Array = _edit_controls[_cursor]
+    return _edit_index < controls.size() and controls[_edit_index]["node"] == node
+
+
+# 右の列に出す項目を切り替える（force なら同じ項目でも作り直す）
 func _set_current_item(index: int, force: bool) -> void:
     if index == _current_item and not force:
         return
     _current_item = index
-    for i in _rows.size():
-        _row_backgrounds[i].visible = i == index
-        _row_stripes[i].visible = i == index
-    for chevron in _row_chevrons:
-        chevron.queue_redraw()
     _header_name.text = ITEM_NAMES[index]
     _header_desc.text = ITEM_DESCRIPTIONS[index]
     # 見出しの線は、文字の幅 + 40px
@@ -1017,37 +1097,121 @@ func _set_current_item(index: int, force: bool) -> void:
         _refresh_robot()
 
 
+# 項目の行が属する階層（子の3項目なら SUB、それ以外は TOP）
+func _level_of_item(index: int) -> Level:
+    return Level.SUB if index in CHILD_ITEMS else Level.TOP
+
+
+# マウスが乗った行にカーソルを移す（EDIT 中でも移る）
 func _on_row_mouse_entered(index: int) -> void:
-    _rows[index].grab_focus()
-    _set_current_item(index, false)
+    _set_cursor(_level_of_item(index), index)
 
 
-# 行での左右・決定の操作
-func _on_row_gui_input(event: InputEvent, index: int) -> void:
-    if event.is_action_pressed("ui_left", true):
-        _step_row(index, -1)
-        _rows[index].accept_event()
-    elif event.is_action_pressed("ui_right", true):
-        _step_row(index, 1)
-        _rows[index].accept_event()
-    elif event.is_action_pressed("ui_accept") and index != ITEM_VOLUME:
-        _step_row(index, 1)
-        _rows[index].accept_event()
+# クリック・タップ。その行にカーソルを移して、決定と同じ動きをする
+func _on_row_pressed(index: int) -> void:
+    _set_cursor(_level_of_item(index), index)
+    _activate()
 
 
-# 音量は 5 ずつ、それ以外は前・次に切り替える
-func _step_row(index: int, direction: int) -> void:
-    match index:
-        ITEM_VOLUME:
-            _slider.value += 5.0 * direction
-        ITEM_PAD:
-            _step_pad(direction)
-        ITEM_CONFIRM:
-            _step_confirm(direction)
-        ITEM_PS:
-            _step_ps(direction)
-        ITEM_ROBOT:
-            _step_robot(direction)
+func _on_close_mouse_entered() -> void:
+    _set_cursor(Level.TOP, CURSOR_CLOSE)
+
+
+func _on_close_pressed() -> void:
+    _set_cursor(Level.TOP, CURSOR_CLOSE)
+    _activate()
+
+
+# 上下でカーソルを動かす（端で止まる。EDIT では何もしない）
+func _move_cursor(direction: int) -> void:
+    var cursors: Array
+    match _level:
+        Level.TOP:
+            cursors = TOP_CURSORS
+        Level.SUB:
+            cursors = CHILD_ITEMS
+        _:
+            _move_edit(direction)
+            return
+    var position := cursors.find(_cursor)
+    var next := clampi(position + direction, 0, cursors.size() - 1)
+    if next != position:
+        _set_cursor(_level, cursors[next])
+
+
+# EDIT で部品のあいだを上下に移る（端で止まる）
+func _move_edit(direction: int) -> void:
+    var count: int = _edit_controls[_cursor].size()
+    var next := clampi(_edit_index + direction, 0, count - 1)
+    if next != _edit_index:
+        _edit_index = next
+        _update_cursor_visuals()
+
+
+# 今の EDIT の部品（無ければ空の Dictionary）
+func _current_edit_control() -> Dictionary:
+    var controls: Array = _edit_controls[_cursor]
+    if _edit_index < controls.size():
+        return controls[_edit_index]
+    return {}
+
+
+# 左右で値を切り替える（EDIT で、今の部品に step があるときだけ）
+func _edit_step(direction: int) -> void:
+    if _level != Level.EDIT:
+        return
+    var step: Variant = _current_edit_control().get("step")
+    if step != null:
+        step.call(direction)
+
+
+# 決定
+func _activate() -> void:
+    match _level:
+        Level.TOP:
+            if _cursor == CURSOR_CLOSE:
+                close()
+            elif _cursor == ITEM_CONTROLLER:
+                _set_cursor(Level.SUB, ITEM_PAD)
+            else:
+                _enter_edit()
+        Level.SUB:
+            _enter_edit()
+        Level.EDIT:
+            # 今の部品に accept があれば呼ぶ（EDIT からは戻らない）
+            var accept: Variant = _current_edit_control().get("accept")
+            if accept != null:
+                accept.call()
+
+
+# キャンセル
+func _cancel() -> void:
+    match _level:
+        Level.TOP:
+            close()
+        Level.SUB:
+            _set_cursor(Level.TOP, ITEM_CONTROLLER)
+        Level.EDIT:
+            _exit_edit()
+
+
+func _enter_edit() -> void:
+    # 操作部品の無い項目には入らない
+    if _edit_controls[_cursor].is_empty():
+        return
+    _edit_return = _level
+    _edit_index = 0
+    _set_cursor(Level.EDIT, _cursor)
+
+
+# 入る前の階層に戻る（カーソルは同じ項目のまま）
+func _exit_edit() -> void:
+    _set_cursor(_edit_return, _cursor)
+
+
+# 音量は 5 ずつ動かす
+func _step_volume(direction: int) -> void:
+    _slider.value += 5.0 * direction
 
 
 func _step_pad(direction: int) -> void:
