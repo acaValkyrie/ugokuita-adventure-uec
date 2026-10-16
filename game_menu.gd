@@ -12,8 +12,8 @@ const SETTINGS_PATH := "user://settings.cfg"
 const BUTTON_SIZE := 72
 const MARGIN := 16
 # ボタンの色（操作説明のアイコンに合わせる）
-const RING_COLOR := Color(0.12, 0.12, 0.12)
-const FACE_COLOR := Color(0.94, 0.94, 0.93)
+const RING_COLOR := UiStyle.TEXT_COLOR
+const FACE_COLOR := UiStyle.PANEL_COLOR
 const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
 # 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
 const PAD_LAYOUTS := ["nintendo", "playstation", "xbox"]
@@ -247,11 +247,11 @@ func _on_icon_draw(icon: Control) -> void:
     # 角を丸めた四角（操作説明のキーアイコンに合わせる）
     var face := StyleBoxFlat.new()
     face.bg_color = FACE_COLOR
-    face.border_color = RING_COLOR
-    face.set_border_width_all(6)
-    face.set_corner_radius_all(14)
+    face.border_color = UiStyle.BORDER_COLOR
+    face.set_border_width_all(2)
+    face.set_corner_radius_all(UiStyle.PANEL_RADIUS)
     face.anti_aliasing = true
-    icon.draw_style_box(face, Rect2(Vector2(2.0, 2.0), icon.size - Vector2(4.0, 4.0)))
+    icon.draw_style_box(face, Rect2(Vector2.ZERO, icon.size))
     # 三本線（両端は丸める）
     for i in range(-1, 2):
         var y := center.y + i * 10.0

@@ -22,7 +22,7 @@ const BOARD_RADIUS := 7.0
 const OUTLINE_COLOR := Color.WHITE
 const OUTLINE_WIDTH := 2.0
 # 自分の矢印
-const PLAYER_COLOR := Color("#e53935")
+const PLAYER_COLOR := UiStyle.ACCENT_COLOR
 const ARROW_LENGTH := 22.0
 const ARROW_WIDTH := 16.0
 # 目的地のマーカー
@@ -44,9 +44,13 @@ const CURSOR_SPEED := 400.0  # px/秒
 const CURSOR_ARM := 12.0  # 中心から先端まで
 const CURSOR_WIDTH := 3.0
 # 説明の文字
-const HINT_FONT_SIZE := 16
-const HINT_OUTLINE_SIZE := 4
+const HINT_FONT_SIZE := 15
 const HINT_GAP := 8.0
+# 説明の文字の後ろに敷く帯の余白（左右・上下）と角の丸み
+const HINT_PAD := Vector2(14.0, 6.0)
+const HINT_BAND_RADIUS := 8
+# 地図の画像の外側に描く枠の太さ
+const MAP_BORDER_WIDTH := 2.0
 const HINT_MOUSE := "Click / tap the map to place or remove a marker"
 const HINT_CURSOR := "Move: stick / WASD   Place or remove: confirm"
 
@@ -64,6 +68,7 @@ var _button_icon: Control
 var _hint_unseen := false
 var _overlay: Control
 var _texture_rect: TextureRect
+var _map_border: Panel
 var _label_root: Control
 var _marker_layer: Control
 # 地図の画像を表示している画面上の矩形
@@ -273,6 +278,16 @@ func _build_overlay() -> void:
     dimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
     _overlay.add_child(dimmer)
 
+    # 地図の画像の外側の枠（画像の矩形に合わせて外側へ広げる。大きさは _layout で決める）
+    _map_border = Panel.new()
+    var border_style := StyleBoxFlat.new()
+    border_style.draw_center = false
+    border_style.border_color = UiStyle.BORDER_COLOR
+    border_style.set_border_width_all(int(MAP_BORDER_WIDTH))
+    _map_border.add_theme_stylebox_override("panel", border_style)
+    _map_border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _overlay.add_child(_map_border)
+
     _texture_rect = TextureRect.new()
     _texture_rect.texture = MAP_TEXTURE
     _texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -336,11 +351,11 @@ func _on_icon_draw(icon: Control) -> void:
     var center := icon.size * 0.5
     var face := StyleBoxFlat.new()
     face.bg_color = GameMenu.FACE_COLOR
-    face.border_color = GameMenu.RING_COLOR
-    face.set_border_width_all(6)
-    face.set_corner_radius_all(14)
+    face.border_color = UiStyle.BORDER_COLOR
+    face.set_border_width_all(2)
+    face.set_corner_radius_all(UiStyle.PANEL_RADIUS)
     face.anti_aliasing = true
-    icon.draw_style_box(face, Rect2(Vector2(2.0, 2.0), icon.size - Vector2(4.0, 4.0)))
+    icon.draw_style_box(face, Rect2(Vector2.ZERO, icon.size))
     # 3枚のパネルが交互に傾いたジグザグの輪郭（上の辺と下の辺を、同じ向きにずらす）
     var xs := [-18.0, -6.0, 6.0, 18.0]
     var top_ys := [-8.0, -14.0, -8.0, -14.0]
@@ -367,6 +382,8 @@ func _layout() -> void:
     _map_rect = Rect2((screen - size) * 0.5, size)
     _texture_rect.position = _map_rect.position
     _texture_rect.size = _map_rect.size
+    _map_border.position = _map_rect.position - Vector2.ONE * MAP_BORDER_WIDTH
+    _map_border.size = _map_rect.size + Vector2.ONE * MAP_BORDER_WIDTH * 2.0
     if is_open:
         _rebuild_labels()
 
@@ -516,11 +533,15 @@ func _draw_cursor_and_hint() -> void:
             _marker_layer.draw_line(_cursor_pos - arm, _cursor_pos + arm, Color.BLACK, CURSOR_WIDTH + 2.0)
         for arm in [Vector2(CURSOR_ARM, 0.0), Vector2(0.0, CURSOR_ARM)]:
             _marker_layer.draw_line(_cursor_pos - arm, _cursor_pos + arm, Color.WHITE, CURSOR_WIDTH)
-    var font := ThemeDB.fallback_font
+    var font := UiStyle.FONT
     var text := HINT_CURSOR if _cursor_visible else HINT_MOUSE
     var text_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, HINT_FONT_SIZE)
     var base := Vector2(
             _map_rect.get_center().x - text_size.x * 0.5,
-            _map_rect.end.y + HINT_GAP + font.get_ascent(HINT_FONT_SIZE))
-    _marker_layer.draw_string_outline(font, base, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, HINT_FONT_SIZE, HINT_OUTLINE_SIZE, Color.BLACK)
-    _marker_layer.draw_string(font, base, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, HINT_FONT_SIZE, Color.WHITE)
+            _map_rect.end.y + HINT_GAP + HINT_PAD.y + font.get_ascent(HINT_FONT_SIZE))
+    # 文字の後ろに帯を敷く（文字の高さは行の高さ）
+    var band := Rect2(
+            Vector2(base.x, _map_rect.end.y + HINT_GAP) - Vector2(HINT_PAD.x, 0.0),
+            Vector2(text_size.x, font.get_height(HINT_FONT_SIZE)) + HINT_PAD * 2.0)
+    _marker_layer.draw_style_box(UiStyle.make_panel_style(false, HINT_BAND_RADIUS, false), band)
+    _marker_layer.draw_string(font, base, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, HINT_FONT_SIZE, UiStyle.TEXT_DIM_COLOR)

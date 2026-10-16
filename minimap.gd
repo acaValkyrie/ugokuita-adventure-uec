@@ -7,9 +7,9 @@ const TOP := 100.0  # 画面の上端から（時速の表示とタッチ用リ�
 const MARGIN := 16.0  # 画面の右端から
 const SPAN_M := 120.0  # 表示する範囲（m四方）
 const MAP_TEXTURE := preload("res://assets/map/campus_map.png")
-const BACK_COLOR := Color(0.1, 0.1, 0.1, 0.8)
-const FRAME_COLOR := Color(1, 1, 1, 0.9)
-const FRAME_WIDTH := 3.0
+const BACK_COLOR := UiStyle.PANEL_COLOR
+const FRAME_COLOR := UiStyle.BORDER_COLOR
+const FRAME_WIDTH := 2.0
 # 看板のマーカー
 const BOARD_RADIUS := 5.0
 # 目的地のマーカー（範囲の外では、枠からこの距離の内側に寄せる）
@@ -22,7 +22,7 @@ const HINT_MARK_INSET := 12.0
 const ARROW_LENGTH := 18.0
 const ARROW_WIDTH := 13.0
 # 北の印
-const NORTH_FONT_SIZE := 16
+const NORTH_FONT_SIZE := 15
 const NORTH_OUTLINE_SIZE := 4
 const NORTH_INSET := 14.0
 
@@ -144,12 +144,12 @@ func _on_draw() -> void:
     _view.draw_polyline(outline, Map.OUTLINE_COLOR, Map.OUTLINE_WIDTH, true)
 
     # 北の印（文字の中心が north_pos に来るようにベースラインをずらす）
-    var font := ThemeDB.fallback_font
+    var font := UiStyle.FONT
     var north_pos := center + Vector2(0.0, -1.0).rotated(_angle) * (SIZE * 0.5 - NORTH_INSET)
     var text_size := font.get_string_size("N", HORIZONTAL_ALIGNMENT_CENTER, -1.0, NORTH_FONT_SIZE)
     var base := Vector2(north_pos.x - text_size.x * 0.5, north_pos.y + (font.get_ascent(NORTH_FONT_SIZE) - font.get_descent(NORTH_FONT_SIZE)) * 0.5)
-    _view.draw_string_outline(font, base, "N", HORIZONTAL_ALIGNMENT_LEFT, -1.0, NORTH_FONT_SIZE, NORTH_OUTLINE_SIZE, Color.BLACK)
-    _view.draw_string(font, base, "N", HORIZONTAL_ALIGNMENT_LEFT, -1.0, NORTH_FONT_SIZE, Color.WHITE)
+    _view.draw_string_outline(font, base, "N", HORIZONTAL_ALIGNMENT_LEFT, -1.0, NORTH_FONT_SIZE, NORTH_OUTLINE_SIZE, UiStyle.OUTLINE_COLOR)
+    _view.draw_string(font, base, "N", HORIZONTAL_ALIGNMENT_LEFT, -1.0, NORTH_FONT_SIZE, UiStyle.TEXT_COLOR)
 
     # 枠
     _view.draw_rect(Rect2(Vector2.ZERO, _view.size), FRAME_COLOR, false, FRAME_WIDTH)
