@@ -56,12 +56,17 @@ func _process(_delta: float) -> void:
     if icon:
         _hint.texture = icon
         var height := HINT_HEIGHT * (SHIFT_HINT_SCALE if icon == ControlsHelp.ICON_KEY_SHIFT else 1.0)
-        # リングの左に、リングと縦の中心をそろえて置く
+        # リングの左に、操作説明のキーと縦の中心をそろえて置く（取れないときはリングの中心）
         var width := height * icon.get_width() / icon.get_height()
         var diameter := 2.0 * (RADIUS + RING_WIDTH / 2.0)
         _hint.offset_right = -(MARGIN + diameter + HINT_GAP)
         _hint.offset_left = _hint.offset_right - width
-        _hint.offset_bottom = -(MARGIN + (diameter - height) / 2.0)
+        var key_y := ControlsHelp.get_key_center_y()
+        if key_y >= 0.0:
+            var screen_h := _view.get_viewport_rect().size.y
+            _hint.offset_bottom = -(screen_h - key_y - height / 2.0)
+        else:
+            _hint.offset_bottom = -(MARGIN + (diameter - height) / 2.0)
         _hint.offset_top = _hint.offset_bottom - height
         # ゲージが満タンになるまでは薄くして、まだ使えないことを示す
         _hint.modulate.a = 1.0 if _gauge >= 1.0 else 0.4

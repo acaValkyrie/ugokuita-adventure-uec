@@ -50,6 +50,12 @@ const ITEMS := {
     ],
 }
 
+# 絵の中で、ほかの項目と縦の位置をそろえる基準のキーの中心（上端から、絵の高さに対する割合）。ここに無い絵は 0.5（絵の中央）
+const ICON_ALIGN := {
+    ICON_KEYS_WASD: 0.6875,
+    ICON_KEYS_ARROWS: 0.6875,
+}
+
 # コントローラのボタン表記ごとのアイコン。
 # Godot のボタン番号は位置で決まるため（下のボタン＝ジャンプ、左のボタン＝ブースト、
 # 左側の小さいボタン＝リセット、上のボタン＝マップ）、表記が変わっても操作は同じでアイコンだけが変わる。
@@ -197,13 +203,44 @@ func _rebuild() -> void:
     for child in _hbox.get_children():
         _hbox.remove_child(child)
         child.queue_free()
-    for item in _items_for(_mode):
+    var items := _items_for(_mode)
+    # 基準のキーの中心から、アイコンの下端までの長さの最大値（これに合わせて他の項目に隙間を入れる）
+    var max_below := 0.0
+    for item in items:
         var icon_scale: float = item[2] if item.size() > 2 else 1.0
-        _hbox.add_child(_make_item(item[0], item[1], icon_scale))
+        max_below = maxf(max_below, _below_center(item[0], icon_scale))
+    for item in items:
+        var icon_scale: float = item[2] if item.size() > 2 else 1.0
+        var spacer_height := max_below - _below_center(item[0], icon_scale)
+        _hbox.add_child(_make_item(item[0], item[1], icon_scale, spacer_height))
 
 
-# アイコンとラベルを縦に並べた1項目を作る（下端を揃えてラベルを同じ高さにする）
-func _make_item(icon: Texture2D, text: String, icon_scale: float) -> VBoxContainer:
+# アイコンの表示の高さ（px）
+func _icon_height(icon_scale: float) -> float:
+    return roundf(ICON_HEIGHT * icon_scale)
+
+
+# 基準のキーの中心から、アイコンの下端までの長さ（px）
+func _below_center(icon: Texture2D, icon_scale: float) -> float:
+    return (1.0 - ICON_ALIGN.get(icon, 0.5)) * _icon_height(icon_scale)
+
+
+# 操作説明のキーの縦の中心をそろえた線の、画面上の y 座標（項目が無いときは -1）
+func get_key_center_y() -> float:
+    if _hbox.get_child_count() == 0:
+        return -1.0
+    var box := _hbox.get_child(0)
+    if box.get_child_count() == 0:
+        return -1.0
+    var rect := box.get_child(0) as TextureRect
+    if rect == null or rect.size.y <= 0.0:
+        return -1.0
+    return rect.global_position.y + ICON_ALIGN.get(rect.texture, 0.5) * rect.size.y
+
+
+# アイコンとラベルを縦に並べた1項目を作る（下端を揃えてラベルを同じ高さにする）。
+# アイコンとラベルの間に spacer_height の隙間を入れて、基準のキーの中心を項目どうしでそろえる
+func _make_item(icon: Texture2D, text: String, icon_scale: float, spacer_height: float) -> VBoxContainer:
     var box := VBoxContainer.new()
     box.mouse_filter = Control.MOUSE_FILTER_IGNORE
     box.alignment = BoxContainer.ALIGNMENT_END
@@ -215,9 +252,14 @@ func _make_item(icon: Texture2D, text: String, icon_scale: float) -> VBoxContain
     rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     var aspect := float(icon.get_width()) / float(icon.get_height())
-    var height := roundf(ICON_HEIGHT * icon_scale)
+    var height := _icon_height(icon_scale)
     rect.custom_minimum_size = Vector2(roundf(height * aspect), height)
     box.add_child(rect)
+
+    var spacer := Control.new()
+    spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    spacer.custom_minimum_size.y = spacer_height
+    box.add_child(spacer)
 
     # パネルが無いので、地面の上でも読めるよう縁取りを付ける
     var label := UiStyle.make_label(text, FONT_SIZE, UiStyle.TEXT_COLOR)
