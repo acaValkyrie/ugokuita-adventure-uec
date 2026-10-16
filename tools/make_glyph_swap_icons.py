@@ -1,8 +1,9 @@
-# 操作説明のアイコンのうち、中の文字・記号の形がずれている4枚を、形のそろった見本の本体に文字だけ載せ替えて作り直す。
+# 操作説明のアイコンのうち、中の文字・記号の形がずれている・本体の色が合っていない8枚を、形のそろった見本の本体に文字だけ載せ替えて作り直す。
 # 入力: assets/ui/controls/ の trigger_lt.png・stick_left.png・button_b.png（見本の本体）と、
-#       文字の取り出し元4枚（trigger_rt・stick_right・button_x・button_triangle）。
+#       文字の取り出し元8枚（trigger_rt・stick_right・button_x・button_triangle・trigger_l2・trigger_zr・trigger_r2・trigger_zl）。
 #       取り出し元は最初に scratchpad の menu/glyph_src/ へ（無ければ）コピーし、以後はそこから読む。
-# 出力: assets/ui/controls/ の trigger_rt.png・stick_right.png・button_x.png・button_triangle.png（256x256 RGBA、上書き）
+# 出力: assets/ui/controls/ の trigger_rt.png・stick_right.png・button_x.png・button_triangle.png・trigger_l2.png・trigger_zr.png・trigger_r2.png・trigger_zl.png
+#       （256x256 RGBA、上書き）
 # 実行: uv run --with pillow --with numpy python tools/make_glyph_swap_icons.py
 # 見本の本体の内側（暗い画素の連結成分を穴埋めした領域）の文字を消し、取り出し元の文字（アルファ付き）を
 # 見本の文字と同じ高さ・同じ中心に合わせて (242,242,242) で重ねる。
@@ -28,6 +29,10 @@ JOBS = [
     ("stick_right", "stick_left", "stick_right"),
     ("button_x", "button_b", "button_x"),
     ("button_triangle", "button_b", "button_triangle"),
+    ("trigger_l2", "trigger_lt", "trigger_l2"),
+    ("trigger_zr", "trigger_lt", "trigger_zr"),
+    ("trigger_r2", "trigger_lt", "trigger_r2"),
+    ("trigger_zl", "trigger_lt", "trigger_zl"),
 ]
 
 
