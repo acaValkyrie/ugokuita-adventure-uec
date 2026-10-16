@@ -37,6 +37,16 @@ jobs:
             -out "assets/audio/bgm/これにてお開き、また来週！.mp3" \
             -pass env:BGM_KEY
           test -s "assets/audio/bgm/これにてお開き、また来週！.mp3"
+      # 街の鳥の声も規約で公開できないので、同じ鍵で戻す
+      - name: Decrypt ambient sound
+        env:
+          BGM_KEY: ${{ secrets.BGM_KEY }}
+        run: |
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -in assets/audio/bgm/city_bird.ogg.enc \
+            -out assets/audio/bgm/city_bird.ogg \
+            -pass env:BGM_KEY
+          test -s assets/audio/bgm/city_bird.ogg
       - name: Install Godot and export templates
         run: |
           base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"

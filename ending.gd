@@ -1,5 +1,6 @@
 extends CanvasLayer
 # エンディングを出す。画面左上にクレジットとスタート地点に戻るボタンを出し、BGMを流す。Reset でステージに戻ったときも閉じる。
+# 普段は街の鳥の声を BGM として流し、エンディング中は止める。
 # エンディング1: ステージから落ちたとき（集中線が出始めるほど速く落ちているとき）。
 # エンディング2: 東3号館の屋上の5倍の高さまで上がったとき。無重力になる（機体の側で is_zero_gravity() を見て漂わせる）。
 
@@ -12,6 +13,8 @@ const ENDING2_HEIGHT := E3_ROOF_HEIGHT * 5.0
 const BGM := preload("res://assets/audio/bgm/これにてお開き、また来週！.mp3")
 # エンディング2のBGM。Fanfare 1 (tcarisland) CC BY 4.0。クレジットは assets/audio/CREDITS.md
 const BGM2 := preload("res://assets/audio/bgm/ending2_fanfare_1.mp3")
+# 普段ずっと流す街の鳥の声。VSQ plus+ の効果音。クレジットは assets/audio/CREDITS.md
+const AMBIENT := preload("res://assets/audio/bgm/city_bird.ogg")
 const FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 
 var _shown := false
@@ -21,6 +24,8 @@ var _panel: PanelContainer
 var _box: VBoxContainer
 var _button: Button
 var _player: AudioStreamPlayer
+# 普段流す街の鳥の声
+var _ambient_player: AudioStreamPlayer
 # エンディング2だけで出すラベル
 var _ending2_labels: Array[Label] = []
 var _bgm2: AudioStreamMP3
@@ -87,6 +92,15 @@ func _ready() -> void:
     _bgm2 = BGM2.duplicate() as AudioStreamMP3
     _bgm2.loop = false
 
+    # 街の鳥の声はループして流し続ける
+    _ambient_player = AudioStreamPlayer.new()
+    _ambient_player.bus = "BGM"
+    var ambient_stream := AMBIENT.duplicate() as AudioStreamOggVorbis
+    ambient_stream.loop = true
+    _ambient_player.stream = ambient_stream
+    add_child(_ambient_player)
+    _ambient_player.play()
+
 
 func _process(_delta: float) -> void:
     var car := get_tree().get_first_node_in_group("player") as VehicleBody3D
@@ -146,6 +160,7 @@ func _show(ending: int) -> void:
     for label in _ending2_labels:
         label.visible = ending == 2
     _panel.visible = true
+    _ambient_player.stop()
     _player.stream = _bgm2 if ending == 2 else BGM
     _player.play()
     # ゲームパッドやキーボードの決定でも押せるようにする
@@ -156,6 +171,9 @@ func _hide() -> void:
     _shown = false
     _panel.visible = false
     _player.stop()
+    # 街の鳥の声を頭から流し直す（すでに流れているときは何もしない）
+    if not _ambient_player.playing:
+        _ambient_player.play()
     _button.release_focus()
 
 
