@@ -119,6 +119,8 @@ var _header_desc: Label
 var _contents: Array[Control] = []
 var _pad_texture_rect: TextureRect
 var _pad_name_label: Label
+var _pad_confirm_icon: TextureRect
+var _pad_cancel_icon: TextureRect
 var _pad_dots: Array[ColorRect] = []
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
@@ -713,7 +715,47 @@ func _build_pad_content() -> Control:
     var parts := _build_selector(_pad_texture_rect, PAD_LAYOUTS.size(), _step_pad)
     _pad_name_label = parts.name_label
     _pad_dots = parts.dots
+    parts.box.add_child(_build_pad_buttons_row())
     return parts.box
+
+
+# 名前と点の下に、今の表記での決定・キャンセルのボタンを並べた1行（点との間は 14）
+func _build_pad_buttons_row() -> Control:
+    var margin := MarginContainer.new()
+    margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    # 縦の並びの間（12）に足して 14 にする
+    margin.add_theme_constant_override("margin_top", 2)
+    var row := HBoxContainer.new()
+    row.alignment = BoxContainer.ALIGNMENT_CENTER
+    row.add_theme_constant_override("separation", 10)
+    row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    margin.add_child(row)
+    _pad_confirm_icon = _make_pad_button_icon()
+    row.add_child(_pad_confirm_icon)
+    row.add_child(_make_pad_button_text("決定"))
+    var gap := Control.new()
+    gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    gap.custom_minimum_size = Vector2(28 - 10 * 2, 0)
+    row.add_child(gap)
+    _pad_cancel_icon = _make_pad_button_icon()
+    row.add_child(_pad_cancel_icon)
+    row.add_child(_make_pad_button_text("キャンセル"))
+    return margin
+
+
+func _make_pad_button_icon() -> TextureRect:
+    var icon := TextureRect.new()
+    icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+    icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    icon.custom_minimum_size = Vector2(0, 28)
+    return icon
+
+
+func _make_pad_button_text(text: String) -> Label:
+    var label := UiStyle.make_label(text, 15, UiStyle.TEXT_DIM_COLOR)
+    label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    return label
 
 
 func _build_robot_content() -> Control:
@@ -897,6 +939,8 @@ func _refresh_pad() -> void:
     _pad_texture_rect.texture = PAD_TEXTURES[index]
     _pad_name_label.text = PAD_LAYOUT_NAMES[index]
     _set_dots(_pad_dots, index)
+    _pad_confirm_icon.texture = ControlsHelp.PAD_ICONS[pad_layout]["interact"]
+    _pad_cancel_icon.texture = ControlsHelp.PAD_ICONS[pad_layout]["cancel"]
 
 
 func _refresh_robot_names() -> void:
