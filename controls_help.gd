@@ -59,8 +59,9 @@ const ICON_ALIGN := {
 # コントローラのボタン表記ごとのアイコン。
 # Godot のボタン番号は位置で決まるため（下のボタン＝ジャンプ、左のボタン＝ブースト、
 # 左側の小さいボタン＝リセット、上のボタン＝マップ）、表記が変わっても操作は同じでアイコンだけが変わる。
-# ただし看板を開くボタンは例外で、表記ごとの決定ボタン（game_menu.gd の _apply_pad_buttons）なので、
-# 割り当ても表記で変わる。
+# ただし "interact"（看板を開く）と "cancel" は例外で、表記ごとの標準の決定・キャンセルのボタン
+# （game_menu.gd の _apply_pad_buttons。Nintendo は A・B、PlayStation は ×・○、Xbox は A・B）なので、
+# 割り当ても表記で変わる。決定とキャンセルを入れ替える設定は get_confirm_icon_for / get_cancel_icon_for で反映する。
 const PAD_ICONS := {
     "nintendo": {
         "rt": ICON_TRIGGER_ZR, "lt": ICON_TRIGGER_ZL,
@@ -70,7 +71,7 @@ const PAD_ICONS := {
     "playstation": {
         "rt": ICON_TRIGGER_R2, "lt": ICON_TRIGGER_L2,
         "jump": ICON_BUTTON_CROSS, "boost": ICON_BUTTON_SQUARE, "reset": ICON_BUTTON_CREATE,
-        "interact": ICON_BUTTON_CIRCLE, "map": ICON_BUTTON_TRIANGLE, "cancel": ICON_BUTTON_CROSS,
+        "interact": ICON_BUTTON_CROSS, "map": ICON_BUTTON_TRIANGLE, "cancel": ICON_BUTTON_CIRCLE,
     },
     "xbox": {
         "rt": ICON_TRIGGER_RT, "lt": ICON_TRIGGER_LT,
@@ -116,11 +117,16 @@ func _ready() -> void:
 
 func _connect_menu() -> void:
     GameMenu.pad_layout_changed.connect(_on_pad_layout_changed)
+    GameMenu.swap_confirm_changed.connect(_on_swap_confirm_changed)
     # 読み込んだ設定を反映する
     _rebuild()
 
 
 func _on_pad_layout_changed(_layout: String) -> void:
+    _rebuild()
+
+
+func _on_swap_confirm_changed(_swapped: bool) -> void:
     _rebuild()
 
 
@@ -185,7 +191,7 @@ func get_interact_icon() -> Texture2D:
         Mode.KEYBOARD:
             return ICON_KEY_E
         Mode.GAMEPAD:
-            return PAD_ICONS[GameMenu.pad_layout]["interact"]
+            return get_confirm_icon_for(GameMenu.pad_layout)
     return null
 
 
@@ -197,8 +203,18 @@ func get_mode() -> Mode:
 # キャンセルのボタンのアイコン（メニューの「閉じる」に出す）。コントローラ以外は null
 func get_cancel_icon() -> Texture2D:
     if _mode == Mode.GAMEPAD:
-        return PAD_ICONS[GameMenu.pad_layout]["cancel"]
+        return get_cancel_icon_for(GameMenu.pad_layout)
     return null
+
+
+# 指定した表記での決定のボタンのアイコン。入れ替えの設定が有効ならキャンセルのボタンのアイコンを返す
+func get_confirm_icon_for(layout: String) -> Texture2D:
+    return PAD_ICONS[layout]["cancel" if GameMenu.swap_confirm else "interact"]
+
+
+# 指定した表記でのキャンセルのボタンのアイコン。入れ替えの設定が有効なら決定のボタンのアイコンを返す
+func get_cancel_icon_for(layout: String) -> Texture2D:
+    return PAD_ICONS[layout]["interact" if GameMenu.swap_confirm else "cancel"]
 
 
 # 現在のモードの項目で HBox の中身を作り直す

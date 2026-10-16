@@ -1,10 +1,12 @@
 extends CanvasLayer
 # 左上のメニューボタンと、ESC/STARTで開く一時停止メニュー。
 # メニュー内で全体音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体（Neo / Classic）を選べる。
-# 画面は左に項目（音量・コントローラーの設定・ロボットタイプ・閉じる）、右に選んでいる項目の詳細を出す。
+# 決定とキャンセルのボタンを入れ替える設定もある。
+# 画面は左に項目（音量・コントローラーの設定・決定とキャンセル・ロボットタイプ・閉じる）、右に選んでいる項目の詳細を出す。
 
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
+signal swap_confirm_changed(swapped: bool)
 
 # Master バスの既定音量（default_bus_layout.tres）
 const BASE_DB := -6.0206
@@ -52,6 +54,7 @@ const PAD_TEXTURES := [
 const ITEM_ICONS := [
     preload("res://assets/ui/menu/icon_volume.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
+    preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_robot.png"),
 ]
 # ROBOT_MODELS の順
@@ -59,16 +62,21 @@ const ROBOT_SCENES := [
     preload("res://assets/ugokuita-neo.glb"),
     preload("res://assets/ugokuita-classic.fbx"),
 ]
-# 左の項目（0: 音量、1: コントローラーの設定、2: ロボットタイプ）
-const ITEM_NAMES := ["音量", "コントローラーの設定", "ロボットタイプ"]
+# 左の項目（0: 音量、1: コントローラーの設定、2: 決定とキャンセル、3: ロボットタイプ）
+const ITEM_NAMES := ["音量", "コントローラーの設定", "決定とキャンセル", "ロボットタイプ"]
 const ITEM_DESCRIPTIONS := [
     "ゲーム全体の音量を調整します",
     "ボタンの表示形式を切り替えます",
+    "決定とキャンセルのボタンを入れ替えます",
     "操作する機体を切り替えます",
 ]
 const ITEM_VOLUME := 0
 const ITEM_PAD := 1
-const ITEM_ROBOT := 2
+const ITEM_CONFIRM := 2
+const ITEM_ROBOT := 3
+# 決定とキャンセルの選択肢の名前（SWAP_CONFIRM_VALUES の順）
+const SWAP_CONFIRM_NAMES := ["標準", "入れ替え"]
+const SWAP_CONFIRM_VALUES := [false, true]
 
 # 色
 const DIMMER_COLOR := Color(0, 0, 0, 0.55)
@@ -90,6 +98,8 @@ const ROBOT_MODEL_TRANSFORM := "Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, 
 var is_open: bool = false
 var pad_layout: String = "nintendo"
 var robot_model: String = "neo"
+# true なら決定とキャンセルのボタンを標準から入れ替える
+var swap_confirm: bool = false
 var _volume: int = 100
 var _menu_button: Button
 var _dimmer: ColorRect
@@ -111,6 +121,7 @@ var _close_hint_mark: Control
 # 閉じるの印を作ったときの入力方式とボタン表記
 var _close_hint_mode: int = -1
 var _close_hint_layout: String = ""
+var _close_hint_swap: bool = false
 var _current_item: int = ITEM_VOLUME
 # 右の列
 var _header_name: Label
@@ -122,6 +133,10 @@ var _pad_name_label: Label
 var _pad_confirm_icon: TextureRect
 var _pad_cancel_icon: TextureRect
 var _pad_dots: Array[ColorRect] = []
+var _confirm_name_label: Label
+var _confirm_dots: Array[ColorRect] = []
+var _confirm_icon: TextureRect
+var _confirm_cancel_icon: TextureRect
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
 # 機体の3D表示
@@ -151,6 +166,7 @@ func _ready() -> void:
     _slider.set_value_no_signal(_volume)
     _refresh_volume_labels()
     _refresh_pad()
+    _refresh_confirm()
     _refresh_robot_names()
     _set_current_item(ITEM_VOLUME, true)
 
@@ -158,8 +174,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
     if not is_open:
         return
-    # 入力方式かボタン表記が変わったときだけ、閉じるの印を作り直す
-    if ControlsHelp.get_mode() != _close_hint_mode or pad_layout != _close_hint_layout:
+    # 入力方式かボタン表記、決定とキャンセルの入れ替えが変わったときだけ、閉じるの印を作り直す
+    if ControlsHelp.get_mode() != _close_hint_mode or pad_layout != _close_hint_layout or swap_confirm != _close_hint_swap:
         _rebuild_close_hint()
     # ロボットタイプを見ているときだけ機体を回す（一時停止中も動く）
     if _current_item == ITEM_ROBOT and _robot_pivot != null:
@@ -584,6 +600,7 @@ func _rebuild_close_hint() -> void:
         _close_hint_mark = null
     _close_hint_mode = ControlsHelp.get_mode()
     _close_hint_layout = pad_layout
+    _close_hint_swap = swap_confirm
     match _close_hint_mode:
         ControlsHelp.Mode.KEYBOARD:
             var box := PanelContainer.new()
@@ -682,7 +699,7 @@ func _build_right_column() -> Control:
     holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
     holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
     vbox.add_child(holder)
-    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_robot_content()]
+    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_robot_content()]
     for content in contents:
         content.set_anchors_preset(Control.PRESET_FULL_RECT)
         content.visible = false
@@ -756,6 +773,46 @@ func _make_pad_button_text(text: String) -> Label:
     var label := UiStyle.make_label(text, 15, UiStyle.TEXT_DIM_COLOR)
     label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     return label
+
+
+# 決定とキャンセル。中央に、決定とキャンセルのボタンのアイコンと名前を横に並べる
+func _build_confirm_content() -> Control:
+    var center := HBoxContainer.new()
+    center.alignment = BoxContainer.ALIGNMENT_CENTER
+    center.add_theme_constant_override("separation", 40)
+    center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    center.custom_minimum_size = Vector2(0, 250)
+    _confirm_icon = _make_confirm_icon_rect()
+    center.add_child(_make_confirm_column(_confirm_icon, "決定"))
+    _confirm_cancel_icon = _make_confirm_icon_rect()
+    center.add_child(_make_confirm_column(_confirm_cancel_icon, "キャンセル"))
+    var parts := _build_selector(center, SWAP_CONFIRM_VALUES.size(), _step_confirm)
+    _confirm_name_label = parts.name_label
+    _confirm_dots = parts.dots
+    return parts.box
+
+
+# アイコン（高さ 72）の下に名前（17px）を置いた縦の並び
+func _make_confirm_column(icon: TextureRect, text: String) -> Control:
+    var column := VBoxContainer.new()
+    column.alignment = BoxContainer.ALIGNMENT_CENTER
+    column.add_theme_constant_override("separation", 8)
+    column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    column.add_child(icon)
+    var label := _make_label(text, 17, UiStyle.TEXT_COLOR)
+    label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    column.add_child(label)
+    return column
+
+
+func _make_confirm_icon_rect() -> TextureRect:
+    var icon := TextureRect.new()
+    icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+    icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    icon.custom_minimum_size = Vector2(0, 72)
+    icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    return icon
 
 
 func _build_robot_content() -> Control:
@@ -905,6 +962,8 @@ func _step_row(index: int, direction: int) -> void:
             _slider.value += 5.0 * direction
         ITEM_PAD:
             _step_pad(direction)
+        ITEM_CONFIRM:
+            _step_confirm(direction)
         ITEM_ROBOT:
             _step_robot(direction)
 
@@ -913,6 +972,19 @@ func _step_pad(direction: int) -> void:
     var count := PAD_LAYOUTS.size()
     var next := (PAD_LAYOUTS.find(pad_layout) + direction + count) % count
     _on_pad_layout_pressed(PAD_LAYOUTS[next])
+    _refresh_pad()
+    # 決定とキャンセルの項目の絵も表記に合わせる
+    _refresh_confirm()
+
+
+# 選択肢は2つなので、どちらの向きでも交互に切り替わる
+func _step_confirm(_direction: int) -> void:
+    swap_confirm = not swap_confirm
+    _apply_pad_buttons()
+    _save_settings()
+    swap_confirm_changed.emit(swap_confirm)
+    _refresh_confirm()
+    # コントローラーの設定の中の「決定・キャンセル」の行も追従させる
     _refresh_pad()
 
 
@@ -939,8 +1011,16 @@ func _refresh_pad() -> void:
     _pad_texture_rect.texture = PAD_TEXTURES[index]
     _pad_name_label.text = PAD_LAYOUT_NAMES[index]
     _set_dots(_pad_dots, index)
-    _pad_confirm_icon.texture = ControlsHelp.PAD_ICONS[pad_layout]["interact"]
-    _pad_cancel_icon.texture = ControlsHelp.PAD_ICONS[pad_layout]["cancel"]
+    _pad_confirm_icon.texture = ControlsHelp.get_confirm_icon_for(pad_layout)
+    _pad_cancel_icon.texture = ControlsHelp.get_cancel_icon_for(pad_layout)
+
+
+func _refresh_confirm() -> void:
+    var index := SWAP_CONFIRM_VALUES.find(swap_confirm)
+    _confirm_name_label.text = SWAP_CONFIRM_NAMES[index]
+    _set_dots(_confirm_dots, index)
+    _confirm_icon.texture = ControlsHelp.get_confirm_icon_for(pad_layout)
+    _confirm_cancel_icon.texture = ControlsHelp.get_cancel_icon_for(pad_layout)
 
 
 func _refresh_robot_names() -> void:
@@ -1018,13 +1098,19 @@ func _on_robot_model_pressed(model: String) -> void:
     robot_model_changed.emit(robot_model)
 
 
-# 決定・キャンセル（と看板を開く）のボタンを表記に合わせる（任天堂・PSは右が決定で下がキャンセル、Xboxは下が決定で右がキャンセル）
+# 決定・キャンセル（と看板を開く）のボタンを表記に合わせる。
+# 標準は Nintendo が A（右）で決定・B（下）でキャンセル、PlayStation が ×（下）で決定・○（右）でキャンセル、Xbox が A（下）で決定・B（右）でキャンセル。
+# swap_confirm が true なら決定とキャンセルを入れ替える
 func _apply_pad_buttons() -> void:
-    var confirm := JOY_BUTTON_A if pad_layout == "xbox" else JOY_BUTTON_B
-    var cancel := JOY_BUTTON_B if pad_layout == "xbox" else JOY_BUTTON_A
+    var confirm := JOY_BUTTON_B if pad_layout == "nintendo" else JOY_BUTTON_A
+    var cancel := JOY_BUTTON_A if pad_layout == "nintendo" else JOY_BUTTON_B
+    if swap_confirm:
+        var swapped := confirm
+        confirm = cancel
+        cancel = swapped
     _set_joy_button("ui_accept", confirm)
     _set_joy_button("ui_cancel", cancel)
-    # 看板を開くボタンは決定と同じ（Nintendo は A、PS は ○、Xbox は A）
+    # 看板を開くボタンは決定と同じ
     _set_joy_button("interact", confirm)
 
 
@@ -1076,6 +1162,7 @@ func _load_settings() -> void:
     var layout := str(config.get_value("controls", "pad_layout", "nintendo"))
     if layout in PAD_LAYOUTS:
         pad_layout = layout
+    swap_confirm = bool(config.get_value("controls", "swap_confirm", false))
     var model := str(config.get_value("robot", "model", "neo"))
     if model in ROBOT_MODELS:
         robot_model = model
@@ -1085,5 +1172,6 @@ func _save_settings() -> void:
     var config := ConfigFile.new()
     config.set_value("audio", "volume", _volume)
     config.set_value("controls", "pad_layout", pad_layout)
+    config.set_value("controls", "swap_confirm", swap_confirm)
     config.set_value("robot", "model", robot_model)
     config.save(SETTINGS_PATH)
