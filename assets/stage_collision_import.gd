@@ -61,6 +61,17 @@ const LOD_NORMAL_SPLIT_ANGLE := deg_to_rad(25.0)
 # 建物の地面の高さの面とみなす、三角形の全頂点のワールドYの絶対値の上限（メートル）
 const GROUND_FACE_MAX_Y := 0.02
 
+# 重なる面を持ち上げる1段あたりの高さ（メートル）
+const COPLANAR_LIFT_STEP := 0.003
+# 同じ高さとみなす高さの差（メートル）。水平な三角形とみなす、3頂点のyの差の上限にも使う
+const COPLANAR_MAX_DY := 0.0005
+# 調べる三角形の面積の下限（平方メートル）
+const COPLANAR_MIN_TRI_AREA := 0.001
+# 重なっているとみなす面積の下限（平方メートル）
+const COPLANAR_MIN_OVERLAP := 0.0001
+# 重なりを探す空間グリッドのセル（メートル）
+const COPLANAR_GRID_CELL := 2.0
+
 # ライトマップ1ピクセルが覆う長さ（メートル）
 const LIGHTMAP_TEXEL_SIZE := 0.5
 
@@ -84,6 +95,15 @@ class WindowTri:
 	var is_window := false
 
 
+# 同じ高さで重なる面の検出に使う水平な三角形（シーン座標）
+class FlatTri:
+	var id: int
+	var node_index: int
+	var y: float
+	var poly: PackedVector2Array
+	var rect: Rect2
+
+
 func _post_import(scene: Node) -> Object:
 	var start_msec := Time.get_ticks_msec()
 	_material_cache.clear()
@@ -104,9 +124,152 @@ func _post_import(scene: Node) -> Object:
 		if String(child.name).begins_with("hi_"):
 			_strip_ground_faces(child, scene, strip_cache, strip_stats)
 	print("stage_collision_import: 建物の地面の高さの面を取り除いた: %d 三角形（%d 棟）" % [strip_stats["tris"], strip_stats["buildings"]])
+	_lift_coplanar_overlaps(scene)
 	_set_lightmap_hints(scene)
 	print("窓の検出の合計: 窓の三角形=%d 取り込み時間=%d ms" % [_window_tri_total, Time.get_ticks_msec() - start_msec])
 	return scene
+
+
+# 別々のメッシュの水平な面が同じ高さで重なっていると、Zファイティングでフレームごとに前後が入れ替わってちらつく。
+# 重なっている組のうち水平な面積の小さいほうを、見た目だけ少しずつ上に持ち上げて重ならないようにする。
+# 当たり判定（StaticBody3D）は元の位置に残す
+func _lift_coplanar_overlaps(scene: Node) -> void:
+	var start_msec := Time.get_ticks_msec()
+	var nodes: Array[MeshInstance3D] = []
+	for child in scene.get_children():
+		if child.name == "tree":
+			continue
+		_collect_coplanar_nodes(child, nodes)
+	# 水平な三角形を集め、外接矩形が重なるセルすべてへ登録する
+	var grid := {}
+	var areas := PackedFloat64Array()
+	areas.resize(nodes.size())
+	var tri_count := 0
+	for node_index in nodes.size():
+		var node := nodes[node_index]
+		var xform := _scene_transform(node, scene)
+		var faces := node.mesh.get_faces()
+		for i in range(0, faces.size() - 2, 3):
+			var a := xform * faces[i]
+			var b := xform * faces[i + 1]
+			var c := xform * faces[i + 2]
+			if maxf(a.y, maxf(b.y, c.y)) - minf(a.y, minf(b.y, c.y)) > COPLANAR_MAX_DY:
+				continue
+			var pa := Vector2(a.x, a.z)
+			var pb := Vector2(b.x, b.z)
+			var pc := Vector2(c.x, c.z)
+			var area := absf((pb - pa).cross(pc - pa)) * 0.5
+			if area < COPLANAR_MIN_TRI_AREA:
+				continue
+			var tri := FlatTri.new()
+			tri.id = tri_count
+			tri_count += 1
+			tri.node_index = node_index
+			tri.y = a.y
+			tri.poly = PackedVector2Array([pa, pb, pc])
+			var low := pa.min(pb).min(pc)
+			tri.rect = Rect2(low, pa.max(pb).max(pc) - low)
+			areas[node_index] += area
+			var cell_low := Vector2i((low / COPLANAR_GRID_CELL).floor())
+			var cell_high := Vector2i(((low + tri.rect.size) / COPLANAR_GRID_CELL).floor())
+			for x in range(cell_low.x, cell_high.x + 1):
+				for y in range(cell_low.y, cell_high.y + 1):
+					var key := Vector2i(x, y)
+					if not grid.has(key):
+						grid[key] = []
+					grid[key].append(tri)
+	# 同じセルにある三角形の組から、重なっているノードの組を求める
+	var overlap_pairs := {}
+	var checked_tris := {}
+	var neighbors: Array = []
+	neighbors.resize(nodes.size())
+	for i in nodes.size():
+		neighbors[i] = []
+	for cell_tris: Array in grid.values():
+		for i in cell_tris.size():
+			var t1: FlatTri = cell_tris[i]
+			for j in range(i + 1, cell_tris.size()):
+				var t2: FlatTri = cell_tris[j]
+				if t1.node_index == t2.node_index or absf(t1.y - t2.y) > COPLANAR_MAX_DY:
+					continue
+				var node_key := Vector2i(mini(t1.node_index, t2.node_index), maxi(t1.node_index, t2.node_index))
+				if overlap_pairs.has(node_key):
+					continue
+				var tri_key := Vector2i(mini(t1.id, t2.id), maxi(t1.id, t2.id))
+				if checked_tris.has(tri_key):
+					continue
+				checked_tris[tri_key] = true
+				if not t1.rect.intersects(t2.rect):
+					continue
+				var overlap := 0.0
+				for polygon: PackedVector2Array in Geometry2D.intersect_polygons(t1.poly, t2.poly):
+					var twice_area := 0.0
+					for k in polygon.size():
+						twice_area += polygon[k].cross(polygon[(k + 1) % polygon.size()])
+					overlap += absf(twice_area) * 0.5
+				if overlap > COPLANAR_MIN_OVERLAP:
+					overlap_pairs[node_key] = true
+					neighbors[node_key.x].append(node_key.y)
+					neighbors[node_key.y].append(node_key.x)
+	# 水平な面積の大きいノードから順に、重なる相手より1段上の段を決める
+	var paths: Array[String] = []
+	for node in nodes:
+		paths.append(str(scene.get_path_to(node)))
+	var order: Array[int] = []
+	for i in nodes.size():
+		order.append(i)
+	order.sort_custom(func(l: int, r: int) -> bool:
+		if areas[l] != areas[r]:
+			return areas[l] > areas[r]
+		return paths[l] < paths[r])
+	var levels: Array[int] = []
+	levels.resize(nodes.size())
+	levels.fill(-1)
+	var max_level := 0
+	for index in order:
+		var level := 0
+		for other: int in neighbors[index]:
+			if levels[other] >= 0:
+				level = maxi(level, levels[other] + 1)
+		levels[index] = level
+		max_level = maxi(max_level, level)
+	# 持ち上げる前に、ノードと直下の当たり判定のシーン座標を記録する
+	var orig_world := {}
+	var orig_body_world := {}
+	for node in nodes:
+		orig_world[node] = _scene_transform(node, scene)
+		for child in node.get_children():
+			if child is StaticBody3D:
+				orig_body_world[child] = _scene_transform(child, scene)
+	# 親が先になるよう浅い順に持ち上げ、当たり判定は元の位置へ戻す
+	var lifted: Array[MeshInstance3D] = []
+	for i in nodes.size():
+		if levels[i] >= 1:
+			lifted.append(nodes[i])
+	var depths := {}
+	for node in lifted:
+		depths[node] = scene.get_path_to(node).get_name_count()
+	lifted.sort_custom(func(l: MeshInstance3D, r: MeshInstance3D) -> bool: return depths[l] < depths[r])
+	for node in lifted:
+		var lift := levels[nodes.find(node)] * COPLANAR_LIFT_STEP
+		var orig: Transform3D = orig_world[node]
+		var target := Transform3D(orig.basis, orig.origin + Vector3(0.0, lift, 0.0))
+		var parent_world := _scene_transform(node.get_parent(), scene)
+		node.transform = parent_world.affine_inverse() * target
+		for child in node.get_children():
+			if child is StaticBody3D:
+				child.transform = target.affine_inverse() * orig_body_world[child]
+	print("stage_collision_import: 同じ高さで重なる面を持ち上げた: 重なる組=%d ノード=%d 最大の段=%d 時間=%d ms" % [overlap_pairs.size(), lifted.size(), max_level, Time.get_ticks_msec() - start_msec])
+
+
+# 持ち上げの対象になるメッシュのノード（_col で終わらず、StaticBody3D の下以外）を集める
+func _collect_coplanar_nodes(node: Node, nodes: Array[MeshInstance3D]) -> void:
+	if node is StaticBody3D:
+		return
+	for child in node.get_children():
+		_collect_coplanar_nodes(child, nodes)
+	if node is MeshInstance3D and node.mesh != null and not String(node.name).ends_with("_col"):
+		nodes.append(node)
 
 
 # 建物の見た目のメッシュから、ワールドの高さがほぼ0の水平な三角形を取り除く。
