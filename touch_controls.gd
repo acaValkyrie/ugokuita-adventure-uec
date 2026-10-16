@@ -2,7 +2,7 @@ extends CanvasLayer
 # スマホ用タッチ操作。
 # 一本指スワイプで運転（既存アクション up/down/left/right）、
 # 二本指スワイプで視点移動（既存アクション view_*）、
-# ダブルタップでジャンプ（アクション jump）を行う。
+# ダブルタップでジャンプ（アクション jump）を行う（2回目の指を押している間はジャンプを押したまま）。
 
 # この距離（px）ドラッグしたときの強さが1.0
 @export var STICK_RADIUS: float = 80.0
@@ -35,6 +35,8 @@ var _button_touches: Dictionary = {}
 # 直前の1本指タッチの開始時刻（ミリ秒、-1は無し）と位置
 var _last_tap_msec: int = -1
 var _last_tap_pos: Vector2 = Vector2.ZERO
+# ダブルタップの2回目の指のindex（ジャンプを押している間。-1は無し）
+var _jump_touch: int = -1
 
 
 func _ready() -> void:
@@ -72,22 +74,22 @@ func _on_reset_pressed() -> void:
 
 
 # 何も触れていない状態から始まったタッチが、直前のタッチの近くで素早く続いたらジャンプする
-func _check_double_tap(pos: Vector2) -> void:
+func _check_double_tap(pos: Vector2, index: int) -> void:
     var now := Time.get_ticks_msec()
     if _last_tap_msec >= 0 and now - _last_tap_msec <= DOUBLE_TAP_TIME * 1000.0 \
             and pos.distance_to(_last_tap_pos) <= DOUBLE_TAP_DISTANCE:
         # 3回目のタップで再びジャンプしないよう記録を消す
         _last_tap_msec = -1
-        _press_jump()
+        # 2回目の指が触れている間はジャンプを押したままにする（長押しで機体のジェットが働く）
+        _jump_touch = index
+        Input.action_press("jump")
         return
     _last_tap_msec = now
     _last_tap_pos = pos
 
 
-func _press_jump() -> void:
-    # 次のフレームで離して is_action_just_pressed を成立させる
-    Input.action_press("jump")
-    await get_tree().process_frame
+func _release_jump() -> void:
+    _jump_touch = -1
     Input.action_release("jump")
 
 
@@ -122,11 +124,13 @@ func _input(event: InputEvent) -> void:
                 _button_touches[event.index] = true
                 return
             if _touches.is_empty():
-                _check_double_tap(event.position)
+                _check_double_tap(event.position, event.index)
             _touches[event.index] = event.position
         else:
             if _button_touches.erase(event.index):
                 return
+            if event.index == _jump_touch:
+                _release_jump()
             _touches.erase(event.index)
     elif event is InputEventScreenDrag:
         if _button_touches.has(event.index) or not _touches.has(event.index):
@@ -241,6 +245,8 @@ func _reset() -> void:
     _last_tap_msec = -1
     _pair = []
     _mode = Mode.NONE
+    if _jump_touch >= 0:
+        _release_jump()
     _release_all()
     if _overlay:
         _overlay.queue_redraw()
