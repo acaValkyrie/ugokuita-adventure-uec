@@ -116,6 +116,7 @@ const HINT_PLACEMENTS := {
     "e_intl_n": {"position": Vector3(117.73, 9.92, -336.11), "hint": "hint1"},  # 東国際交流会館 北の非常階段
     "e9_n": {"position": Vector3(147.75, 11.99, -250.99), "hint": "hint1"},  # 東9号館 北の非常階段
     "e8_e": {"position": Vector3(158.17, 13.35, -222.21), "hint": "hint1"},  # 東8号館 東の非常階段
+    "e11": {"position": Vector3(18.55, 8.59, -196.69), "hint": "hint1"},  # 東11号館
 }
 
 var is_open: bool = false
