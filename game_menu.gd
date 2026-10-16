@@ -9,7 +9,9 @@ signal robot_model_changed(model: String)
 # Master バスの既定音量（default_bus_layout.tres）
 const BASE_DB := -6.0206
 const SETTINGS_PATH := "user://settings.cfg"
-const BUTTON_SIZE := 72
+const BUTTON_SIZE := 40
+# ボタンの角丸の半径
+const BUTTON_RADIUS := 10
 const MARGIN := 16
 # ボタンの色（操作説明のアイコンに合わせる）
 const RING_COLOR := UiStyle.TEXT_COLOR
@@ -78,7 +80,7 @@ const ACCENT_COLOR := Color("#e0182d")
 const DOT_OFF_COLOR := Color(0.35, 0.35, 0.35)
 # 寸法
 const PANEL_MAX_WIDTH := 1000.0
-const PANEL_TOP := 96.0
+const PANEL_TOP := 72.0
 const PANEL_BOTTOM := 24.0
 const LEFT_COLUMN_WIDTH := 430.0
 const ROBOT_ROT_SPEED := 35.0
@@ -244,22 +246,24 @@ func _build_button() -> void:
 
 func _on_icon_draw(icon: Control) -> void:
     var center := icon.size * 0.5
+    # 絵の寸法は72pxのボタンを基準に、ボタンの大きさに合わせて縮める
+    var k := icon.size.x / 72.0
     # 角を丸めた四角（操作説明のキーアイコンに合わせる）
     var face := StyleBoxFlat.new()
     face.bg_color = FACE_COLOR
     face.border_color = UiStyle.BORDER_COLOR
     face.set_border_width_all(2)
-    face.set_corner_radius_all(UiStyle.PANEL_RADIUS)
+    face.set_corner_radius_all(BUTTON_RADIUS)
     face.anti_aliasing = true
     icon.draw_style_box(face, Rect2(Vector2.ZERO, icon.size))
     # 三本線（両端は丸める）
     for i in range(-1, 2):
-        var y := center.y + i * 10.0
-        var from := Vector2(center.x - 14.0, y)
-        var to := Vector2(center.x + 14.0, y)
-        icon.draw_line(from, to, RING_COLOR, 6.0, true)
-        icon.draw_circle(from, 3.0, RING_COLOR, true, -1.0, true)
-        icon.draw_circle(to, 3.0, RING_COLOR, true, -1.0, true)
+        var y := center.y + i * 10.0 * k
+        var from := Vector2(center.x - 14.0 * k, y)
+        var to := Vector2(center.x + 14.0 * k, y)
+        icon.draw_line(from, to, RING_COLOR, 6.0 * k, true)
+        icon.draw_circle(from, 3.0 * k, RING_COLOR, true, -1.0, true)
+        icon.draw_circle(to, 3.0 * k, RING_COLOR, true, -1.0, true)
 
 
 func _make_style(color: Color, radius: int) -> StyleBoxFlat:

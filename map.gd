@@ -10,7 +10,7 @@ const LABEL_FONT := preload("res://assets/fonts/noto_sans_cjk_jp_bold_ui.otf")
 # 画面の端から地図までの余白
 const SCREEN_MARGIN := 48.0
 # マップボタンとメニューボタンの間隔
-const BUTTON_GAP := 12
+const BUTTON_GAP := 8
 # 号館の名前のノード名の接頭辞と、当たり判定用ノードの接尾辞
 const BUILDING_PREFIX := "hi_"
 const COLLISION_SUFFIX := "_col"
@@ -32,9 +32,9 @@ const MARKER_3D_SCRIPT := preload("res://map_marker_3d.gd")
 const HINT_MARK_COLOR := Color("#d4a017")
 const HINT_MARK_RADIUS := 12.0
 # ヒントの印が付いてからマップを開くまで、マップボタンの外側に付ける縁取りの太さ [px]、ボタンからの張り出し [px]、角の丸み [px]
-const BUTTON_HINT_RING_WIDTH := 6
-const BUTTON_HINT_RING_OUTSET := 4.0
-const BUTTON_HINT_RING_RADIUS := 18
+const BUTTON_HINT_RING_WIDTH := 3
+const BUTTON_HINT_RING_OUTSET := 3.0
+const BUTTON_HINT_RING_RADIUS := 13
 # 水平の距離がこれ（m）より近づいたら、着いたとしてマーカーを消す
 const ARRIVE_DISTANCE := 5.0
 # 押した点からこの距離（px）以内にマーカーがあれば消す
@@ -349,27 +349,29 @@ func _on_icon_draw(icon: Control) -> void:
         var outset := Vector2(BUTTON_HINT_RING_OUTSET, BUTTON_HINT_RING_OUTSET)
         icon.draw_style_box(ring, Rect2(-outset, icon.size + outset * 2.0))
     var center := icon.size * 0.5
+    # 絵の寸法は72pxのボタンを基準に、ボタンの大きさに合わせて縮める
+    var k := icon.size.x / 72.0
     var face := StyleBoxFlat.new()
     face.bg_color = GameMenu.FACE_COLOR
     face.border_color = UiStyle.BORDER_COLOR
     face.set_border_width_all(2)
-    face.set_corner_radius_all(UiStyle.PANEL_RADIUS)
+    face.set_corner_radius_all(GameMenu.BUTTON_RADIUS)
     face.anti_aliasing = true
     icon.draw_style_box(face, Rect2(Vector2.ZERO, icon.size))
     # 3枚のパネルが交互に傾いたジグザグの輪郭（上の辺と下の辺を、同じ向きにずらす）
-    var xs := [-18.0, -6.0, 6.0, 18.0]
-    var top_ys := [-8.0, -14.0, -8.0, -14.0]
-    var bottom_ys := [14.0, 8.0, 14.0, 8.0]
+    var xs := [-18.0 * k, -6.0 * k, 6.0 * k, 18.0 * k]
+    var top_ys := [-8.0 * k, -14.0 * k, -8.0 * k, -14.0 * k]
+    var bottom_ys := [14.0 * k, 8.0 * k, 14.0 * k, 8.0 * k]
     var outline := PackedVector2Array()
     for i in xs.size():
         outline.append(center + Vector2(xs[i], top_ys[i]))
     for i in range(xs.size() - 1, -1, -1):
         outline.append(center + Vector2(xs[i], bottom_ys[i]))
     outline.append(outline[0])
-    icon.draw_polyline(outline, GameMenu.RING_COLOR, 5.0, true)
+    icon.draw_polyline(outline, GameMenu.RING_COLOR, 5.0 * k, true)
     # 折り目
     for i in [1, 2]:
-        icon.draw_line(center + Vector2(xs[i], top_ys[i]), center + Vector2(xs[i], bottom_ys[i]), GameMenu.RING_COLOR, 5.0, true)
+        icon.draw_line(center + Vector2(xs[i], top_ys[i]), center + Vector2(xs[i], bottom_ys[i]), GameMenu.RING_COLOR, 5.0 * k, true)
 
 
 # 画面の大きさに合わせて、地図を余白つきで縦横比を保って最大に置く

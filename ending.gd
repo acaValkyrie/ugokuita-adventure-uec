@@ -33,7 +33,7 @@ func _ready() -> void:
     # 画面中央の機体に被らないよう、左上のメニューボタンの下に置く
     _panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
     _panel.offset_left = 16
-    _panel.offset_top = 96
+    _panel.offset_top = 72
     var style := UiStyle.make_panel_style(false, 12, true)
     style.content_margin_left = 24
     style.content_margin_right = 24
