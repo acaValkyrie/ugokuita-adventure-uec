@@ -55,6 +55,8 @@ func _setup_reset_button() -> void:
     _reset_button.ignore_texture_size = true
     _reset_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
     _reset_button.mouse_filter = Control.MOUSE_FILTER_PASS
+    # クリック後にフォーカスが残ると、Space などの決定でもう一度働いてしまうので受け取らない
+    _reset_button.focus_mode = Control.FOCUS_NONE
     _reset_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
     _reset_button.offset_left = -16 - 72
     _reset_button.offset_right = -16
