@@ -38,6 +38,16 @@ extends VehicleBody3D
 @export var SWEEP_MARGIN := 0.03
 # すり抜け防止が働いてから、フレームごとの水平の速度変化を足し合わせる時間 [s]。ぶつかる直前の数フレームに分けて速度が落ちるので、激突の判定ではこの間の合計も見る
 @export var SWEEP_CRASH_WINDOW := 0.1
+# ジェットの上向きの加速度 [m/s²]（重力を打ち消したうえで足す分）
+@export var JET_LIFT_ACCEL := 14.0
+# ジェットで上がる速さの上限 [m/s]
+@export var JET_MAX_RISE_SPEED := 6.0
+# 空中で水平の速さを目標に近づける加速度 [m/s²]
+@export var JET_AIR_ACCEL := 8.0
+# 空中でハンドルを切ったときの向きの変わる速さ [rad/s]
+@export var JET_TURN_SPEED := 2.0
+# 空中で機体を水平に戻す強さ [1/s]
+@export var JET_UPRIGHT_GAIN := 4.0
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
@@ -141,10 +151,36 @@ func _physics_process(delta: float) -> void:
         apply_central_force(global_basis.z * _boost_dir * BOOST_ACCEL * mass)
         _boost_time -= delta
 
+    if PowerUps.has("jet"):
+        _apply_jet(delta, throttle, on_ground)
+
     _check_crash(delta)
     # 激突の判定は物理エンジンが出した速度どうしで比べたいので、速度を調整する前に記録する
     _prev_velocity = linear_velocity
     _prevent_tunneling(delta)
+
+# ジェット。ジャンプを押している間は上へ押し上げ、空中ではアクセルとハンドルで水平に動かす
+func _apply_jet(delta: float, throttle: float, on_ground: bool) -> void:
+    var gravity := get_gravity()
+    if Input.is_action_pressed("jump") and not GameMenu.is_just_closed() \
+            and not PowerUps.is_just_closed() and not gravity.is_zero_approx():
+        # 上がる速さが上限に達したら、重力を打ち消すだけにする
+        var lift := 0.0 if linear_velocity.y >= JET_MAX_RISE_SPEED else JET_LIFT_ACCEL
+        apply_central_force(-gravity * mass + Vector3.UP * mass * lift)
+    if on_ground:
+        return
+    # ブースト中は水平の速度をいじらない（ブーストを打ち消さないため）
+    if _boost_time <= 0.0:
+        var forward_flat := global_basis.z
+        forward_flat.y = 0.0
+        forward_flat = forward_flat.normalized()
+        var target := forward_flat * throttle * get_max_speed()
+        var horizontal := Vector3(linear_velocity.x, 0.0, linear_velocity.z)
+        horizontal = horizontal.move_toward(target, JET_AIR_ACCEL * delta)
+        linear_velocity = Vector3(horizontal.x, linear_velocity.y, horizontal.z)
+    # 機体を水平に保ちつつ、ハンドルで向きを変える
+    angular_velocity = global_basis.y.cross(Vector3.UP) * JET_UPRIGHT_GAIN \
+            + Vector3.UP * Input.get_axis("right", "left") * JET_TURN_SPEED
 
 # 1回の更新で当たり判定の厚さより大きく進むと、厚みのない地面や壁を通り越してしまう。
 # そこで通り道を先に調べ、面の手前で止まる速さに落とす（ぶつかった後の反応は物理エンジンに任せる）

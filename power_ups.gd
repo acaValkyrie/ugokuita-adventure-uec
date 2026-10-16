@@ -29,6 +29,11 @@ const ITEMS := {
         "description": "高くジャンプできるようになったぞ！！",
         "icon": preload("res://assets/ui/powerups/powerup_jump_up.png"),
     },
+    "jet": {
+        "name": "ジェット",
+        "description": "ジャンプ長押しで空を飛べるようになったぞ！！",
+        "icon": preload("res://assets/ui/powerups/powerup_jet.png"),
+    },
 }
 
 # 効果の倍率
@@ -50,6 +55,8 @@ const ITEM_PLACEMENTS := {
     "boost_charge": Vector3(74.02, 0.63, -293.62),
     # 100周年記念キャンパス前（UECポート アライアンスセンターの北側）
     "torque": Vector3(-225.60, 0.63, 44.51),
+    # 東3号館（高層棟。モデル上は hi_東図書館A）の屋上（高さ 42.5m）の中央。非常階段の一番上から約10m 先
+    "jet": Vector3(81.0, 43.13, -148.0),
 }
 
 # 本番の配置は ITEM_PLACEMENTS。デバッグ用に機体の手前にも4つ並べるときだけ true
