@@ -22,8 +22,8 @@ func _ready() -> void:
                 nozzle_y = c.position.y - (c.shape as BoxShape3D).size.y * 0.5
                 break
     var texture := _make_texture()
-    var flame_mesh := _make_mesh(_make_material(texture, true))
-    var smoke_mesh := _make_mesh(_make_material(texture, false))
+    var flame_mesh := _make_mesh(_make_material(texture))
+    var smoke_mesh := _make_mesh(_make_material(texture))
     for side in [-1.0, 1.0]:
         var pos := Vector3(NOZZLE_X * side, nozzle_y, 0.0)
         _add_emitter(_make_flame(flame_mesh), pos)
@@ -60,11 +60,11 @@ func _make_texture() -> GradientTexture2D:
     t.height = 64
     return t
 
-func _make_material(texture: Texture2D, additive: bool) -> StandardMaterial3D:
+func _make_material(texture: Texture2D) -> StandardMaterial3D:
     var m := StandardMaterial3D.new()
     m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
     m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if additive else BaseMaterial3D.BLEND_MODE_MIX
+    m.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
     m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
     # 粒の大きさ（scale）を効かせる
     m.billboard_keep_scale = true
@@ -90,21 +90,23 @@ func _make_flame(mesh: Mesh) -> CPUParticles3D:
     p.name = "Flame"
     p.local_coords = false
     p.emitting = false
-    p.amount = 24
-    p.lifetime = 0.15
+    p.amount = 32
+    p.lifetime = 0.25
     p.mesh = mesh
     p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     p.initial_velocity_min = 6.0
     p.initial_velocity_max = 8.0
     p.spread = 8.0
     p.gravity = Vector3.ZERO
-    p.scale_amount_min = 0.12
-    p.scale_amount_max = 0.12
-    p.scale_amount_curve = _make_scale_curve(0.12, 0.02, 0.12)
+    p.scale_amount_min = 0.3
+    p.scale_amount_max = 0.3
+    p.scale_amount_curve = _make_scale_curve(0.3, 0.05, 0.3)
+    # 白黄 → オレンジ → 赤 → 透明。unshaded なので明るさは色で出す
     var g := Gradient.new()
-    g.set_color(0, Color(1.0, 0.95, 0.7, 1.0))
-    g.set_color(1, Color(1.0, 0.5, 0.1, 0.0))
-    g.add_point(0.5, Color(1.0, 0.5, 0.1, 0.8))
+    g.set_color(0, Color(1.0, 0.95, 0.6, 1.0))
+    g.set_color(1, Color(0.8, 0.15, 0.0, 0.0))
+    g.add_point(0.3, Color(1.0, 0.45, 0.05, 1.0))
+    g.add_point(0.65, Color(0.8, 0.15, 0.0, 0.6))
     p.color_ramp = g
     return p
 
@@ -113,8 +115,8 @@ func _make_smoke(mesh: Mesh) -> CPUParticles3D:
     p.name = "Smoke"
     p.local_coords = false
     p.emitting = false
-    p.amount = 40
-    p.lifetime = 1.2
+    p.amount = 60
+    p.lifetime = 1.5
     p.mesh = mesh
     p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     p.initial_velocity_min = 3.0
@@ -123,11 +125,11 @@ func _make_smoke(mesh: Mesh) -> CPUParticles3D:
     p.damping_min = 3.0
     p.damping_max = 4.0
     p.gravity = Vector3(0.0, 0.6, 0.0)
-    p.scale_amount_min = 0.6
-    p.scale_amount_max = 0.6
-    p.scale_amount_curve = _make_scale_curve(0.15, 0.6, 0.6)
+    p.scale_amount_min = 1.2
+    p.scale_amount_max = 1.2
+    p.scale_amount_curve = _make_scale_curve(0.3, 1.2, 1.2)
     var g := Gradient.new()
-    g.set_color(0, Color(0.85, 0.85, 0.85, 0.6))
-    g.set_color(1, Color(0.8, 0.8, 0.8, 0.0))
+    g.set_color(0, Color(0.55, 0.55, 0.58, 0.8))
+    g.set_color(1, Color(0.5, 0.5, 0.52, 0.0))
     p.color_ramp = g
     return p
