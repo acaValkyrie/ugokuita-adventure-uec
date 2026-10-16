@@ -4,7 +4,7 @@ extends CanvasLayer
 # 決定とキャンセルのボタンを入れ替える設定もある。
 # PlayStation の SELECT・START のボタンの表記（PS3 以前・PS4・PS5）も選べる。
 # 画面は左に項目（音量・コントローラーの設定［下に ボタンの表示形式・決定とキャンセル・PlayStation の表記］・ロボットタイプ・閉じる）、右に選んでいる項目の詳細を出す。
-# 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（コントローラーの設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。
+# 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（コントローラーの設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。キーボードは Esc で1つ戻る（TOP では閉じる）。
 
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
@@ -297,6 +297,11 @@ func is_just_closed() -> bool:
 
 
 func _input(event: InputEvent) -> void:
+    # キーボードの Esc は、menu より先に見て1つ前の階層に戻る（TOP では _cancel() が閉じる）
+    if is_open and event is InputEventKey and event.is_action_pressed("ui_cancel") and not event.is_echo():
+        _cancel()
+        get_viewport().set_input_as_handled()
+        return
     if event.is_action_pressed("menu") and not event.is_echo():
         toggle()
         get_viewport().set_input_as_handled()
@@ -304,7 +309,7 @@ func _input(event: InputEvent) -> void:
     if not is_open:
         return
     # 開いているあいだのキーボード・ゲームパッドの操作はここでまとめて処理する（Godot のフォーカスは使わない）。
-    # ESC は上の menu で処理済み。コントローラのキャンセルのボタンは表記ごとに違う
+    # キーボードの Esc は上で処理済み。コントローラのキャンセルのボタンは表記ごとに違う
     if event.is_action_pressed("ui_up", true):
         _move_cursor(-1)
     elif event.is_action_pressed("ui_down", true):
