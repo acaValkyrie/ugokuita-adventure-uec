@@ -23,9 +23,11 @@ var _safe_since_respawn := true
 var respawned_count := 0
 
 func _ready() -> void:
-    # 開始位置はそのまま戻り先に使える
-    var vehicle := get_parent() as VehicleBody3D
-    _points.append(vehicle.global_transform)
+    # 開始位置はそのまま戻り先に使える。
+    # ただし機体の切り替えでは、旧機体の記録が先に入っている（今の空中・転倒の姿勢は戻り先にしない）ので足さない
+    if _points.is_empty():
+        var vehicle := get_parent() as VehicleBody3D
+        _points.append(vehicle.global_transform)
 
 func point_count() -> int:
     return _points.size()

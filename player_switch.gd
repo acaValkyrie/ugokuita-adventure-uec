@@ -44,6 +44,7 @@ func _replace(old: VehicleBody3D, model: String) -> void:
     new_player.angular_velocity = old.angular_velocity
     new_player.boost_gauge = old.boost_gauge
     new_player._motor_speed = old._motor_speed
+    new_player._air_jump_used = old._air_jump_used
     new_player._prev_velocity = old.linear_velocity
 
     # リスポーンの記録を引き継ぐ（old を外す前に取得しておく）
