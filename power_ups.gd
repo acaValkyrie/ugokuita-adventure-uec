@@ -118,6 +118,8 @@ const HINT_PLACEMENTS := {
     "e8_e": {"position": Vector3(158.17, 13.35, -222.21), "hint": "hint1"},  # 東8号館 東の非常階段
     "e11": {"position": Vector3(18.55, 8.59, -196.69), "hint": "hint1"},  # 東11号館
 }
+# 置いたヒントのメダルのグループ（ヒントの対象をすべて取ったときにまとめて消す）
+const HINT_MEDAL_GROUP := "hint_medal"
 
 var is_open: bool = false
 # 取った種類
@@ -170,6 +172,7 @@ func acquire(key: String) -> void:
     if _acquired.has(key):
         return
     _acquired[key] = true
+    _clear_hint_medals_if_done()
     _queue.append(key)
     if not is_open:
         _open_next()
@@ -182,6 +185,7 @@ func set_acquired(key: String, on: bool) -> void:
         return
     if on:
         _acquired[key] = true
+        _clear_hint_medals_if_done()
     else:
         _acquired.erase(key)
 
@@ -229,6 +233,23 @@ func is_hint_used(id: String) -> bool:
     return _used_hints.has(id)
 
 
+# ヒントで印を付けるパワーアップ（HINTS の keys）をすべて持っているか。持っていればヒントのメダルは置かない
+func _has_all_hint_targets() -> bool:
+    for id in HINTS:
+        for key in HINTS[id]["keys"]:
+            if not _acquired.has(key):
+                return false
+    return true
+
+
+# ヒントで印を付けるパワーアップをすべて持っていれば、置いてあるヒントのメダルを消す
+func _clear_hint_medals_if_done() -> void:
+    if not _has_all_hint_targets():
+        return
+    for medal in get_tree().get_nodes_in_group(HINT_MEDAL_GROUP):
+        medal.queue_free()
+
+
 # 閉じた直後か。閉じるのに使ったボタンがジャンプ・ブースト・看板と同じとき、再開した瞬間に発動させないために使う
 func is_just_closed() -> bool:
     return Engine.get_physics_frames() - _closed_physics_frame <= 1
@@ -257,16 +278,18 @@ func _reset() -> void:
         get_tree().paused = false
 
 
-# ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く。取った種類は置かない）。HINT_PLACEMENTS の場所にヒントのメダルも置く（触れた場所は置かない）
+# ITEM_PLACEMENTS の場所に、それぞれの種類のメダルを置く（機体を待たずに置く。取った種類は置かない）。HINT_PLACEMENTS の場所にヒントのメダルも置く（触れた場所は置かない。ヒントの対象をすべて持っていれば1つも置かない）
 func _place_items() -> void:
     # ヒントのメダル（触れていない場所だけ）
-    for place_id in HINT_PLACEMENTS:
-        if _used_hint_places.has(place_id):
-            continue
-        var hint_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
-        hint_item.hint_place = place_id
-        _shown_scene.add_child(hint_item)
-        hint_item.global_position = HINT_PLACEMENTS[place_id]["position"]
+    if not _has_all_hint_targets():
+        for place_id in HINT_PLACEMENTS:
+            if _used_hint_places.has(place_id):
+                continue
+            var hint_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
+            hint_item.hint_place = place_id
+            hint_item.add_to_group(HINT_MEDAL_GROUP)
+            _shown_scene.add_child(hint_item)
+            hint_item.global_position = HINT_PLACEMENTS[place_id]["position"]
     if DEBUG_ITEMS_ON_E3_ROOF:
         return
     for key in ITEM_PLACEMENTS:
