@@ -117,6 +117,7 @@ const HINT_PLACEMENTS := {
     "e9_n": {"position": Vector3(147.75, 11.99, -250.99), "hint": "hint1"},  # 東9号館 北の非常階段
     "e8_e": {"position": Vector3(158.17, 13.35, -222.21), "hint": "hint1"},  # 東8号館 東の非常階段
     "e11": {"position": Vector3(18.55, 8.59, -196.69), "hint": "hint1"},  # 東11号館
+    "e_student_hall": {"position": Vector3(27.69, 6.83, -303.31), "hint": "hint1"},  # 学生会館（サークル棟。モデル上は hi_東課外活動施設）
 }
 # 置いたヒントのメダルのグループ（ヒントの対象をすべて取ったときにまとめて消す）
 const HINT_MEDAL_GROUP := "hint_medal"
