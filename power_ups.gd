@@ -103,6 +103,7 @@ const HINTS := {
 # ヒントのメダルを置く場所（キーは場所のID、"hint" は HINTS のキー）。
 # ヒント1の場所でも、ジャンプ系を両方持っていればヒント2を出す（choose_hint）
 # 置く位置の高さの決め方は ITEM_PLACEMENTS と同じ（機体の基準点 + 0.4m）
+# "hide_when_found" が true の場所は、そのヒントで印を付けるパワーアップをすべて持っていればメダルを置かない（ヒント2に切り替えない）
 const HINT_PLACEMENTS := {
     "w11_s": {"position": Vector3(-179.75, 22.83, -152.14), "hint": "hint1"},  # 西11号館 南の非常階段
     "w4_e": {"position": Vector3(-181.39, 22.60, -103.25), "hint": "hint1"},  # 西4号館 東の非常階段
@@ -117,7 +118,8 @@ const HINT_PLACEMENTS := {
     "e9_n": {"position": Vector3(147.75, 11.99, -250.99), "hint": "hint1"},  # 東9号館 北の非常階段
     "e8_e": {"position": Vector3(158.17, 13.35, -222.21), "hint": "hint1"},  # 東8号館 東の非常階段
     "e11": {"position": Vector3(18.55, 8.59, -196.69), "hint": "hint1"},  # 東11号館
-    "e_student_hall": {"position": Vector3(27.69, 6.83, -303.31), "hint": "hint1"},  # 学生会館（サークル棟。モデル上は hi_東課外活動施設）
+    "e_student_hall": {"position": Vector3(27.69, 6.83, -303.31), "hint": "hint1", "hide_when_found": true},  # 学生会館（サークル棟。モデル上は hi_東課外活動施設）
+    "e_student_hall2": {"position": Vector3(75.42, 10.05, -291.60), "hint": "hint2"},  # 学生会館（サークル棟）の上、もう1か所
 }
 # 置いたヒントのメダルのグループ（ヒントの対象をすべて取ったときにまとめて消す）
 const HINT_MEDAL_GROUP := "hint_medal"
@@ -243,12 +245,23 @@ func _has_all_hint_targets() -> bool:
     return true
 
 
-# ヒントで印を付けるパワーアップをすべて持っていれば、置いてあるヒントのメダルを消す
+# hide_when_found の場所で、そのヒントで印を付けるパワーアップをすべて持っているか（持っていればその場所のメダルは置かない）
+func _is_hint_place_done(place_id: String) -> bool:
+    var place: Dictionary = HINT_PLACEMENTS[place_id]
+    if not place.get("hide_when_found", false):
+        return false
+    for key in HINTS[place["hint"]]["keys"]:
+        if not _acquired.has(key):
+            return false
+    return true
+
+
+# ヒントで印を付けるパワーアップをすべて持っていれば、置いてあるヒントのメダルをすべて消す。そうでなくても、取り終えた hide_when_found の場所のメダルは消す
 func _clear_hint_medals_if_done() -> void:
-    if not _has_all_hint_targets():
-        return
+    var all_done := _has_all_hint_targets()
     for medal in get_tree().get_nodes_in_group(HINT_MEDAL_GROUP):
-        medal.queue_free()
+        if all_done or _is_hint_place_done(medal.hint_place):
+            medal.queue_free()
 
 
 # 閉じた直後か。閉じるのに使ったボタンがジャンプ・ブースト・看板と同じとき、再開した瞬間に発動させないために使う
@@ -284,7 +297,7 @@ func _place_items() -> void:
     # ヒントのメダル（触れていない場所だけ）
     if not _has_all_hint_targets():
         for place_id in HINT_PLACEMENTS:
-            if _used_hint_places.has(place_id):
+            if _used_hint_places.has(place_id) or _is_hint_place_done(place_id):
                 continue
             var hint_item = ITEM_SCRIPT.new()  # power_up_item.gd のノード（型は付けられない）
             hint_item.hint_place = place_id
