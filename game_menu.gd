@@ -1538,6 +1538,16 @@ func _on_se_volume_changed(value: float) -> void:
     _play_se_preview()
 
 
+# 看板のリンクを開く前に、すべての音を消す。フォーカスが戻ったら _notification で音量を戻す
+func mute_all() -> void:
+    AudioServer.set_bus_mute(0, true)
+
+
+# 音量を設定どおりに戻す（リンクを開いてもフォーカスが外れなかったとき用）
+func restore_volume() -> void:
+    _apply_volume()
+
+
 # Web 版で走行中に看板のリンクを開くと、別のタブが前に出てゲームが止まり、走行音が鳴りっぱなしになる。
 # ゲームの画面からフォーカスが外れている間は音を消し、戻ったら音量の設定どおりに戻す（0% ならミュートのまま）
 func _notification(what: int) -> void:

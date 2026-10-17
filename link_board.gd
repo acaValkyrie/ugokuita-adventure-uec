@@ -18,6 +18,11 @@ const FONT := preload("res://assets/fonts/noto_sans_cjk_jp_bold_ui.otf")
 ## 選択中の看板のポスターを縁取る白枠の太さ（ポスターの内側）[m]
 @export var outline_width := 0.06
 
+# リンクを開く操作をしてから、音を消して実際に開くまでの時間 [秒]。Web 版で、消した状態の音が出力に行き渡るのを待つ
+const OPEN_DELAY_SEC := 0.1
+# 開いてから、まだゲームにフォーカスがあるか確かめるまでの時間 [秒]
+const RESTORE_CHECK_SEC := 0.5
+
 # シーン内のすべての看板
 static var _boards: Array[LinkBoard] = []
 # プレイヤーの近くにいて、いちばん近い（選択中の）看板
@@ -30,6 +35,8 @@ var _panel: PanelContainer
 var _icon: TextureRect
 var _label: Label
 var _outline: Node3D
+# リンクを開いている途中か（二重に開かない）
+var _opening := false
 
 
 # 看板の近くにいるか（車のジャンプを止めるのに使う）
@@ -209,9 +216,20 @@ func _input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
 
 
-# Web版では新しいタブで開く（ポップアップブロックを避けるため、必ずボタン操作の中で呼ぶ）
+# Web版では新しいタブで開く（ポップアップブロックを避けるため、必ずボタン操作の中で呼ぶ。少し待つのはブラウザが許す範囲）。
+# 開く前にすべての音を消す。Web 版では別のタブが前に出るとゲームが止まり、そのとき鳴っていた音が鳴りっぱなしになるため
 func _open() -> void:
+    if _opening:
+        return
+    _opening = true
+    GameMenu.mute_all()
+    await get_tree().create_timer(OPEN_DELAY_SEC, true).timeout
     OS.shell_open(url)
+    # 開いたあともゲームにフォーカスがある（開けなかったなど）ときは音を戻す。別のタブやブラウザが前に出ていれば、戻ったときに GameMenu._notification で戻る
+    await get_tree().create_timer(RESTORE_CHECK_SEC, true).timeout
+    _opening = false
+    if DisplayServer.window_is_focused():
+        GameMenu.restore_volume()
 
 
 func _exit_tree() -> void:
