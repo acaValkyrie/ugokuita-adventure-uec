@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://bi4y8kf8cqctn" path="res://assets/boards/github_poster.png" id="8_poster"]
 [ext_resource type="Texture2D" uid="uid://bjf3i0q7yh614" path="res://assets/boards/ugokuita_project_poster.png" id="9_poster_ugokuita"]
 [ext_resource type="Texture2D" uid="uid://b85fb4kew3npi" path="res://assets/boards/giving_campaign_poster.png" id="10_poster_giving"]
+[ext_resource type="Texture2D" uid="uid://b23pg71mv75ek" path="res://assets/img/homecloud-ad-1500x600.png" id="11_poster_homecloud"]
 [ext_resource type="Shader" uid="uid://bn6eij41x21wr" path="res://assets/shaders/space_sky.gdshader" id="11_spacesky"]
 [ext_resource type="Script" uid="uid://7rg4gk6wkpao" path="res://space_sky.gd" id="12_spacesky"]
 
@@ -98,3 +99,9 @@ transform = Transform3D(0.9703, 0, -0.2419, 0, 1, 0, 0.2419, 0, 0.9703, 125.6132
 script = ExtResource("7_linkboard")
 url = "https://student-union.2026.giving-campaign.jp/groups?id=91b414b8-b3bf-430f-8ac9-1a768c32d785"
 poster = ExtResource("10_poster_giving")
+
+[node name="LinkBoardHomecloud" type="Node3D" parent="." unique_id=1928374650]
+transform = Transform3D(0.9703, 0, -0.2419, 0, 1, 0, 0.2419, 0, 0.9703, 131.435, 1.5, -106.4011)
+script = ExtResource("7_linkboard")
+url = "https://homecloud.k1h.dev"
+poster = ExtResource("11_poster_homecloud")
