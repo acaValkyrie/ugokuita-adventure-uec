@@ -37,6 +37,7 @@ const ICON_BUTTON_SELECT := preload("res://assets/ui/controls/button_select.png"
 const ICON_BUTTON_SHARE := preload("res://assets/ui/controls/button_share.png")
 const ICON_BUTTON_START := preload("res://assets/ui/controls/button_start.png")
 const ICON_BUTTON_OPTIONS := preload("res://assets/ui/controls/button_options.png")
+const ICON_BUTTON_OPTIONS_PS4 := preload("res://assets/ui/controls/button_options_ps4.png")
 
 # モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
 const ITEMS := {
@@ -93,7 +94,7 @@ const PS_BACK_ICONS := {
 }
 const PS_START_ICONS := {
     "ps3": ICON_BUTTON_START,
-    "ps4": ICON_BUTTON_OPTIONS,
+    "ps4": ICON_BUTTON_OPTIONS_PS4,
     "ps5": ICON_BUTTON_OPTIONS,
 }
 
