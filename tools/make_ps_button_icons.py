@@ -2,7 +2,7 @@
 # PS3 の SELECT は四角（角丸の長方形）、START は右向きの三角。
 # PS4・PS5 の SHARE・CREATE・OPTIONS は縦長のカプセルで、実物と同じく本体の印をカプセルの上に描く。
 #   PS4 SHARE: 「SHARE」の文字 / PS4 OPTIONS: 「OPTIONS」の文字（文字の大きさは共通）
-#   PS5 OPTIONS: 横棒 3 本 / PS5 CREATE: 上向きに放射する 5 本の線
+#   PS5 OPTIONS: 横棒 3 本 / PS5 CREATE: 上向きに放射する 3 本の線
 #   印は明るい色で、まわりを暗い色で縁取る（どんな背景でも読めるように）。ボタンの中には何も描かない。
 # 入力: assets/ui/controls/button_minus.png（横長のカプセル形の小さいボタン。色・縁取りの太さ・大きさの見本）
 #       assets/fonts/noto_sans_cjk_jp_bold_ui.otf（文字の印のフォント）
@@ -173,11 +173,11 @@ def bars_mark(cap_w: float):
 
 
 def rays_mark(cap_w: float):
-    """PS5 CREATE: 上向きに放射する 5 本の線の印。
+    """PS5 CREATE: 上向きに放射する 3 本の線の印。
     中心 C はカプセルの上の半円の中心。ink_h は C から見た線の上端までの高さ（カプセルの上端より上の部分）。"""
     r0 = cap_w / 2 + RAY_GAP
     r1 = r0 + RAY_LEN
-    angles = [math.radians(a) for a in (-60, -30, 0, 30, 60)]
+    angles = [math.radians(a) for a in (-35, 0, 35)]
     # カプセルの上端（= C から cap_w/2 上）より上に出る高さ
     top_above_c = max(r1 * math.cos(a) for a in angles) + RAY_THICK / 2
     ink_h = top_above_c - cap_w / 2
