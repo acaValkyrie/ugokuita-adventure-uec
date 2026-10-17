@@ -442,6 +442,9 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - ポスターは `tools/make_giving_poster.py` で作った（`assets/boards/giving_campaign_poster.png`）。左に告知画像（`assets/img/giving campaign twitter.jpg`）、中央に「Giving Campaign 参加してます！ 応援投票または寄付をお願いします！！」、右に QR コード（`assets/img/giving campaign qr.png`）。文字は幅 570px に収まるまで自動で小さくする。Docker で実行する（スクリプトの冒頭）。
   - QR コードは、元の画像とできたポスターの両方を OpenCV で読み取り、上の URL と完全に一致することを確かめた。
   - 確認: エディタで実行し、3枚目の掲示面にポスターが収まり、白い枠と文言が出ることを見た。投票期間は 10/16〜10/25 なので、終わったら外すか差し替える。
+- 追記（2026-10-17）: 4枚目（1枚目から 18m）に、おうちクラウド研究部（https://homecloud.k1h.dev）を案内する看板を置いた（`LinkBoardHomecloud`）。
+  - ポスターは受け取った画像 `assets/img/homecloud-ad-1500x600.png`（1500×600）をそのまま使った（加工なし。看板のポスターの縦横比 2.5:1 と同じ）。取り込み設定は他のポスターと同じ（compress/mode=0、mipmaps/generate=false）。
+  - 確認: エディタで実行し、4枚目の前（看板の表側 2.5m）に機体を置くと、ポスターが掲示面に収まり、白い枠と「ウェブで開く」のパネルが出ることを見た。3枚目の前では3枚目だけ、4枚目の前では4枚目だけが選ばれた。URL を開く操作はしていない。
 
 ### 33. 落下後のエンディングを Reset で戻ったときも閉じる（2026-10-15）
 
