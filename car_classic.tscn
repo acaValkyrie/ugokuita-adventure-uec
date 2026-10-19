@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://dxd53fm8n6pww" path="res://surface_sounds.gd" id="4_surf"]
 [ext_resource type="Script" uid="uid://c33dgrrh1kul" path="res://bump_sounds.gd" id="5_bump"]
 [ext_resource type="Script" uid="uid://dss1ti2uno87l" path="res://respawn.gd" id="6_respawn"]
-[ext_resource type="AudioStream" uid="uid://ca2jvtjic75b5" path="res://assets/audio/water/splash_14.ogg" id="13_w3"]
+[ext_resource type="AudioStream" uid="uid://bn8dni736kugo" path="res://assets/audio/water/running_stream.ogg" id="13_w3"]
 [ext_resource type="AudioStream" uid="uid://bifptx38bht5f" path="res://assets/audio/bump/bump_a.ogg" id="b0_bumpa"]
 [ext_resource type="AudioStream" uid="uid://81hvreltkfk2" path="res://assets/audio/bump/bump_b.ogg" id="b1_bumpb"]
 [ext_resource type="AudioStream" uid="uid://bci325q787qsg" path="res://assets/audio/grass/rustle02.ogg" id="g0_rustle02"]
@@ -95,7 +95,7 @@ transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0.17, -0.2279, -0.2527)
 [node name="SurfaceSounds" type="Node3D" parent="." unique_id=970966758]
 script = ExtResource("4_surf")
 grass_sounds = Array[AudioStream]([ExtResource("g0_rustle02"), ExtResource("g1_rustle05"), ExtResource("g2_rustle09"), ExtResource("g3_rustle11"), ExtResource("g4_rustle16"), ExtResource("g5_rustle17"), ExtResource("g6_rustle18"), ExtResource("g7_rustle19")])
-water_sounds = Array[AudioStream]([ExtResource("13_w3")])
+water_loop = ExtResource("13_w3")
 
 [node name="BumpSounds" type="Node3D" parent="." unique_id=1865232754]
 script = ExtResource("5_bump")
