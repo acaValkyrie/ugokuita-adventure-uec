@@ -92,6 +92,10 @@ const E3_ROOF_ITEM_POSITIONS := [
     Vector3(81.6, 43.13, -151.0),
     Vector3(82.8, 43.13, -151.0),
 ]
+# 一時的なデバッグ用（プールの調整中）。true のとき、スタート地点（とリセットの戻り先）をジャンプ力UPのメダルの場所（西11号館前）にする。終わったら false に戻す
+const DEBUG_START_AT_JUMP_UP := true
+# ジャンプ力UPのメダル（ITEM_PLACEMENTS["jump_up"]）の真下、-Z 向き
+const JUMP_UP_START := Transform3D(Basis.IDENTITY, Vector3(-187.11, 0.4, -160.23))
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
 const CLOSE_DELAY_MSEC := 300
 
@@ -275,7 +279,7 @@ func _process(_delta: float) -> void:
         _shown_scene = scene
         _reset()
         _place_items()
-        _need_spawn = DEBUG_SPAWN_ITEMS or DEBUG_START_ON_E3_ROOF
+        _need_spawn = DEBUG_SPAWN_ITEMS or DEBUG_START_ON_E3_ROOF or DEBUG_START_AT_JUMP_UP
     if _need_spawn:
         _spawn_debug_items()
     if is_open:
@@ -321,6 +325,9 @@ func _spawn_debug_items() -> void:
     if player == null:
         return
     _need_spawn = false
+    if DEBUG_START_AT_JUMP_UP:
+        _move_player_to(player, JUMP_UP_START)
+        return
     if DEBUG_START_ON_E3_ROOF:
         _move_player_to(player, E3_ROOF_START)
         if DEBUG_ITEMS_ON_E3_ROOF:
