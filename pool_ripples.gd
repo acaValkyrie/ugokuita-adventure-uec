@@ -21,7 +21,14 @@ const REFERENCE_VERTICAL_SPEED := 3.5
 # 縦の速さによる強さの倍率の範囲（ゆっくり出入りしたとき〜高く跳んでから落ちたとき）
 const MIN_SCALE := 0.3
 const MAX_SCALE := 2.0
+# 水面をまたいだときのしぶきの音（普通に飛び込んだときの音量 [dB]）
+const SPLASH_SOUND := preload("res://assets/audio/water/water_splash.ogg")
+const SPLASH_VOLUME_DB := -3.0
 
+# 鳴らした回数（テスト用）
+var splash_count := 0
+
+var _splash_player: AudioStreamPlayer3D
 var _now := 0.0
 var _ripples: Array[Vector4] = []
 var _next_index := 0
@@ -38,6 +45,12 @@ func _ready() -> void:
         _floor_material = floor_mesh.get_surface_override_material(0) as ShaderMaterial
     if _floor_material == null:
         push_warning("プールの底のマテリアルが見つかりません: %s" % floor_path)
+    _splash_player = AudioStreamPlayer3D.new()
+    _splash_player.unit_size = 3.0
+    _splash_player.max_db = 0.0
+    _splash_player.bus = "SE"
+    _splash_player.stream = SPLASH_SOUND
+    add_child(_splash_player)
 
 func _physics_process(delta: float) -> void:
     _now += delta
@@ -53,13 +66,24 @@ func _physics_process(delta: float) -> void:
     var below := pos.y < POOL_WATER_Y
     # 水面を上下にまたいだ瞬間だけ波紋を出す
     if _has_prev and in_rect and below != _was_below:
-        _add_ripple(pos, BASE_STRENGTH * clampf(absf(vehicle.linear_velocity.y) / REFERENCE_VERTICAL_SPEED, MIN_SCALE, MAX_SCALE))
+        # 縦の速さによる倍率は、波紋の強さとしぶきの音量で共有する
+        var scale := clampf(absf(vehicle.linear_velocity.y) / REFERENCE_VERTICAL_SPEED, MIN_SCALE, MAX_SCALE)
+        _add_ripple(pos, BASE_STRENGTH * scale)
+        _play_splash(pos, scale)
     _was_below = below
     _has_prev = true
     if _floor_material == null:
         return
     _floor_material.set_shader_parameter("ripples", PackedVector4Array(_ripples))
     _floor_material.set_shader_parameter("ripple_now", _now)
+
+# 水面をまたいだ位置でしぶきの音を鳴らす（音量は普通の飛び込みより強くしない）
+func _play_splash(pos: Vector3, scale: float) -> void:
+    _splash_player.global_position = pos
+    _splash_player.volume_db = SPLASH_VOLUME_DB + linear_to_db(clampf(scale, MIN_SCALE, 1.0))
+    _splash_player.pitch_scale = 1.0 + randf_range(-0.08, 0.08)
+    _splash_player.play()
+    splash_count += 1
 
 # 波紋の発生点を1つ記録する（古いものから上書きする）
 func _add_ripple(pos: Vector3, strength: float) -> void:
