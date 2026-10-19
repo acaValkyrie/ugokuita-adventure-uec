@@ -11,6 +11,8 @@ const TRUNK_PREFIXES := ["幹", "メッシュ ボディ4"]
 
 # キャンパス用テクスチャのシェーダーとテクスチャの置き場所
 const SHADER_PATH := "res://assets/shaders/campus_triplanar.gdshader"
+# 金網フェンスのシェーダー
+const FENCE_SHADER_PATH := "res://assets/shaders/chain_link_fence.gdshader"
 const TEXTURE_DIR := "res://assets/textures/campus/"
 
 # 地面メッシュの元マテリアル名から地面の種類を決める対応表
@@ -30,6 +32,8 @@ const GROUND_KIND_BY_MATERIAL := {
 const ASPHALT_GRAY_NODE_NAMES: Array[String] = ["Body28", "Body29"]
 # 灰色の金属マテリアルのうち、公道や建物裏の通路としてアスファルトにするノード名
 const ASPHALT_STEEL_NODE_NAMES: Array[String] = ["Body19", "Body459", "東地区敷地外"]
+# 灰色の金属マテリアルのうち、テニスコートを囲むフェンス（高さ5mの薄い壁）として金網にするノード名
+const FENCE_NODE_NAMES: Array[String] = ["Body616", "Body617", "Body734"]
 # 東西キャンパスの間の道路を表す線（ワールドXZ）。これより西の舗装はアスファルト、東はレンガ
 const CAMPUS_BORDER_SOUTH := Vector2(-58.0, 71.0)
 const CAMPUS_BORDER_NORTH := Vector2(14.0, -299.0)
@@ -444,6 +448,11 @@ func _assign_ground_materials(node: Node, scene: Node, under_ground: bool) -> vo
 		var kind: String = _ground_kind(source.resource_name, node, scene, under_ground)
 		if kind != "":
 			node.set_surface_override_material(i, _get_ground_material(kind))
+			if kind == "fence":
+				# 半透明の金網はライトマップに焼き込まない
+				node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+				# フェンスは走行できる地面ではないので surface_kind は付けない
+				continue
 			# 機体の下の地面の種類（走行時の効果音の切り替えに使う）
 			if not node.has_meta("surface_kind"):
 				node.set_meta("surface_kind", kind)
@@ -457,6 +466,8 @@ func _ground_kind(material_name: String, node: MeshInstance3D, scene: Node, unde
 	if material_name == "Plastic - Matte (Gray)" and node_name in ASPHALT_GRAY_NODE_NAMES:
 		return "asphalt"
 	if material_name == "Steel - Satin" and under_ground:
+		if node_name in FENCE_NODE_NAMES:
+			return "fence"
 		if node_name in ASPHALT_STEEL_NODE_NAMES:
 			return "asphalt"
 		var aabb := _scene_transform(node, scene) * node.mesh.get_aabb()
@@ -511,6 +522,8 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 			material = _make_color_material(Color(0.95, 0.95, 0.93))
 		"wall_top_concrete":
 			material = _make_material("roof_concrete", "roof_concrete", 4.0, Vector2(4.0, 4.0))
+		"fence":
+			material = _make_fence_material()
 	_material_cache[kind] = material
 	return material
 
@@ -855,4 +868,11 @@ func _make_color_material(color: Color) -> ShaderMaterial:
 	material.shader = load(SHADER_PATH)
 	material.set_shader_parameter("use_textures", false)
 	material.set_shader_parameter("albedo_color", color)
+	return material
+
+
+# 水色の菱形金網のマテリアルを作る（シェーダーのuniformは既定値を使う）
+func _make_fence_material() -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = load(FENCE_SHADER_PATH)
 	return material
