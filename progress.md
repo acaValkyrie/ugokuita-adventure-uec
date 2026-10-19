@@ -764,6 +764,8 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 西キャンパスのプール（テニスコートの西）の水面 `ground/Body720`（y=0.5）が、地面から浮いていた（ユーザーの指摘）。台座 `Body719`（高さ1m、水面の部分が穴になった板）と壁 `西プール壁`（台座の上で高さ1.5m、厚さ約0.1m）はローポリ版の `low-building` にしかなく、取り込み時に消されていた。
 - 水面を地面まで下げる案と比べ、ユーザーの選択で台座と壁を残すことにした。`stage_collision_import.gd` の `_keep_low_poly_parts`: `low-building` を消す前に、`LOW_POLY_KEEP_NODE_NAMES` のノードを位置を保ったまま `ground` の下へ移す。当たり判定が付き、元マテリアル `Steel - Satin.001` なので `paving_stone` で塗られる。
 - 確認: GLB を取り込み直し、エディタの3Dビューで、水面が台座より低い位置に見え、周りを石の壁が囲むことを画像で確かめた。取り込み時の警告なし。ゲームを動かしての確認と、ライトマップの焼き直しはまだ。
+- 続けて、ユーザーの航空写真に寄せて塗り分けた。水面は 25.4m × 13.4m（長辺の向きはワールドXZで (0.266, −0.964)、中心 (−207.8, −178.8)）。新しいシェーダー `assets/shaders/pool.gdshader` で、水面は水色に紺のコースライン6本（両端の2m手前でT字）、台座は水面の縁から0.5mを白、外側を茶色がかったコンクリートで塗る。壁は `chain_link_fence.gdshader` を灰色・高さ1〜2.5mにして柵にした（下端の横棒のため `fence_bottom_y` を追加）。`stage_collision_import.gd` の `POOL_KIND_BY_NODE_NAME` でノード名から種類を決め、走行音用の `surface_kind` は `POOL_SURFACE_KIND` で水面を `water`、台座を `paving_stone` に読み替える。
+- 確認: 上からの画像で、コースラインと白い縁が写真に近い配置になった。水の色と台座の色は写真より白っぽく明るく見える。
 
 ## まだやっていないこと
 
