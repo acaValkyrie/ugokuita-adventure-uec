@@ -83,6 +83,10 @@ const DriftSparksScript := preload("res://drift_sparks.gd")
 @export var DRIFT_TURBO_TIME1 := 0.3
 # 2段目で離したときのダッシュの時間 [s]
 @export var DRIFT_TURBO_TIME2 := 0.7
+# ドリフト中のチャージの音の音量 [dB]
+@export var DRIFT_CHARGE_VOLUME_DB := 0.0
+# ドリフトのダッシュの音の音量 [dB]
+@export var DRIFT_DASH_VOLUME_DB := 0.0
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
@@ -108,6 +112,13 @@ const BUMP_SOUNDS: Array[AudioStream] = [
     preload("res://assets/audio/bump/bump_b.ogg"),
 ]
 var _jump_sound: AudioStreamPlayer3D
+# ドリフトの音。チャージはドリフト中に鳴らし、発射はダッシュが出たときに鳴らす
+const DRIFT_CHARGE_SOUND := preload("res://assets/audio/drift/drift_charge.ogg")
+const DRIFT_DASH_SOUND := preload("res://assets/audio/drift/drift_dash.ogg")
+# チャージの音のループの開始位置 [s]。tools/make_drift_sounds.py と合わせる
+const CHARGE_LOOP_START := 2.9
+var _drift_charge_sound: AudioStreamPlayer3D
+var _drift_dash_sound: AudioStreamPlayer3D
 var _crash_sound: AudioStreamPlayer
 # 前の物理フレームの速度（激突の判定用。リスポーンや機体の入れ替えのときは外から書き換える）
 var _prev_velocity := Vector3.ZERO
@@ -192,6 +203,7 @@ func _physics_process(delta: float) -> void:
         _boost_time = BOOST_DURATION
         # ブーストを優先し、後ろ向きのブーストとダッシュが同時にかからないようにする
         _turbo_time = 0.0
+        _drift_dash_sound.stop()
         _boost_dir = -1.0 if throttle < 0.0 else 1.0
 
     # アクセル中はモーターの指令に、離したら実際の回転に合わせる（乗り上げて空転しても回り、音も鳴るようにする）
@@ -266,6 +278,7 @@ func _update_drift(delta: float, steer_input: float, forward_speed: float, on_gr
             _drift_speed = minf(Vector2(linear_velocity.x, linear_velocity.z).length(), get_max_speed())
             drift_stage = 0
             drifting = true
+            _drift_charge_sound.play()
             for wheel in _wheel_friction:
                 wheel.wheel_friction_slip = DRIFT_FRICTION_SLIP
         return
@@ -311,6 +324,7 @@ func cancel_drift() -> void:
     if drifting:
         _end_drift(false)
     _turbo_time = 0.0
+    _drift_dash_sound.stop()
 
 
 # ドリフトを終える。release が true（ボタンを離した）で接地しているときだけ、段階に応じたダッシュが出る
@@ -318,11 +332,14 @@ func _end_drift(release: bool) -> void:
     for wheel in _wheel_friction:
         wheel.wheel_friction_slip = _wheel_friction[wheel]
     drifting = false
+    _drift_charge_sound.stop()
     if release and _is_on_ground():
         if drift_stage == 2:
             _turbo_time = DRIFT_TURBO_TIME2
+            _drift_dash_sound.play()
         elif drift_stage == 1:
             _turbo_time = DRIFT_TURBO_TIME1
+            _drift_dash_sound.play()
     drift_stage = 0
 
 
@@ -537,6 +554,26 @@ func _ready() -> void:
     _jump_sound.unit_size = 3.0
     _jump_sound.bus = "SE"
     add_child(_jump_sound)
+    _drift_charge_sound = AudioStreamPlayer3D.new()
+    _drift_charge_sound.unit_size = 3.0
+    _drift_charge_sound.bus = "SE"
+    var charge_stream := DRIFT_CHARGE_SOUND.duplicate() as AudioStreamOggVorbis
+    # 最後の部分を繰り返し、ドリフトが音より長く続いても鳴り続けるようにする
+    charge_stream.loop = true
+    charge_stream.loop_offset = CHARGE_LOOP_START
+    _drift_charge_sound.stream = charge_stream
+    _drift_charge_sound.volume_db = DRIFT_CHARGE_VOLUME_DB
+    # 3Dの音は max_db（既定 +3dB）で頭打ちになるので、音量の設定値まで出せるようにする
+    _drift_charge_sound.max_db = DRIFT_CHARGE_VOLUME_DB
+    add_child(_drift_charge_sound)
+    _drift_dash_sound = AudioStreamPlayer3D.new()
+    _drift_dash_sound.unit_size = 3.0
+    _drift_dash_sound.bus = "SE"
+    _drift_dash_sound.stream = DRIFT_DASH_SOUND
+    _drift_dash_sound.volume_db = DRIFT_DASH_VOLUME_DB
+    # 3Dの音は max_db（既定 +3dB）で頭打ちになるので、音量の設定値まで出せるようにする
+    _drift_dash_sound.max_db = DRIFT_DASH_VOLUME_DB
+    add_child(_drift_dash_sound)
     # 3Dの音は max_db（既定 +3dB）で頭打ちになり、距離でも小さくなるため、激突の音は位置を持たない音で鳴らす
     _crash_sound = AudioStreamPlayer.new()
     _crash_sound.bus = "SE"
