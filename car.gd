@@ -1,6 +1,7 @@
 extends VehicleBody3D
 
 const JetExhaustScript := preload("res://jet_exhaust.gd")
+const DriftSparksScript := preload("res://drift_sparks.gd")
 
 @export var MAX_STEER = 0.5
 # 最高速度で走っているときのハンドルの最大角 [rad]。速いほど MAX_STEER からこの値へ絞り、高速で切ったときにスピンしないようにする
@@ -52,6 +53,36 @@ const JetExhaustScript := preload("res://jet_exhaust.gd")
 @export var JET_TURN_SPEED := 2.0
 # 空中で機体を水平に戻す強さ [1/s]
 @export var JET_UPRIGHT_GAIN := 4.0
+# ドリフトに入れる前向きの速さの下限 [m/s]
+@export var DRIFT_MIN_SPEED := 3.0
+# 水平の速さがこれ未満になるとドリフトが終わる [m/s]
+@export var DRIFT_END_SPEED := 2.0
+# ドリフトに入るのに必要なハンドルの入力の大きさ
+@export var DRIFT_START_STEER := 0.3
+# ドリフト中に向きが変わる速さ [rad/s]（スティックが中央のとき）
+@export var DRIFT_YAW_RATE := 2.2
+# 曲がる向きにスティックを倒し切ったときの向きの変わる速さ [rad/s]
+@export var DRIFT_YAW_TIGHT := 3.2
+# 逆向きに倒し切ったときの向きの変わる速さ [rad/s]
+@export var DRIFT_YAW_WIDE := 1.2
+# 進む向きを機体の向きへ近づける速さ [1/s]（小さいほど横に滑る）
+@export var DRIFT_GRIP := 5.0
+# ドリフト中の全輪の wheel_friction_slip
+@export var DRIFT_FRICTION_SLIP := 0.4
+# ドリフト中に前輪を逆に切る角度 [rad]（見た目用）
+@export var DRIFT_COUNTER_STEER := 0.2
+# 段差などで浮いても、ドリフトを続ける時間 [s]
+@export var DRIFT_AIR_GRACE := 0.3
+# 1段目（青い火花）になるまでのドリフトの時間 [s]
+@export var DRIFT_STAGE1_TIME := 1.0
+# 2段目（オレンジの火花）になるまでの時間 [s]
+@export var DRIFT_STAGE2_TIME := 2.2
+# ドリフトのダッシュの加速度 [m/s²]
+@export var DRIFT_TURBO_ACCEL := 8.0
+# 1段目で離したときのダッシュの時間 [s]
+@export var DRIFT_TURBO_TIME1 := 0.3
+# 2段目で離したときのダッシュの時間 [s]
+@export var DRIFT_TURBO_TIME2 := 0.7
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
@@ -88,12 +119,27 @@ var _sweep_dv_timer := 0.0
 var crash_count := 0
 # ジェットで上向きの力を出しているか（噴射の見た目に使う）
 var jet_thrusting := false
+# ドリフト中か、火花の色の段階（0〜2）。火花のスクリプトが読む
+var drifting := false
+var drift_stage := 0
+# ドリフトする向き（左が1、右が-1。Input.get_axis("right", "left") と同じ符号）
+var _drift_dir := 0.0
+# ドリフトを続けた時間 [s]（地面にいる間だけ進む）と、浮いている時間 [s]
+var _drift_time := 0.0
+var _drift_air_time := 0.0
+# ドリフトに入ったときの水平の速さ [m/s]。アクセル中はこれを下回らないようにする
+var _drift_speed := 0.0
+# ドリフトのダッシュの残り時間 [s]
+var _turbo_time := 0.0
+# VehicleWheel3D -> 元の wheel_friction_slip（ドリフトの後で戻す）
+var _wheel_friction := {}
 
 func _physics_process(delta: float) -> void:
     # 上向きの力をかけたフレームだけ true にする（エンディング2で return する場合も含め、毎フレーム戻す）
     jet_thrusting = false
     # エンディング2は無重力でふわふわ漂い、操作を受け付けない（機体の入れ替えでも続くよう毎フレーム設定する）
     if Ending.is_zero_gravity():
+        cancel_drift()
         gravity_scale = 0.0
         if not _zero_gravity:
             _zero_gravity = true
@@ -112,7 +158,14 @@ func _physics_process(delta: float) -> void:
     var forward_speed = linear_velocity.dot(global_basis.z)
     # 速いほどハンドルの最大角を絞る
     var steer_limit = lerpf(MAX_STEER, MAX_STEER_AT_SPEED, clampf(absf(forward_speed) / get_max_speed(), 0.0, 1.0))
-    steering = move_toward(steering, Input.get_axis("right", "left") * steer_limit, delta * 10)
+    var steer_input := Input.get_axis("right", "left")
+    var on_ground := _is_on_ground()
+    _update_drift(delta, steer_input, forward_speed, on_ground)
+    if drifting:
+        # ドリフト中は前輪を逆に切る（見た目用）
+        steering = move_toward(steering, -_drift_dir * DRIFT_COUNTER_STEER, delta * 10)
+    else:
+        steering = move_toward(steering, steer_input * steer_limit, delta * 10)
 
     var throttle = Input.get_axis("down", "up")
     # 最高速度に近づくほど推力を絞る（減速方向の入力は絞らない）
@@ -137,6 +190,8 @@ func _physics_process(delta: float) -> void:
             and boost_gauge >= 1.0:
         boost_gauge = 0.0
         _boost_time = BOOST_DURATION
+        # ブーストを優先し、後ろ向きのブーストとダッシュが同時にかからないようにする
+        _turbo_time = 0.0
         _boost_dir = -1.0 if throttle < 0.0 else 1.0
 
     # アクセル中はモーターの指令に、離したら実際の回転に合わせる（乗り上げて空転しても回り、音も鳴るようにする）
@@ -157,12 +212,15 @@ func _physics_process(delta: float) -> void:
         if _boost_time > 0.0:
             target = _boost_dir * get_max_speed() * BOOST_MOTOR_RATIO
             accel = BOOST_MOTOR_ACCEL
+        elif _turbo_time > 0.0:
+            # ドリフトのダッシュは前向き
+            target = get_max_speed() * BOOST_MOTOR_RATIO
+            accel = BOOST_MOTOR_ACCEL
         _motor_speed = move_toward(_motor_speed, target, accel * delta)
 
     # 車輪がどれか接地しているときだけジャンプできる（メニューやポップアップを閉じたボタンでは発動しない）
     # Xbox 表記では看板を開くボタンがジャンプと同じ下のボタンなので、看板の近くでは開くほうを優先する
     # 二段ジャンプを取っていれば、空中でも1回だけもう一度ジャンプできる
-    var on_ground := _is_on_ground()
     if on_ground:
         _air_jump_used = false
     if Input.is_action_just_pressed("jump") and not GameMenu.is_just_closed() \
@@ -181,6 +239,10 @@ func _physics_process(delta: float) -> void:
         apply_central_force(global_basis.z * _boost_dir * BOOST_ACCEL * mass)
         _boost_time -= delta
 
+    if _turbo_time > 0.0:
+        apply_central_force(global_basis.z * DRIFT_TURBO_ACCEL * mass)
+        _turbo_time -= delta
+
     if PowerUps.has("jet"):
         _apply_jet(delta, throttle, on_ground)
 
@@ -188,6 +250,81 @@ func _physics_process(delta: float) -> void:
     # 激突の判定は物理エンジンが出した速度どうしで比べたいので、速度を調整する前に記録する
     _prev_velocity = linear_velocity
     _prevent_tunneling(delta)
+
+# ドリフト。ボタンを押しながらハンドルを切ると始まり、機体を回しながら横に滑る。
+# 長く続けるほど火花の段階が上がり、ボタンを離すと段階に応じたダッシュが出る
+func _update_drift(delta: float, steer_input: float, forward_speed: float, on_ground: bool) -> void:
+    if not drifting:
+        # メニューやポップアップを閉じたボタンでは始まらない
+        if Input.is_action_pressed("drift") and not GameMenu.is_just_closed() \
+                and not PowerUps.is_just_closed() and not Map.is_just_closed() \
+                and on_ground and forward_speed >= DRIFT_MIN_SPEED \
+                and absf(steer_input) >= DRIFT_START_STEER:
+            _drift_dir = signf(steer_input)
+            _drift_time = 0.0
+            _drift_air_time = 0.0
+            _drift_speed = minf(Vector2(linear_velocity.x, linear_velocity.z).length(), get_max_speed())
+            drift_stage = 0
+            drifting = true
+            for wheel in _wheel_friction:
+                wheel.wheel_friction_slip = DRIFT_FRICTION_SLIP
+        return
+    if on_ground:
+        _drift_time += delta
+        _drift_air_time = 0.0
+    else:
+        _drift_air_time += delta
+    if _drift_time >= DRIFT_STAGE2_TIME:
+        drift_stage = 2
+    elif _drift_time >= DRIFT_STAGE1_TIME:
+        drift_stage = 1
+    else:
+        drift_stage = 0
+    var horizontal := Vector3(linear_velocity.x, 0.0, linear_velocity.z)
+    if not Input.is_action_pressed("drift"):
+        _end_drift(true)
+        return
+    if _drift_air_time > DRIFT_AIR_GRACE or horizontal.length() < DRIFT_END_SPEED:
+        _end_drift(false)
+        return
+    # スティックを曲がる向きに倒すほど速く、逆に倒すほどゆっくり向きが変わる
+    var rel := steer_input * _drift_dir
+    var yaw_rate := lerpf(DRIFT_YAW_RATE, DRIFT_YAW_TIGHT, rel) if rel >= 0.0 else lerpf(DRIFT_YAW_RATE, DRIFT_YAW_WIDE, -rel)
+    angular_velocity.y = _drift_dir * yaw_rate
+    # 進む向きを機体の前向きへ少しずつ回す（速さは保つ）
+    var forward_flat := global_basis.z
+    forward_flat.y = 0.0
+    if forward_flat.is_zero_approx():
+        return
+    forward_flat = forward_flat.normalized()
+    var angle := horizontal.signed_angle_to(forward_flat, Vector3.UP)
+    horizontal = horizontal.rotated(Vector3.UP, angle * (1.0 - exp(-DRIFT_GRIP * delta)))
+    # タイヤの横の摩擦で失う速さを補い、アクセル中は速さを保つ（向きはそのままで大きさだけ戻す）
+    if Input.get_axis("down", "up") > 0.0 and not horizontal.is_zero_approx():
+        horizontal = horizontal.normalized() * maxf(horizontal.length(), _drift_speed)
+    # linear_velocity を毎フレーム直接書き換えるとサスペンションが効かなくなって車体が沈むので、差を力積で与える
+    apply_central_impulse((horizontal - Vector3(linear_velocity.x, 0.0, linear_velocity.z)) * mass)
+
+
+# ドリフトとダッシュを打ち切る。リスポーンやエンディングで使う
+func cancel_drift() -> void:
+    if drifting:
+        _end_drift(false)
+    _turbo_time = 0.0
+
+
+# ドリフトを終える。release が true（ボタンを離した）で接地しているときだけ、段階に応じたダッシュが出る
+func _end_drift(release: bool) -> void:
+    for wheel in _wheel_friction:
+        wheel.wheel_friction_slip = _wheel_friction[wheel]
+    drifting = false
+    if release and _is_on_ground():
+        if drift_stage == 2:
+            _turbo_time = DRIFT_TURBO_TIME2
+        elif drift_stage == 1:
+            _turbo_time = DRIFT_TURBO_TIME1
+    drift_stage = 0
+
 
 # ジェット。ジャンプを押している間は上へ押し上げ、空中ではアクセルとハンドルで水平に動かす
 func _apply_jet(delta: float, throttle: float, on_ground: bool) -> void:
@@ -201,8 +338,8 @@ func _apply_jet(delta: float, throttle: float, on_ground: bool) -> void:
         jet_thrusting = true
     if on_ground:
         return
-    # ブースト中は水平の速度をいじらない（ブーストを打ち消さないため）
-    if _boost_time <= 0.0:
+    # ブースト中やダッシュ中は水平の速度をいじらない（打ち消さないため）
+    if _boost_time <= 0.0 and _turbo_time <= 0.0:
         var forward_flat := global_basis.z
         forward_flat.y = 0.0
         forward_flat = forward_flat.normalized()
@@ -407,6 +544,14 @@ func _ready() -> void:
     var exhaust := JetExhaustScript.new()
     exhaust.name = "JetExhaust"
     add_child(exhaust)
+    # ドリフトの後で戻せるよう、各ホイールの元の摩擦を覚えておく
+    for child in get_children():
+        var wheel := child as VehicleWheel3D
+        if wheel != null:
+            _wheel_friction[wheel] = wheel.wheel_friction_slip
+    var sparks := DriftSparksScript.new()
+    sparks.name = "DriftSparks"
+    add_child(sparks)
     var config: Dictionary = MODELS[robot_key]
     var model := get_node_or_null(NodePath(config["node"])) as Node3D
     if model == null:
