@@ -759,6 +759,12 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - ライトマップは焼き直していない。白い壁の影がコートに残っていないかは、まだ見ていない。
 - 注意: godot-mcp-edit の `execute_editor_script` は、`print(EditorInterface.get_edited_scene_root().name)` のように `print(...)` の中で関数呼び出しが入れ子になると「Script parsing error: 43」で失敗する。値をいったん変数に入れてから `print` する。
 
+## プールの台座と壁を残した（2026-10-20）
+
+- 西キャンパスのプール（テニスコートの西）の水面 `ground/Body720`（y=0.5）が、地面から浮いていた（ユーザーの指摘）。台座 `Body719`（高さ1m、水面の部分が穴になった板）と壁 `西プール壁`（台座の上で高さ1.5m、厚さ約0.1m）はローポリ版の `low-building` にしかなく、取り込み時に消されていた。
+- 水面を地面まで下げる案と比べ、ユーザーの選択で台座と壁を残すことにした。`stage_collision_import.gd` の `_keep_low_poly_parts`: `low-building` を消す前に、`LOW_POLY_KEEP_NODE_NAMES` のノードを位置を保ったまま `ground` の下へ移す。当たり判定が付き、元マテリアル `Steel - Satin.001` なので `paving_stone` で塗られる。
+- 確認: GLB を取り込み直し、エディタの3Dビューで、水面が台座より低い位置に見え、周りを石の壁が囲むことを画像で確かめた。取り込み時の警告なし。ゲームを動かしての確認と、ライトマップの焼き直しはまだ。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
