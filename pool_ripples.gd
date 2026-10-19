@@ -1,13 +1,11 @@
 extends Node
 
-# 機体がプールの中を動くと波紋の発生点を記録して、プールの底と水面のシェーダーに渡す
+# 機体がプールの中を動くと波紋の発生点を記録して、プールの底のシェーダーに渡す
 
 # 機体のノード
 @export var vehicle_path: NodePath = ^"../VehicleBody3D"
 # プールの底のノード
 @export var floor_path: NodePath = ^"../UEC/ground/プールの底"
-# 水面のノード
-@export var water_path: NodePath = ^"../UEC/ground/Body720"
 # 動いている間に波紋を出す間隔 [秒]
 @export var ripple_interval := 0.2
 # 波紋を出す最低の速さ [m/s]
@@ -34,22 +32,16 @@ var _next_index := 0
 var _since_last := 0.0
 var _was_inside := false
 var _floor_material: ShaderMaterial
-var _water_material: ShaderMaterial
 
 func _ready() -> void:
     _ripples.clear()
     for i in MAX_RIPPLES:
         _ripples.append(Vector4.ZERO)
     var floor_mesh := get_node_or_null(floor_path) as MeshInstance3D
-    var water_mesh := get_node_or_null(water_path) as MeshInstance3D
     if floor_mesh:
         _floor_material = floor_mesh.get_surface_override_material(0) as ShaderMaterial
-    if water_mesh:
-        _water_material = water_mesh.get_surface_override_material(0) as ShaderMaterial
     if _floor_material == null:
         push_warning("プールの底のマテリアルが見つかりません: %s" % floor_path)
-    if _water_material == null:
-        push_warning("水面のマテリアルが見つかりません: %s" % water_path)
 
 func _physics_process(delta: float) -> void:
     _now += delta
@@ -76,13 +68,11 @@ func _physics_process(delta: float) -> void:
     # 機体の周りの乱れ
     var wake_strength := clampf(speed / FULL_SPEED, 0.0, 1.0) if inside else 0.0
     var wake := Vector4(pos.x, pos.z, wake_strength, 0.0)
-    var packed := PackedVector4Array(_ripples)
-    for material in [_floor_material, _water_material]:
-        if material == null:
-            continue
-        material.set_shader_parameter("ripples", packed)
-        material.set_shader_parameter("ripple_now", _now)
-        material.set_shader_parameter("vehicle_wake", wake)
+    if _floor_material == null:
+        return
+    _floor_material.set_shader_parameter("ripples", PackedVector4Array(_ripples))
+    _floor_material.set_shader_parameter("ripple_now", _now)
+    _floor_material.set_shader_parameter("vehicle_wake", wake)
 
 # 波紋の発生点を1つ記録する（古いものから上書きする）
 func _add_ripple(pos: Vector3, strength: float) -> void:
