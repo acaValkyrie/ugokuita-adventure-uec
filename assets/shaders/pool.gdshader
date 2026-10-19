@@ -1,5 +1,4 @@
 shader_type spatial;
-render_mode diffuse_toon, specular_disabled;
 
 #include "res://assets/shaders/pool_ripples.gdshaderinc"
 
@@ -32,10 +31,8 @@ uniform vec4 deck_color : source_color = vec4(0.62, 0.56, 0.48, 1.0);
 
 // 光の網目の色
 uniform vec4 caustic_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
-// 光の網目を底の色に足す強さ
-uniform float caustic_strength = 0.6;
-// 光の網目を自分で光らせる強さ（影の中でもくすまないように）
-uniform float caustic_emission = 0.25;
+// 光の網目の明るさ（太陽の光に対する割合。影の中では0になる）
+uniform float caustic_strength = 0.8;
 // 光の網目の1マスの大きさ（メートル）
 uniform float caustic_scale = 1.2;
 // 光の網目が動く速さ
@@ -46,13 +43,13 @@ uniform float caustic_width = 0.08;
 uniform float wobble_amount = 0.06;
 // コースラインが揺れる速さ
 uniform float wobble_speed = 1.0;
-// 波紋が光の網目をゆがませる大きさ（メートル）
-uniform float ripple_distort = 0.6;
-// 波紋が通るところで光の網目を明るくする強さ
-uniform float ripple_brightness = 0.35;
+// 波紋が光の網目をずらす大きさ（倍率）
+uniform float ripple_distort = 1.0;
 
 varying vec3 world_pos;
 varying vec3 world_normal;
+// fragment() で求めた光の網目の強さを light() に渡す
+varying float caustic_v;
 
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -92,13 +89,13 @@ float caustic_layer(vec2 p, float t) {
 }
 
 void fragment() {
+	caustic_v = 0.0;
 	// 水面の長方形の中心からの位置を、短辺方向 s と長辺方向 l に分ける
 	vec2 d = world_pos.xz - pool_center;
 	vec2 short_axis = vec2(-pool_long_axis.y, pool_long_axis.x);
 	float s = dot(d, short_axis);
 	float l = dot(d, pool_long_axis);
 	vec3 albedo;
-	vec3 emission = vec3(0.0);
 	if (is_floor) {
 		// 水面の揺れで底の線がゆがんで見える
 		float wt = TIME * wobble_speed;
@@ -114,24 +111,27 @@ void fragment() {
 		bool line_body = ds < lane_line_width * 0.5 && abs(l) < end_l;
 		bool line_cross = abs(abs(l) - end_l) < lane_line_width * 0.5 && ds < lane_cross_length * 0.5;
 		albedo = (line_body || line_cross) ? lane_color.rgb : floor_color.rgb;
-		// 水面を通った光の網目（ワールド座標で作るので揺れの影響を受けない）
-		// 波紋が通るところは網目がゆがんで明るくなる
-		vec2 rdisp;
-		float rsum = pool_ripples(world_pos.xz, rdisp);
+		// 水面を通った光の網目（ワールド座標で作るので揺れの影響を受けない）。明るさは light() で足す
+		// 波紋が通るところは網目がずれる
+		vec2 rdisp = pool_ripples(world_pos.xz);
 		vec2 cp = (world_pos.xz + rdisp * ripple_distort) / caustic_scale;
 		float ct = TIME * caustic_speed;
-		float c = max(caustic_layer(cp, ct), 0.7 * caustic_layer(cp * 1.7 + vec2(3.1, 7.4), ct * 1.3));
-		c *= 1.0 + rsum * ripple_brightness * 2.0;
-		albedo += caustic_color.rgb * rsum * ripple_brightness * 0.3;
-		albedo += caustic_color.rgb * c * caustic_strength;
-		emission = caustic_color.rgb * c * caustic_emission;
+		caustic_v = max(caustic_layer(cp, ct), 0.7 * caustic_layer(cp * 1.7 + vec2(3.1, 7.4), ct * 1.3));
 	} else {
 		// 水面の周りの白い縁（穴の内側の壁も含めて白くなる）
 		bool in_coping = abs(s) < pool_half_size.x + coping_width && abs(l) < pool_half_size.y + coping_width;
 		albedo = in_coping ? coping_color.rgb : deck_color.rgb;
 	}
 	ALBEDO = albedo;
-	EMISSION = emission;
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
+}
+
+// 組み込みの diffuse_toon は使わず、light() で同じトゥーンの拡散光を自前で作る
+void light() {
+	// diffuse_toon と同じトゥーンの拡散光（ROUGHNESS=1 なので smoothstep(-1, 1, N・L)）
+	float ndotl = dot(NORMAL, LIGHT);
+	DIFFUSE_LIGHT += smoothstep(-ROUGHNESS, max(ROUGHNESS, 0.01), ndotl) * ATTENUATION * LIGHT_COLOR / PI;
+	// 光の網目は底の色に関係なく白く足す。ATTENUATION に影が入るので、機体の影の中では網目が出ない
+	SPECULAR_LIGHT += caustic_color.rgb * caustic_v * caustic_strength * clamp(ndotl, 0.0, 1.0) * ATTENUATION * LIGHT_COLOR / PI;
 }
