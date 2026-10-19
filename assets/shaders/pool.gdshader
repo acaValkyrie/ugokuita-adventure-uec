@@ -1,6 +1,8 @@
 shader_type spatial;
 render_mode diffuse_toon, specular_disabled;
 
+#include "res://assets/shaders/pool_ripples.gdshaderinc"
+
 // true のときプールの底（コースラインを描く）、false のときプールサイド（台座）として塗る
 uniform bool is_floor = false;
 // 水面の長方形の中心（ワールドXZ）
@@ -44,6 +46,10 @@ uniform float caustic_width = 0.08;
 uniform float wobble_amount = 0.06;
 // コースラインが揺れる速さ
 uniform float wobble_speed = 1.0;
+// 波紋が光の網目をゆがませる大きさ（メートル）
+uniform float ripple_distort = 0.6;
+// 波紋が通るところで光の網目を明るくする強さ
+uniform float ripple_brightness = 0.35;
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -109,9 +115,14 @@ void fragment() {
 		bool line_cross = abs(abs(l) - end_l) < lane_line_width * 0.5 && ds < lane_cross_length * 0.5;
 		albedo = (line_body || line_cross) ? lane_color.rgb : floor_color.rgb;
 		// 水面を通った光の網目（ワールド座標で作るので揺れの影響を受けない）
-		vec2 cp = world_pos.xz / caustic_scale;
+		// 波紋が通るところは網目がゆがんで明るくなる
+		vec2 rdisp;
+		float rsum = pool_ripples(world_pos.xz, rdisp);
+		vec2 cp = (world_pos.xz + rdisp * ripple_distort) / caustic_scale;
 		float ct = TIME * caustic_speed;
 		float c = max(caustic_layer(cp, ct), 0.7 * caustic_layer(cp * 1.7 + vec2(3.1, 7.4), ct * 1.3));
+		c *= 1.0 + rsum * ripple_brightness * 2.0;
+		albedo += caustic_color.rgb * rsum * ripple_brightness * 0.3;
 		albedo += caustic_color.rgb * c * caustic_strength;
 		emission = caustic_color.rgb * c * caustic_emission;
 	} else {

@@ -6,6 +6,7 @@
 [ext_resource type="LightmapGIData" uid="uid://tojgoxeni2do" path="res://main_scene.lmbake" id="4_8mm7a"]
 [ext_resource type="Script" uid="uid://dhomfjn5v0vbg" path="res://robot_sun.gd" id="6_robotsun"]
 [ext_resource type="Script" uid="uid://dunm07ep371cl" path="res://link_board.gd" id="7_linkboard"]
+[ext_resource type="Script" uid="uid://cc8kvfaxnd13r" path="res://pool_ripples.gd" id="7_poolrip"]
 [ext_resource type="Texture2D" uid="uid://bi4y8kf8cqctn" path="res://assets/boards/github_poster.png" id="8_poster"]
 [ext_resource type="Texture2D" uid="uid://bjf3i0q7yh614" path="res://assets/boards/ugokuita_project_poster.png" id="9_poster_ugokuita"]
 [ext_resource type="Texture2D" uid="uid://b85fb4kew3npi" path="res://assets/boards/giving_campaign_poster.png" id="10_poster_giving"]
@@ -105,3 +106,6 @@ transform = Transform3D(0.9703, 0, -0.2419, 0, 1, 0, 0.2419, 0, 0.9703, 131.435,
 script = ExtResource("7_linkboard")
 url = "https://homecloud.k1h.dev"
 poster = ExtResource("11_poster_homecloud")
+
+[node name="PoolRipples" type="Node" parent="." unique_id=275545926]
+script = ExtResource("7_poolrip")
