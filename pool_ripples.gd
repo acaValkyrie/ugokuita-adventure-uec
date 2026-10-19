@@ -14,10 +14,13 @@ const POOL_LONG_AXIS := Vector2(0.2664, -0.9639)
 const POOL_HALF_SIZE := Vector2(6.69, 12.705)
 # 水面の高さ（ワールドY）
 const POOL_WATER_Y := 0.5
-# 波紋の強さの最小値
-const MIN_STRENGTH := 0.4
-# この縦の速さ [m/s] で水面をまたぐと波紋が最大になる
-const FULL_VERTICAL_SPEED := 3.0
+# 普通に飛び込んだとき（縦の速さ REFERENCE_VERTICAL_SPEED）の波紋の強さ（プレビューで決めた値）
+const BASE_STRENGTH := 8.35
+# 普通に飛び込んだときの縦の速さ [m/s]（台座の高さから落ちたくらい）
+const REFERENCE_VERTICAL_SPEED := 3.5
+# 縦の速さによる強さの倍率の範囲（ゆっくり出入りしたとき〜高く跳んでから落ちたとき）
+const MIN_SCALE := 0.3
+const MAX_SCALE := 2.0
 
 var _now := 0.0
 var _ripples: Array[Vector4] = []
@@ -50,7 +53,7 @@ func _physics_process(delta: float) -> void:
     var below := pos.y < POOL_WATER_Y
     # 水面を上下にまたいだ瞬間だけ波紋を出す
     if _has_prev and in_rect and below != _was_below:
-        _add_ripple(pos, clampf(absf(vehicle.linear_velocity.y) / FULL_VERTICAL_SPEED, MIN_STRENGTH, 1.0))
+        _add_ripple(pos, BASE_STRENGTH * clampf(absf(vehicle.linear_velocity.y) / REFERENCE_VERTICAL_SPEED, MIN_SCALE, MAX_SCALE))
     _was_below = below
     _has_prev = true
     if _floor_material == null:
