@@ -10,4 +10,8 @@ assets/audio/bgm/これにてお開き、また来週！.mp3
 
 # 街の鳥の声（VSQ plus+）は規約で素材そのままの頒布が禁止されているので、暗号化した assets/audio/bgm/city_bird.ogg.enc だけをコミットする
 assets/audio/bgm/city_bird.ogg
+
+# 水の上を走る音と水しぶきの音（Pixabay）は規約で素材そのままの単体での配布が禁止されているので、暗号化した .enc だけをコミットする
+assets/audio/water/running_stream.ogg
+assets/audio/water/water_splash.ogg
 assets/audio/bgm/source/
