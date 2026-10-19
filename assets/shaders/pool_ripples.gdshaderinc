@@ -15,7 +15,7 @@ uniform float ripple_width = 0.85;
 // 波紋の輪と輪の間隔（メートル）
 uniform float ripple_wavelength = 1.0;
 // 背景の波の高さ（一番長い波の振幅、メートル）
-uniform float wave_height = 0.075;
+uniform float wave_height = 0.125;
 // 背景の波長の最小（メートル）
 uniform float wave_length_min = 1.1;
 // 背景の波長の最大（メートル）
