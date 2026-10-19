@@ -34,6 +34,8 @@ const ASPHALT_GRAY_NODE_NAMES: Array[String] = ["Body28", "Body29"]
 const ASPHALT_STEEL_NODE_NAMES: Array[String] = ["Body19", "Body459", "東地区敷地外"]
 # 灰色の金属マテリアルのうち、テニスコートを囲むフェンス（高さ5mの薄い壁）として金網にするノード名
 const FENCE_NODE_NAMES: Array[String] = ["Body616", "Body617", "Body734"]
+# ローポリ版の建物（low-building）にしかない、西キャンパスのプールの台座と壁。取り除かずにgroundの下へ移して残す
+const LOW_POLY_KEEP_NODE_NAMES: Array[String] = ["Body719", "西プール壁"]
 # 東西キャンパスの間の道路を表す線（ワールドXZ）。これより西の舗装はアスファルト、東はレンガ
 const CAMPUS_BORDER_SOUTH := Vector2(-58.0, 71.0)
 const CAMPUS_BORDER_NORTH := Vector2(14.0, -299.0)
@@ -114,6 +116,7 @@ func _post_import(scene: Node) -> Object:
 	_window_tri_total = 0
 	var strip_cache := {}
 	var strip_stats := {"tris": 0, "buildings": 0}
+	_keep_low_poly_parts(scene)
 	for child in scene.get_children():
 		if _is_low_poly(child.name):
 			scene.remove_child(child)
@@ -382,6 +385,37 @@ func _collect_lightmap_sides(node: Node, root: Node, sides: Dictionary) -> void:
 
 func _is_low_poly(node_name: String) -> bool:
 	return node_name == "low-building" or node_name.begins_with("buil_")
+
+
+# ローポリ版の建物から残すノードを、ワールドでの位置を保ったまま ground の下へ移す
+func _keep_low_poly_parts(scene: Node) -> void:
+	var low := scene.get_node_or_null("low-building")
+	var ground := scene.get_node_or_null("ground") as Node3D
+	if low == null or ground == null:
+		push_warning("stage_collision_import: low-building か ground が見つからないため、ローポリ版の建物のノードを残せない")
+		return
+	var moved := 0
+	for node_name in LOW_POLY_KEEP_NODE_NAMES:
+		var node := low.get_node_or_null(NodePath(node_name)) as Node3D
+		if node == null:
+			push_warning("stage_collision_import: low-building の下に %s が見つからない" % node_name)
+			continue
+		var xform := _scene_transform(node, scene)
+		# ownerを付けたまま別の親へ移すと警告が出るので、いったん外す
+		node.owner = null
+		low.remove_child(node)
+		ground.add_child(node)
+		# 保存するシーンに残るよう、子孫も含めてownerを付け直す
+		_set_owner_recursive(node, scene)
+		node.transform = _scene_transform(ground, scene).affine_inverse() * xform
+		moved += 1
+	print("stage_collision_import: ローポリ版の建物から %d 個のノードを ground の下へ移した" % moved)
+
+
+func _set_owner_recursive(node: Node, owner_node: Node) -> void:
+	node.owner = owner_node
+	for child in node.get_children():
+		_set_owner_recursive(child, owner_node)
 
 
 func _is_collidable(node_name: String) -> bool:
