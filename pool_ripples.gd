@@ -23,7 +23,7 @@ const MIN_SCALE := 0.3
 const MAX_SCALE := 2.0
 # 水面をまたいだときのしぶきの音（普通に飛び込んだときの音量 [dB]）
 const SPLASH_SOUND := preload("res://assets/audio/water/water_splash.ogg")
-const SPLASH_VOLUME_DB := 3.0
+const SPLASH_VOLUME_DB := 9.0
 # しぶきの音の再生開始位置 [s]。音源は 0.49 秒あたりで水を打つ音が最大になり、それより前は小さな前置きなので、ここから鳴らして水面を通った瞬間に合わせる
 const SPLASH_START := 0.3
 
