@@ -24,6 +24,8 @@ const MAX_SCALE := 2.0
 # 水面をまたいだときのしぶきの音（普通に飛び込んだときの音量 [dB]）
 const SPLASH_SOUND := preload("res://assets/audio/water/water_splash.ogg")
 const SPLASH_VOLUME_DB := -3.0
+# しぶきの音の再生開始位置 [s]。音源は 0.49 秒あたりで水を打つ音が最大になり、それより前は小さな前置きなので、ここから鳴らして水面を通った瞬間に合わせる
+const SPLASH_START := 0.3
 
 # 鳴らした回数（テスト用）
 var splash_count := 0
@@ -82,7 +84,7 @@ func _play_splash(pos: Vector3, scale: float) -> void:
     _splash_player.global_position = pos
     _splash_player.volume_db = SPLASH_VOLUME_DB + linear_to_db(clampf(scale, MIN_SCALE, 1.0))
     _splash_player.pitch_scale = 1.0 + randf_range(-0.08, 0.08)
-    _splash_player.play()
+    _splash_player.play(SPLASH_START)
     splash_count += 1
 
 # 波紋の発生点を1つ記録する（古いものから上書きする）
