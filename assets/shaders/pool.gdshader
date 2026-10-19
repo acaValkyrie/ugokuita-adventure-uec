@@ -43,8 +43,8 @@ uniform float caustic_width = 0.08;
 uniform float wobble_amount = 0.06;
 // コースラインが揺れる速さ
 uniform float wobble_speed = 1.0;
-// 波紋が光の網目をずらす大きさ（倍率）
-uniform float ripple_distort = 1.0;
+// 太陽の影の濃さ（DirectionalLight3D の shadow_opacity と同じ値）。影の中で光の網目がちょうど0になるように使う
+uniform float sun_shadow_opacity = 0.85;
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -112,11 +112,12 @@ void fragment() {
 		bool line_cross = abs(abs(l) - end_l) < lane_line_width * 0.5 && ds < lane_cross_length * 0.5;
 		albedo = (line_body || line_cross) ? lane_color.rgb : floor_color.rgb;
 		// 水面を通った光の網目（ワールド座標で作るので揺れの影響を受けない）。明るさは light() で足す
-		// 波紋が通るところは網目がずれる
-		vec2 rdisp = pool_ripples(world_pos.xz);
-		vec2 cp = (world_pos.xz + rdisp * ripple_distort) / caustic_scale;
+		vec2 cp = world_pos.xz / caustic_scale;
 		float ct = TIME * caustic_speed;
-		caustic_v = max(caustic_layer(cp, ct), 0.7 * caustic_layer(cp * 1.7 + vec2(3.1, 7.4), ct * 1.3));
+		float c = max(caustic_layer(cp, ct), 0.7 * caustic_layer(cp * 1.7 + vec2(3.1, 7.4), ct * 1.3));
+		// 波紋の輪の束が通るところでは、網目を同心円の明るい輪に置き換える
+		vec2 rp = pool_ripples(world_pos.xz);
+		caustic_v = mix(c, rp.x, clamp(rp.y, 0.0, 1.0));
 	} else {
 		// 水面の周りの白い縁（穴の内側の壁も含めて白くなる）
 		bool in_coping = abs(s) < pool_half_size.x + coping_width && abs(l) < pool_half_size.y + coping_width;
@@ -132,6 +133,7 @@ void light() {
 	// diffuse_toon と同じトゥーンの拡散光（ROUGHNESS=1 なので smoothstep(-1, 1, N・L)）
 	float ndotl = dot(NORMAL, LIGHT);
 	DIFFUSE_LIGHT += smoothstep(-ROUGHNESS, max(ROUGHNESS, 0.01), ndotl) * ATTENUATION * LIGHT_COLOR / PI;
-	// 光の網目は底の色に関係なく白く足す。ATTENUATION に影が入るので、機体の影の中では網目が出ない
-	SPECULAR_LIGHT += caustic_color.rgb * caustic_v * caustic_strength * clamp(ndotl, 0.0, 1.0) * ATTENUATION * LIGHT_COLOR / PI;
+	// 光の網目は底の色に関係なく白く足す。影の中でも shadow_opacity の分だけ光が残るので、それを差し引いて影の中ではちょうど0にする
+	float lit = clamp((ATTENUATION - (1.0 - sun_shadow_opacity)) / sun_shadow_opacity, 0.0, 1.0);
+	SPECULAR_LIGHT += caustic_color.rgb * caustic_v * caustic_strength * clamp(ndotl, 0.0, 1.0) * lit * LIGHT_COLOR / PI;
 }
