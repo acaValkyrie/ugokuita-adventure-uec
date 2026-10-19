@@ -15,6 +15,8 @@ uniform float post_spacing = 2.5;
 uniform float post_width = 0.06;
 // 上下の横棒の太さ（メートル）
 uniform float rail_height = 0.06;
+// フェンス下端のワールドY（メートル）
+uniform float fence_bottom_y = 0.0;
 // フェンス上端のワールドY（メートル）
 uniform float fence_top_y = 5.0;
 
@@ -53,7 +55,7 @@ void fragment() {
 		float wire = 1.0 - (1.0 - line_coverage(a, w)) * (1.0 - line_coverage(b, w));
 		// 支柱と上下の横棒
 		float post = line_coverage(u / post_spacing, post_width / post_spacing);
-		float rail = (v < rail_height || v > fence_top_y - rail_height) ? 1.0 : 0.0;
+		float rail = (v < fence_bottom_y + rail_height || v > fence_top_y - rail_height) ? 1.0 : 0.0;
 		float frame = max(post, rail);
 		ALBEDO = mix(wire_color.rgb, frame_color.rgb, frame);
 		ALPHA = max(wire, frame);

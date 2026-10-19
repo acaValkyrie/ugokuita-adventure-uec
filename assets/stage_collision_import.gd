@@ -13,6 +13,8 @@ const TRUNK_PREFIXES := ["幹", "メッシュ ボディ4"]
 const SHADER_PATH := "res://assets/shaders/campus_triplanar.gdshader"
 # 金網フェンスのシェーダー
 const FENCE_SHADER_PATH := "res://assets/shaders/chain_link_fence.gdshader"
+# プールの水面とプールサイドのシェーダー
+const POOL_SHADER_PATH := "res://assets/shaders/pool.gdshader"
 const TEXTURE_DIR := "res://assets/textures/campus/"
 
 # 地面メッシュの元マテリアル名から地面の種類を決める対応表
@@ -36,6 +38,10 @@ const ASPHALT_STEEL_NODE_NAMES: Array[String] = ["Body19", "Body459", "東地区
 const FENCE_NODE_NAMES: Array[String] = ["Body616", "Body617", "Body734"]
 # ローポリ版の建物（low-building）にしかない、西キャンパスのプールの台座と壁。取り除かずにgroundの下へ移して残す
 const LOW_POLY_KEEP_NODE_NAMES: Array[String] = ["Body719", "西プール壁"]
+# プールのノードごとの地面の種類（水面・プールサイド・柵）。元マテリアルによる割り当てより優先する
+const POOL_KIND_BY_NODE_NAME := {"Body720": "pool_water", "Body719": "pool_deck", "西プール壁": "pool_fence"}
+# プールの種類を、走行時の効果音に使う地面の種類へ読み替える対応表（柵は走行面ではないので含めない）
+const POOL_SURFACE_KIND := {"pool_water": "water", "pool_deck": "paving_stone"}
 # 東西キャンパスの間の道路を表す線（ワールドXZ）。これより西の舗装はアスファルト、東はレンガ
 const CAMPUS_BORDER_SOUTH := Vector2(-58.0, 71.0)
 const CAMPUS_BORDER_NORTH := Vector2(14.0, -299.0)
@@ -482,14 +488,14 @@ func _assign_ground_materials(node: Node, scene: Node, under_ground: bool) -> vo
 		var kind: String = _ground_kind(source.resource_name, node, scene, under_ground)
 		if kind != "":
 			node.set_surface_override_material(i, _get_ground_material(kind))
-			if kind == "fence":
+			if kind == "fence" or kind == "pool_fence":
 				# 半透明の金網はライトマップに焼き込まない
 				node.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 				# フェンスは走行できる地面ではないので surface_kind は付けない
 				continue
-			# 機体の下の地面の種類（走行時の効果音の切り替えに使う）
+			# 機体の下の地面の種類（走行時の効果音の切り替えに使う）。プールの種類は既存の走行面の種類へ読み替える
 			if not node.has_meta("surface_kind"):
-				node.set_meta("surface_kind", kind)
+				node.set_meta("surface_kind", POOL_SURFACE_KIND.get(kind, kind))
 
 
 # 元マテリアル名とノードから地面の種類を返す。該当なしは空文字
@@ -497,6 +503,8 @@ func _ground_kind(material_name: String, node: MeshInstance3D, scene: Node, unde
 	if not GROUND_KIND_BY_MATERIAL.has(material_name):
 		return ""
 	var node_name := String(node.name)
+	if under_ground and POOL_KIND_BY_NODE_NAME.has(node_name):
+		return POOL_KIND_BY_NODE_NAME[node_name]
 	if material_name == "Plastic - Matte (Gray)" and node_name in ASPHALT_GRAY_NODE_NAMES:
 		return "asphalt"
 	if material_name == "Steel - Satin" and under_ground:
@@ -558,6 +566,17 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 			material = _make_material("roof_concrete", "roof_concrete", 4.0, Vector2(4.0, 4.0))
 		"fence":
 			material = _make_fence_material()
+		"pool_water":
+			material = _make_pool_material(true)
+		"pool_deck":
+			material = _make_pool_material(false)
+		"pool_fence":
+			material = _make_fence_material()
+			# プールの柵は灰色で、台座の上の高さ1〜2.5m
+			material.set_shader_parameter("wire_color", Color(0.70, 0.72, 0.72))
+			material.set_shader_parameter("frame_color", Color(0.58, 0.60, 0.60))
+			material.set_shader_parameter("fence_bottom_y", 1.0)
+			material.set_shader_parameter("fence_top_y", 2.5)
 	_material_cache[kind] = material
 	return material
 
@@ -909,4 +928,12 @@ func _make_color_material(color: Color) -> ShaderMaterial:
 func _make_fence_material() -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = load(FENCE_SHADER_PATH)
+	return material
+
+
+# プールの水面（is_water が true）またはプールサイドのマテリアルを作る（形の値はシェーダーの既定値を使う）
+func _make_pool_material(is_water: bool) -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = load(POOL_SHADER_PATH)
+	material.set_shader_parameter("is_water", is_water)
 	return material
