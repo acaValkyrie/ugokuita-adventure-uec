@@ -174,14 +174,14 @@ func _begin_effects() -> void:
     for node in player.find_children("*", "CPUParticles3D", true, false):
         var p := node as CPUParticles3D
         _saved_particles.append([p, p.process_mode, p.emitting])
-        # 警告中は木が止まっているので、粒だけ動かす
+        # 準備中はツリーを止めているので、粒だけ動かす
         p.process_mode = Node.PROCESS_MODE_ALWAYS
         p.emitting = true
     for node in player.find_children("*", "MeshInstance3D", true, false):
         var mi := node as MeshInstance3D
         if not (mi.mesh is ImmediateMesh):
             continue
-        # 帯は top_level で単位の変換なので、頂点は世界座標
+        # 帯は top_level で変換が単位行列なので、頂点はワールド座標で書く
         var p: Vector3 = (player as Node3D).global_position + Vector3.UP * 0.05
         var im := mi.mesh as ImmediateMesh
         im.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -190,7 +190,7 @@ func _begin_effects() -> void:
             im.surface_add_vertex(v)
         im.surface_end()
         _warm_meshes.append(mi)
-    # 集中線は木と一緒に止まっているので、隠されない
+    # 集中線もツリーと一緒に止まっているので、ここで出しても隠されない
     SpeedLines._rect.visible = true
     _effects_active = true
 
