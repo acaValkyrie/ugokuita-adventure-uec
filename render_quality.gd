@@ -1,5 +1,5 @@
 extends Node
-# スマホなどタッチ操作の端末で、3D を描く解像度を下げて Web 版を軽くする。
+# スマホなどタッチ操作の端末で、3D を描く解像度を下げ、1フレームの物理演算の回数も制限して Web 版を軽くする。
 # URL の ?scale=0.5 で倍率を、?lod=0.01 で機体の LOD の偏りを強制でき、
 # ?fps で FPS などを画面左上に表示する。
 # ?bench で、描画の要素を1つずつ外して FPS を測るベンチ（perf_bench.gd）を動かす。
@@ -18,6 +18,8 @@ const OVERRIDE_MAX := 1.0
 const OVERLAY_INTERVAL := 0.5
 # タッチ操作の端末で、機体のメッシュに付ける LOD の偏り（小さいほど粗い LOD を使う）
 const VEHICLE_LOD_BIAS := 0.01
+# タッチ操作の端末で、1フレームに回す物理演算の最大回数。重い端末で物理演算が追いつこうとして何回も回り、さらに遅くなるのを防ぐ（60回/秒なので 30FPS を下回るとゲームの進みが遅くなる）
+const TOUCH_MAX_PHYSICS_STEPS := 2
 
 # 強制する倍率（0 なら自動）
 var forced_scale := 0.0
@@ -39,6 +41,8 @@ func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
     _setup_overlay()
     set_physics_process(true)
+    if _is_touch_device():
+        Engine.max_physics_steps_per_frame = TOUCH_MAX_PHYSICS_STEPS
     if OS.has_feature("web"):
         _read_url_parameters()
     _apply_scale()
