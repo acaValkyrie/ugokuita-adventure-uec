@@ -25,11 +25,27 @@ const DRIVE_SETTINGS := {
     "drive_steps2": [60, 2],
     "drive_tick30": [30, 8],
     "drive_t30_s2": [30, 2],
+    "ref_drive": [60, 2],
+    "no_sunray": [60, 2],
+    "no_col_leaves": [60, 2],
+    "no_col_trunks": [60, 2],
+    "no_col_bldg": [60, 2],
+    "no_col_all": [60, 2],
+}
+
+# 当たり判定を切る状態ごとの対象（StaticBody3D の collision_layer）
+const NO_COL_LAYERS := {
+    "no_col_leaves": [4],
+    "no_col_trunks": [5],
+    "no_col_bldg": [1],
+    "no_col_all": [4, 5, 1],
 }
 
 # 測る状態（この順に実行する）
 const STATES := [
     "drive", "drive_steps2", "drive_tick30", "drive_t30_s2",
+    "ref_drive", "no_sunray", "no_col_leaves", "no_col_trunks",
+    "no_col_bldg", "no_col_all",
     "base", "scale0.25", "no_sky", "no_fog", "no_shadow",
     "no_triplanar", "no_foliage", "no_fence",
     "no_vehicle", "no_campus", "far150",
@@ -55,6 +71,9 @@ var _index := 0
 var _frames := 0
 var _sum := 0.0
 var _phys_sum := 0.0
+# 測定中の各フレームの実時間（ms）と、前フレームの時刻（マイクロ秒）
+var _frame_ms: Array[float] = []
+var _last_usec := 0
 # 物理演算の回数（1フレームの間の数、測定中の最大と合計）
 var _steps_this_frame := 0
 var _last := 0
@@ -126,7 +145,12 @@ func _process(delta: float) -> void:
                 _phys_sum = 0.0
                 _max_steps = 0
                 _steps_sum = 0
+                _frame_ms.clear()
+                _last_usec = Time.get_ticks_usec()
         Phase.MEASURE:
+            var now := Time.get_ticks_usec()
+            _frame_ms.append((now - _last_usec) / 1000.0)
+            _last_usec = now
             _timer += delta
             _frames += 1
             _sum += delta
@@ -183,6 +207,8 @@ func _finish_state() -> void:
         "key": key,
         "ok": true,
         "ms": _sum / _frames * 1000.0,
+        "med": _percentile(_frame_ms, 0.5),
+        "p95": _percentile(_frame_ms, 0.95),
         "phys": _phys_sum / _frames * 1000.0,
         "steps_avg": float(_steps_sum) / _frames,
         "steps_max": _max_steps,
@@ -192,6 +218,22 @@ func _finish_state() -> void:
     })
     _revert(key)
     _next_state()
+
+
+# 昇順に並べた配列の p 番目の値（p95 は ceil(0.95 * n) 番目）。median は中央の値
+func _percentile(values: Array[float], p: float) -> float:
+    if values.is_empty():
+        return 0.0
+    var sorted := values.duplicate()
+    sorted.sort()
+    var n := sorted.size()
+    if p == 0.5:
+        var half := n >> 1
+        if n % 2 == 1:
+            return sorted[half]
+        return (sorted[half - 1] + sorted[half]) / 2.0
+    var idx := clampi(int(ceil(p * n)) - 1, 0, n - 1)
+    return sorted[idx]
 
 
 func _next_state() -> void:
@@ -219,8 +261,9 @@ func _build_table() -> String:
         if r["ok"]:
             var ms: float = r["ms"]
             var fps := 1000.0 / ms if ms > 0.0 else 0.0
-            var line := "%-13s %7.1fms %5.1ffps phys %5.1fms st %.1f/%d draw %4d tris %.2fM" % [
-                r["key"], ms, fps, r["phys"], r["steps_avg"], r["steps_max"],
+            # physmax は TIME_PHYSICS_PROCESS（直近1秒ほどで一番遅かった物理1回分。平均ではない）の平均
+            var line := "%-13s med %6.1fms p95 %6.1fms %5.1ffps physmax %5.1fms st %.1f/%d draw %4d tris %.2fM" % [
+                r["key"], r["med"], r["p95"], fps, r["phys"], r["steps_avg"], r["steps_max"],
                 r["draws"], r["prims"] / 1000000.0]
             if _is_drive(r["key"]):
                 line += " v %.1f" % r["speed"]
@@ -300,7 +343,20 @@ func _apply(key: String) -> bool:
         var player := _find_player()
         if player == null or not _has_start:
             return false
-        _saved[key] = [Engine.physics_ticks_per_second, Engine.max_physics_steps_per_frame]
+        # 3つめは比較用の変更の保存先
+        var extra: Variant = null
+        if key == "no_sunray":
+            var sun := _find_node(scene, "RobotSun")
+            if sun == null:
+                return false
+            sun.set_physics_process(false)
+            extra = sun
+        elif NO_COL_LAYERS.has(key):
+            var uec := _find_node(scene, "UEC")
+            if uec == null:
+                return false
+            extra = _disable_collisions(uec, NO_COL_LAYERS[key])
+        _saved[key] = [Engine.physics_ticks_per_second, Engine.max_physics_steps_per_frame, extra]
         Engine.physics_ticks_per_second = DRIVE_SETTINGS[key][0]
         Engine.max_physics_steps_per_frame = DRIVE_SETTINGS[key][1]
         _reset_vehicle(player)
@@ -396,6 +452,16 @@ func _revert(key: String) -> void:
         _release_inputs()
         Engine.physics_ticks_per_second = data[0]
         Engine.max_physics_steps_per_frame = data[1]
+        var extra: Variant = data[2]
+        if key == "no_sunray":
+            if is_instance_valid(extra):
+                extra.set_physics_process(true)
+        elif NO_COL_LAYERS.has(key):
+            for pair in extra["shapes"]:
+                if is_instance_valid(pair[0]):
+                    pair[0].disabled = pair[1]
+            if is_instance_valid(extra["floor"]):
+                extra["floor"].queue_free()
         return
     match key:
         "scale0.25":
@@ -423,6 +489,31 @@ func _revert(key: String) -> void:
         "far150":
             if is_instance_valid(data[0]):
                 data[0].far = data[1]
+
+
+# UEC 配下で collision_layer が layers に含まれる StaticBody3D の形を切り、安全用の床を足す。
+# 戻り値は元に戻すための情報 {shapes: [[shape, 元の disabled]], floor: 床}
+func _disable_collisions(uec: Node, layers: Array) -> Dictionary:
+    var shapes: Array = []
+    for body in uec.find_children("*", "StaticBody3D", true, false):
+        if not (body.collision_layer in layers):
+            continue
+        for child in body.get_children():
+            if child is CollisionShape3D:
+                shapes.append([child, child.disabled])
+                child.disabled = true
+    # 地面が無くなっても落ちないように、仮の床を置く（上面が y = 0）
+    var floor_body := StaticBody3D.new()
+    floor_body.collision_layer = 1
+    floor_body.collision_mask = 0
+    var shape := CollisionShape3D.new()
+    var box := BoxShape3D.new()
+    box.size = Vector3(600, 1, 600)
+    shape.shape = box
+    floor_body.add_child(shape)
+    floor_body.position = Vector3(_start_transform.origin.x, -0.5, _start_transform.origin.z)
+    get_tree().current_scene.add_child(floor_body)
+    return {"shapes": shapes, "floor": floor_body}
 
 
 func _find_node(scene: Node, node_name: String) -> Node:
