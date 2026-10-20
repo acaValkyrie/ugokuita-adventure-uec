@@ -10,7 +10,7 @@ var vehicle
 @export var return_min_speed: float = 0.3
 
 # ブーストやドリフトのダッシュを出した瞬間にカメラを引く距離 [m]
-@export var kick_distance: float = 0.8
+@export var kick_distance: float = 2.0
 # 引いた位置を目指す時間 [s]。過ぎたら元の距離へ戻す
 @export var kick_hold: float = 0.1
 # 引くときと、戻すときの追従の速さ（大きいほど素早い）
