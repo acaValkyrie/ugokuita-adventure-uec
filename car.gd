@@ -2,6 +2,7 @@ extends VehicleBody3D
 
 const JetExhaustScript := preload("res://jet_exhaust.gd")
 const DriftSparksScript := preload("res://drift_sparks.gd")
+const DriftTrailsScript := preload("res://drift_trails.gd")
 
 @export var MAX_STEER = 0.5
 # 最高速度で走っているときのハンドルの最大角 [rad]。速いほど MAX_STEER からこの値へ絞り、高速で切ったときにスピンしないようにする
@@ -617,6 +618,9 @@ func _ready() -> void:
     var sparks := DriftSparksScript.new()
     sparks.name = "DriftSparks"
     add_child(sparks)
+    var trails := DriftTrailsScript.new()
+    trails.name = "DriftTrails"
+    add_child(trails)
     var config: Dictionary = MODELS[robot_key]
     var model := get_node_or_null(NodePath(config["node"])) as Node3D
     if model == null:
