@@ -124,7 +124,6 @@ func _physics_process(delta: float) -> void:
     # （寄るときは即座に、戻るときはゆっくり）
     var origin: Vector3 = vehicle.global_transform.origin
     var offset := to_camera_position()
-    offset += _kick_direction(offset) * _kick_amount
     var desired := offset.length()
     var query := PhysicsRayQueryParameters3D.create(origin, origin + offset, obstacle_mask, [vehicle.get_rid()])
     var hit := get_world_3d().direct_space_state.intersect_ray(query)
@@ -135,5 +134,13 @@ func _physics_process(delta: float) -> void:
         obstructed_distance = allowed
     else:
         obstructed_distance = lerpf(obstructed_distance, allowed, 1.0 - exp(-obstacle_return_speed * delta))
-    global_transform.origin = origin + offset.normalized() * obstructed_distance
+    var base_position := origin + offset.normalized() * obstructed_distance
+    # ダッシュの引きは、壁を避けた位置からさらに水平に足す（壁に当たる手前で止める）
+    var kick := _kick_direction(offset) * _kick_amount
+    if not kick.is_zero_approx():
+        var kick_query := PhysicsRayQueryParameters3D.create(base_position, base_position + kick, obstacle_mask, [vehicle.get_rid()])
+        var kick_hit := get_world_3d().direct_space_state.intersect_ray(kick_query)
+        if not kick_hit.is_empty():
+            kick = kick.normalized() * maxf(base_position.distance_to(kick_hit.position) - obstacle_margin, 0.0)
+    global_transform.origin = base_position + kick
     look_at(origin, Vector3.UP)
