@@ -3,10 +3,9 @@ extends Node3D
 # ドリフトの火花。ドリフト中、左右の後輪の接地点から火花を後ろへ飛ばす。
 # 色はドリフトの段階（drift_stage）で変わり、粒はその場に残る（local_coords = false）。
 
-# 段階ごとの火花の色（0: 淡い黄色、1: オレンジ、2: 赤、3: 虹色）
-const COLOR_STAGE0 := Color(1.0, 0.9, 0.5)
-const COLOR_STAGE1 := Color(1.0, 0.5, 0.1)
-const COLOR_STAGE2 := Color(1.0, 0.12, 0.08)
+# 段階ごとの火花の色（0: オレンジ、1: 赤、2: 虹色）
+const COLOR_STAGE0 := Color(1.0, 0.5, 0.1)
+const COLOR_STAGE1 := Color(1.0, 0.12, 0.08)
 # 火花を後ろへ飛ばす向きに足す、上向きの成分
 const UP_FACTOR := 0.6
 
@@ -14,7 +13,7 @@ var _vehicle: VehicleBody3D
 var _emitters: Array[CPUParticles3D] = []
 # _emitters と同じ順の、対応するホイール（浮いているときは火花を出さない）
 var _wheels: Array[VehicleWheel3D] = []
-# 3段目で粒ごとにランダムな色を付けるための、虹色のグラデーション
+# 2段目で粒ごとにランダムな色を付けるための、虹色のグラデーション
 var _rainbow: Gradient
 
 func _ready() -> void:
@@ -57,10 +56,8 @@ func _process(_delta: float) -> void:
         1:
             color = COLOR_STAGE1
         2:
-            color = COLOR_STAGE2
-        3:
             color = Color.WHITE
-    var rainbow := int(_vehicle.get("drift_stage")) == 3
+    var rainbow := int(_vehicle.get("drift_stage")) == 2
     var drifting: bool = _vehicle.get("drifting")
     for i in _emitters.size():
         var p := _emitters[i]

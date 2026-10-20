@@ -76,9 +76,9 @@ const DriftTrailsScript := preload("res://drift_trails.gd")
 @export var DRIFT_COUNTER_STEER := 0.2
 # 段差などで浮いても、ドリフトを続ける時間 [s]
 @export var DRIFT_AIR_GRACE := 0.3
-# 1段目（青い火花）になるまでのドリフトの時間 [s]
+# 1段目（赤い火花）になるまでのドリフトの時間 [s]
 @export var DRIFT_STAGE1_TIME := 1.0
-# 2段目（オレンジの火花）になるまでの時間 [s]
+# 2段目（虹色の火花）になるまでの時間 [s]
 @export var DRIFT_STAGE2_TIME := 2.2
 # ドリフトのダッシュの加速度 [m/s²]
 @export var DRIFT_TURBO_ACCEL := 25.0
