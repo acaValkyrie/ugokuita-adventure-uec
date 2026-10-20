@@ -1,10 +1,9 @@
 extends Node3D
 
-# ドリフトの火花。ドリフト中、左右の後輪の接地点から火花を後ろへ飛ばす。
+# ドリフトの火花。ドリフト中、左右の後輪の接地点から火花を後ろへ飛ばす。火花はダッシュが出る1段目から出る。
 # 色はドリフトの段階（drift_stage）で変わり、粒はその場に残る（local_coords = false）。
 
-# 段階ごとの火花の色（0: オレンジ、1: 赤、2: 虹色）
-const COLOR_STAGE0 := Color(1.0, 0.5, 0.1)
+# 段階ごとの火花の色（1: 赤、2: 虹色。段階0では火花を出さない）
 const COLOR_STAGE1 := Color(1.0, 0.12, 0.08)
 # 火花を後ろへ飛ばす向きに足す、上向きの成分
 const UP_FACTOR := 0.6
@@ -51,13 +50,11 @@ func _process(_delta: float) -> void:
     var back := -_vehicle.global_basis.z
     back.y = 0.0
     var dir := (back.normalized() + Vector3.UP * UP_FACTOR).normalized()
-    var color := COLOR_STAGE0
-    match int(_vehicle.get("drift_stage")):
-        1:
-            color = COLOR_STAGE1
-        2:
-            color = Color.WHITE
-    var rainbow := int(_vehicle.get("drift_stage")) == 2
+    var stage := int(_vehicle.get("drift_stage"))
+    var color := COLOR_STAGE1
+    if stage == 2:
+        color = Color.WHITE
+    var rainbow := stage == 2
     var drifting: bool = _vehicle.get("drifting")
     for i in _emitters.size():
         var p := _emitters[i]
@@ -66,7 +63,7 @@ func _process(_delta: float) -> void:
         p.direction = dir
         p.color = color
         p.color_initial_ramp = _rainbow if rainbow else null
-        p.emitting = drifting and _wheels[i].is_in_contact()
+        p.emitting = drifting and stage >= 1 and _wheels[i].is_in_contact()
 
 func _make_texture() -> GradientTexture2D:
     var g := Gradient.new()
