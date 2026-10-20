@@ -17,7 +17,6 @@ const ICON_KEY_E := preload("res://assets/ui/controls/key_e.png")
 const ICON_BUTTON_BACK := preload("res://assets/ui/controls/button_back.png")
 const ICON_KEY_SPACE := preload("res://assets/ui/controls/key_space.png")
 const ICON_BUTTON_A := preload("res://assets/ui/controls/button_a.png")
-const ICON_DOUBLE_TAP := preload("res://assets/ui/controls/double_tap.png")
 const ICON_KEY_SHIFT := preload("res://assets/ui/controls/key_shift.png")
 const ICON_BUTTON_X := preload("res://assets/ui/controls/button_x.png")
 const ICON_BUTTON_B := preload("res://assets/ui/controls/button_b.png")
@@ -56,7 +55,6 @@ const ITEMS := {
     Mode.TOUCH: [
         [ICON_SWIPE_ONE, "Drive"],
         [ICON_SWIPE_TWO, "Camera"],
-        [ICON_DOUBLE_TAP, "Jump"],
     ],
 }
 
