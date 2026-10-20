@@ -6,6 +6,8 @@ const DriftSparksScript := preload("res://drift_sparks.gd")
 @export var MAX_STEER = 0.5
 # 最高速度で走っているときのハンドルの最大角 [rad]。速いほど MAX_STEER からこの値へ絞り、高速で切ったときにスピンしないようにする
 @export var MAX_STEER_AT_SPEED = 0.15
+# 地面でアクセルを踏みながら曲がるとき、タイヤの横の摩擦で落ちる速さを補う加速度の上限 [m/s²]
+@export var TURN_SPEED_ASSIST := 4.0
 @export var ENGINE_POWER = 80.0
 @export var MAX_SPEED = 6.0
 @export var BRAKE_FORCE = 1.0
@@ -142,6 +144,8 @@ var _drift_air_time := 0.0
 var _drift_speed := 0.0
 # ドリフトのダッシュの残り時間 [s]
 var _turbo_time := 0.0
+# 曲がるときの速さの補助で使う、前のフレームの終わりの水平の速さ
+var _turn_prev_speed := 0.0
 # VehicleWheel3D -> 元の wheel_friction_slip（ドリフトの後で戻す）
 var _wheel_friction := {}
 
@@ -255,6 +259,8 @@ func _physics_process(delta: float) -> void:
         apply_central_force(global_basis.z * DRIFT_TURBO_ACCEL * mass)
         _turbo_time -= delta
 
+    _assist_turn_speed(delta, throttle, steer_input, forward_speed, on_ground)
+
     if PowerUps.has("jet"):
         _apply_jet(delta, throttle, on_ground)
 
@@ -323,6 +329,22 @@ func _update_drift(delta: float, steer_input: float, forward_speed: float, on_gr
         horizontal = horizontal.normalized() * maxf(horizontal.length(), _drift_speed)
     # linear_velocity を毎フレーム直接書き換えるとサスペンションが効かなくなって車体が沈むので、差を力積で与える
     apply_central_impulse((horizontal - Vector3(linear_velocity.x, 0.0, linear_velocity.z)) * mass)
+
+
+# 地面で曲がるときにタイヤの横の摩擦で落ちる速さを補う（アクセル中だけ）。
+# 補う量に上限があるので、壁にぶつかったときなどの大きな減速は補わない
+func _assist_turn_speed(delta: float, throttle: float, steer_input: float, forward_speed: float, on_ground: bool) -> void:
+    var horizontal := Vector3(linear_velocity.x, 0.0, linear_velocity.z)
+    var speed := horizontal.length()
+    if on_ground and not drifting and throttle > 0.0 and not is_zero_approx(steer_input) \
+            and forward_speed > 0.0 and _boost_time <= 0.0 and _turbo_time <= 0.0 and speed > 0.1:
+        var loss := minf(_turn_prev_speed, get_max_speed()) - speed
+        if loss > 0.0:
+            var gain := minf(loss, TURN_SPEED_ASSIST * delta)
+            # linear_velocity を直接書き換えると車体が沈むので、力積で与える
+            apply_central_impulse(horizontal / speed * gain * mass)
+            speed += gain
+    _turn_prev_speed = speed
 
 
 # ドリフトとダッシュを打ち切る。リスポーンやエンディングで使う
