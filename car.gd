@@ -303,7 +303,11 @@ func _update_drift(delta: float, steer_input: float, forward_speed: float, on_gr
     # スティックを曲がる向きに倒すほど速く、逆に倒すほどゆっくり向きが変わる
     var rel := steer_input * _drift_dir
     var yaw_rate := lerpf(DRIFT_YAW_RATE, DRIFT_YAW_TIGHT, rel) if rel >= 0.0 else lerpf(DRIFT_YAW_RATE, DRIFT_YAW_WIDE, -rel)
-    angular_velocity.y = _drift_dir * yaw_rate
+    # angular_velocity を毎フレーム直接書き換えると傾きの回転が残り続けて車体がつんのめるので、向きの回転だけを力積で変える
+    var state := PhysicsServer3D.body_get_direct_state(get_rid())
+    if state != null:
+        var yaw_change := Vector3.UP * (_drift_dir * yaw_rate - angular_velocity.y)
+        apply_torque_impulse(state.inverse_inertia_tensor.inverse() * yaw_change)
     # 進む向きを機体の前向きへ少しずつ回す（速さは保つ）
     var forward_flat := global_basis.z
     forward_flat.y = 0.0
