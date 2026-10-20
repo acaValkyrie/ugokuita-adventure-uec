@@ -5,6 +5,7 @@ extends Node
 # ?bench で、描画の要素を1つずつ外して FPS を測るベンチ（perf_bench.gd）を動かす。
 # ?boot で、起動から40秒の重さを2秒ごとに記録して表示する（boot_log.gd）。
 # ?tick=30 で物理演算の毎秒の回数を、?steps=2 で1フレームの物理演算の最大回数を変える。
+# ?nowarm で、起動直後のシェーダーの事前の準備（shader_warmup.gd）を飛ばす。
 
 const PERF_BENCH := preload("res://perf_bench.gd")
 const BOOT_LOG := preload("res://boot_log.gd")
@@ -27,6 +28,8 @@ const TOUCH_MAX_PHYSICS_STEPS := 2
 var forced_scale := 0.0
 # 強制する機体の LOD の偏り（0 なら自動）
 var forced_lod_bias := 0.0
+# true なら、起動直後のシェーダーの事前の準備を飛ばす（?nowarm）
+var skip_warmup := false
 
 var _layer: CanvasLayer
 var _label: Label
@@ -123,6 +126,8 @@ func _read_url_parameters() -> void:
             Engine.physics_ticks_per_second = clampi(value.to_int(), 10, 120)
         elif key == "steps" and value.is_valid_int():
             Engine.max_physics_steps_per_frame = clampi(value.to_int(), 1, 8)
+        elif key == "nowarm":
+            skip_warmup = true
         elif key == "fps":
             set_overlay_visible(true)
         elif key == "bench":
