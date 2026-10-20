@@ -12,7 +12,7 @@ const LIFETIME := 0.5
 # 帯の幅（m）
 const WIDTH := 0.08
 # 地面からの浮かせる高さ（m。地面とのちらつきを避ける）
-const LIFT := 0.02
+const LIFT := 0.03
 # 点を記録する最小の間隔（m）
 const MIN_SPACING := 0.04
 # 直前の点からこれより離れたら、つなげずに新しい帯を始める距離（m。リスポーン対策）
@@ -67,7 +67,8 @@ func _process(delta: float) -> void:
         var wheel := _wheels[i]
         var points := _points[i]
         if drifting and wheel.is_in_contact():
-            var pos := wheel.global_position - _vehicle.global_basis.y * wheel.wheel_radius + Vector3.UP * LIFT
+            # 車輪の位置から計算すると、サスペンションの縮みや地面の起伏で地面より下になって帯が隠れるので、実際の接地点を使う
+            var pos := wheel.get_contact_point() + wheel.get_contact_normal() * LIFT
             if points.is_empty() or not _was_active[i] or pos.distance_to(points[-1]["pos"]) > BREAK_DISTANCE:
                 points.append({"pos": pos, "time": _time, "color": color, "start": true})
             elif pos.distance_to(points[-1]["pos"]) >= MIN_SPACING:
