@@ -205,7 +205,7 @@ func _items_for(mode: Mode) -> Array:
         [icons.rt, "Accelerate"],
         [ICON_STICK_RIGHT, "Camera"],
         [icons.jump, "Jump", 0.8],
-        [icons.drift, "Drift", 0.8],
+        [icons.drift, "Drift", 0.45],  # 余白を切った絵なので、ショルダーボタンの高さがほかのボタンとそろう倍率
         [icons.reset, "Reset", 0.8],
         [icons.map, "Map", 0.8],
     ]

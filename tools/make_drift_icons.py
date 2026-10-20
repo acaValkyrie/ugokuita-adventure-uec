@@ -2,7 +2,7 @@
 # 入力: assets/ui/controls/ の key_shift.png（CTRL キーの見本）・trigger_lt.png（バンパーの色・縁・文字の高さの見本）、
 #       assets/fonts/noto_sans_cjk_jp_bold_ui.otf（文字のフォント）。
 # 出力: assets/ui/controls/ の key_ctrl.png（key_shift.png と同じ 512x112）と、
-#       shoulder_lb_rb.png・shoulder_l_r.png・shoulder_l1_r1.png（512x256 RGBA。左半分に左のバンパー、右半分に右のバンパー）
+#       shoulder_lb_rb.png・shoulder_l_r.png・shoulder_l1_r1.png（余白を切った 368x93 RGBA。左に左のバンパー、右に右のバンパー、間は 20px）
 # 実行: uv run --with pillow --with numpy python tools/make_drift_icons.py
 # key_ctrl は key_shift の「SHIFT」の文字を make_glyph_swap_icons.py と同じ方法で消し、
 # 同じ高さ・同じ中心に「CTRL」を (242,242,242) で描く。
@@ -23,6 +23,8 @@ SS = 4  # 描画の倍率
 BUMPER_HEIGHT_RATIO = 0.5  # 外形の高さ / 外形の幅
 BUMPER_RADIUS_RATIO = 0.45  # 角の半径 / 外形の高さ
 BUMPER_LETTER_RATIO = 0.8  # 文字の高さ / LT の文字の高さ
+MARGIN = 4  # 絵の四方の透明な余白（px）
+GAP = 20  # 左右のバンパーの外形どうしの間（px）
 
 BUMPERS = [
     ("shoulder_lb_rb", "LB", "RB"),
@@ -97,14 +99,14 @@ def measure_trigger() -> dict:
 
 
 def draw_bumper_half(m: dict, label: str) -> Image.Image:
-    """256x256 の1個分。外形の幅は LT と同じ、縁の色の外形に、縁の太さだけ内側へ寄せた本体の色の形を重ねる。"""
-    size = 256
+    """バンパー1個分（外形の幅は LT と同じ、四方に MARGIN の透明な余白）。縁の色の外形に、縁の太さだけ内側へ寄せた本体の色の形を重ねる。"""
     w = m["outer_w"]
     h = w * BUMPER_HEIGHT_RATIO
+    size_w, size_h = int(w) + 2 * MARGIN, int(round(h)) + 2 * MARGIN
     r = h * BUMPER_RADIUS_RATIO
     rim_t = m["rim_t"]
-    x0, y0 = (size - w) / 2, (size - h) / 2
-    big = Image.new("RGBA", (size * SS, size * SS), (0, 0, 0, 0))
+    x0, y0 = MARGIN, MARGIN
+    big = Image.new("RGBA", (size_w * SS, size_h * SS), (0, 0, 0, 0))
     d = ImageDraw.Draw(big)
     d.rounded_rectangle([x0 * SS, y0 * SS, (x0 + w) * SS - 1, (y0 + h) * SS - 1],
                         radius=r * SS, fill=m["rim"] + (255,))
@@ -114,16 +116,16 @@ def draw_bumper_half(m: dict, label: str) -> Image.Image:
     # 縁の色が透明部分の黒と混ざらないよう、アルファ乗算済みで縮める
     arr = np.asarray(big).astype(np.float64)
     a = arr[..., 3:4] / 255.0
-    chans = [Image.fromarray((arr[..., i] * a[..., 0]).astype(np.float32), "F").resize((size, size), Image.LANCZOS)
+    chans = [Image.fromarray((arr[..., i] * a[..., 0]).astype(np.float32), "F").resize((size_w, size_h), Image.LANCZOS)
              for i in range(3)]
-    alpha = Image.fromarray(arr[..., 3].astype(np.float32), "F").resize((size, size), Image.LANCZOS)
+    alpha = Image.fromarray(arr[..., 3].astype(np.float32), "F").resize((size_w, size_h), Image.LANCZOS)
     al = np.clip(np.asarray(alpha), 0, 255)
     rgb = np.stack([np.asarray(c) for c in chans], axis=2)
     safe = np.where(al[..., None] > 0, al[..., None], 1)
     rgb = np.clip(rgb / (safe / 255.0), 0, 255)
     out = np.concatenate([rgb, al[..., None]], axis=2)
     base = Image.fromarray(np.round(out).astype(np.uint8), "RGBA")
-    mask = text_mask(label, m["letter_h"] * BUMPER_LETTER_RATIO, (size, size), (size / 2, size / 2))
+    mask = text_mask(label, m["letter_h"] * BUMPER_LETTER_RATIO, (size_w, size_h), (size_w / 2, size_h / 2))
     return white_over(base, mask)
 
 
@@ -131,9 +133,10 @@ def make_bumpers() -> None:
     m = measure_trigger()
     print("trigger_lt measured:", m)
     for name, left, right in BUMPERS:
-        canvas = Image.new("RGBA", (512, 256), (0, 0, 0, 0))
-        canvas.paste(draw_bumper_half(m, left), (0, 0))
-        canvas.paste(draw_bumper_half(m, right), (256, 0))
+        l_img, r_img = draw_bumper_half(m, left), draw_bumper_half(m, right)
+        canvas = Image.new("RGBA", (l_img.width + r_img.width + GAP - 2 * MARGIN, l_img.height), (0, 0, 0, 0))
+        canvas.paste(l_img, (0, 0))
+        canvas.paste(r_img, (l_img.width + GAP - 2 * MARGIN, 0))
         out = np.asarray(canvas)
         corners = [out[0, 0, 3], out[0, -1, 3], out[-1, 0, 3], out[-1, -1, 3]]
         assert all(c == 0 for c in corners), corners
