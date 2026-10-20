@@ -169,8 +169,11 @@ func _input(event: InputEvent) -> void:
             _touches[event.index] = event.position
         else:
             if _held_buttons.has(event.index):
-                Input.action_release(_held_buttons[event.index])
+                var released_action: String = _held_buttons[event.index]
                 _held_buttons.erase(event.index)
+                # 同じボタンを別の指がまだ押していれば、押したままにする
+                if not _held_buttons.values().has(released_action):
+                    Input.action_release(released_action)
             if _button_touches.erase(event.index):
                 return
             _touches.erase(event.index)
