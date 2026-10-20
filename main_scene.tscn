@@ -132,3 +132,4 @@ jet_speed_max = 10.285
 jet_spread = 10.28
 jet_size_max = 0.195
 drop_rim_color = Color(0.9864089, 0.9920189, 0.9980778, 1)
+sound_volume_db = 13.0
