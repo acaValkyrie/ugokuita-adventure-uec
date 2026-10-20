@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" uid="uid://b23pg71mv75ek" path="res://assets/img/homecloud-ad-1500x600.png" id="11_poster_homecloud"]
 [ext_resource type="Shader" uid="uid://bn6eij41x21wr" path="res://assets/shaders/space_sky.gdshader" id="11_spacesky"]
 [ext_resource type="Script" uid="uid://7rg4gk6wkpao" path="res://space_sky.gd" id="12_spacesky"]
+[ext_resource type="Script" path="res://fountain_jet.gd" id="13_fountainjet"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_spacesky"]
 shader = ExtResource("11_spacesky")
@@ -120,3 +121,7 @@ water_y = 0.12
 radius = 5.3
 constant_ripple_interval = 1.2
 constant_ripple_strength = 2.0
+
+[node name="FountainJet" type="Node3D" parent="." unique_id=1284706359]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.4, 0.12, 58.8)
+script = ExtResource("13_fountainjet")

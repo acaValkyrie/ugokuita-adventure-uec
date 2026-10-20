@@ -42,6 +42,8 @@ var _view_frames := 0
 var _effects_view_index := -1
 var _effects_active := false
 var _saved_particles: Array = []
+# シーンに置いた効果（噴水など）の粒の、元の process_mode
+var _saved_world_particles: Array = []
 var _warm_meshes: Array[MeshInstance3D] = []
 var _screen: ColorRect
 var _term: RichTextLabel
@@ -129,6 +131,10 @@ func _start() -> void:
     _screen.visible = true
     get_tree().paused = true
     _prev_camera = get_viewport().get_camera_3d()
+    # 噴水など、シーンに置いた粒もツリーを止めている間は動かないので、上空と地上の視点で描かれるよう動かす
+    for node in get_tree().get_nodes_in_group("warmup_particles"):
+        _saved_world_particles.append([node, node.process_mode])
+        node.process_mode = Node.PROCESS_MODE_ALWAYS
     _camera = Camera3D.new()
     _camera.far = 3000.0
     _camera.fov = 75.0
@@ -194,6 +200,10 @@ func _step() -> void:
 func _finish() -> void:
     if _effects_active:
         _end_effects()
+    for entry in _saved_world_particles:
+        if is_instance_valid(entry[0]):
+            entry[0].process_mode = entry[1]
+    _saved_world_particles.clear()
     _camera.queue_free()
     if is_instance_valid(_prev_camera):
         _prev_camera.make_current()
