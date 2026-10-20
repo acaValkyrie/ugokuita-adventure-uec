@@ -47,12 +47,12 @@ jobs:
             -out assets/audio/bgm/city_bird.ogg \
             -pass env:BGM_KEY
           test -s assets/audio/bgm/city_bird.ogg
-      # 水の上を走る音と水しぶきの音（Pixabay）も規約で素材そのままの配布ができないので、同じ鍵で戻す
+      # 水の上を走る音・水しぶきの音・噴水の音（Pixabay）も規約で素材そのままの配布ができないので、同じ鍵で戻す
       - name: Decrypt water sounds
         env:
           BGM_KEY: ${{ secrets.BGM_KEY }}
         run: |
-          for name in running_stream water_splash; do
+          for name in running_stream water_splash fountain; do
             openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
               -in "assets/audio/water/${name}.ogg.enc" \
               -out "assets/audio/water/${name}.ogg" \
