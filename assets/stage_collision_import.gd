@@ -40,15 +40,21 @@ const ASPHALT_STEEL_NODE_NAMES: Array[String] = ["Body19", "Body459", "東地区
 const FENCE_NODE_NAMES: Array[String] = ["Body616", "Body617", "Body734"]
 # ローポリ版の建物（low-building）にしかない、西キャンパスのプールの台座と壁。取り除かずにgroundの下へ移して残す
 const LOW_POLY_KEEP_NODE_NAMES: Array[String] = ["Body719", "西プール壁"]
-# プールの水面のノード名（groundの子）。当たり判定を付けず、底のメッシュの元にする
-const POOL_WATER_NODE_NAME := "Body720"
-# 取り込み時に作るプールの底のノード名と、その高さ（ワールドY、メートル。台座の穴の内壁の下端）
-const POOL_FLOOR_NODE_NAME := "プールの底"
-const POOL_FLOOR_Y := 0.0
-# プールのノードごとの地面の種類（水面・底・プールサイド・柵）。元マテリアルによる割り当てより優先する
-const POOL_KIND_BY_NODE_NAME := {"Body720": "pool_water", "プールの底": "pool_floor", "Body719": "pool_deck", "西プール壁": "pool_fence"}
-# プールの種類を、走行時の効果音に使う地面の種類へ読み替える対応表（水面と柵は走行面ではないので含めない）
-const POOL_SURFACE_KIND := {"pool_floor": "water", "pool_deck": "paving_stone"}
+# 水面のノード名（groundの子）。当たり判定を付けず、底のメッシュの元にする
+const WATER_SURFACE_NODE_NAMES: Array[String] = ["Body720", "Body585"]
+# 取り込み時に水面から作る底の一覧: 水面のノード名・底のノード名・底の高さ（ワールドY、メートル）。
+# プールの底は台座の穴の内壁の下端、噴水の底は周りの広場の地面（y=-0.394）より少し上
+const WATER_FLOORS := [
+	{"water": "Body720", "floor": "プールの底", "floor_y": 0.0},
+	{"water": "Body585", "floor": "噴水の底", "floor_y": -0.39},
+]
+# 噴水の水面のノード名と、底を作ったあとに水面を上げる高さ（ワールドY、メートル）。縁（上端 y=0.21）より少し低い
+const FOUNTAIN_WATER_NODE_NAME := "Body585"
+const FOUNTAIN_WATER_Y := 0.12
+# プールと噴水のノードごとの地面の種類（水面・底・プールサイド・柵）。元マテリアルによる割り当てより優先する
+const POOL_KIND_BY_NODE_NAME := {"Body720": "pool_water", "Body585": "pool_water", "プールの底": "pool_floor", "噴水の底": "fountain_floor", "Body719": "pool_deck", "西プール壁": "pool_fence"}
+# プールと噴水の種類を、走行時の効果音に使う地面の種類へ読み替える対応表（水面と柵は走行面ではないので含めない）
+const POOL_SURFACE_KIND := {"pool_floor": "water", "fountain_floor": "water", "pool_deck": "paving_stone"}
 # 東西キャンパスの間の道路を表す線（ワールドXZ）。これより西の舗装はアスファルト、東はレンガ
 const CAMPUS_BORDER_SOUTH := Vector2(-58.0, 71.0)
 const CAMPUS_BORDER_NORTH := Vector2(14.0, -299.0)
@@ -432,26 +438,31 @@ func _set_owner_recursive(node: Node, owner_node: Node) -> void:
 		_set_owner_recursive(child, owner_node)
 
 
-# プールの水面のメッシュを複製して、POOL_FLOOR_Y の高さにプールの底を作る
+# 水面のメッシュを複製して、WATER_FLOORS の高さにプールと噴水の底を作る。噴水の水面は、底を作ったあとで FOUNTAIN_WATER_Y へ上げる
 func _add_pool_floor(scene: Node) -> void:
 	var ground := scene.get_node_or_null("ground")
 	if ground == null:
 		push_warning("stage_collision_import: ground が見つからないため、プールの底を作れない")
 		return
-	var water := ground.get_node_or_null(POOL_WATER_NODE_NAME) as MeshInstance3D
-	if water == null or water.mesh == null:
-		push_warning("stage_collision_import: ground の下に %s のメッシュが見つからないため、プールの底を作れない" % POOL_WATER_NODE_NAME)
-		return
-	var floor_node := MeshInstance3D.new()
-	floor_node.name = POOL_FLOOR_NODE_NAME
-	floor_node.mesh = water.mesh.duplicate()
-	floor_node.transform = water.transform
-	var aabb := _scene_transform(water, scene) * water.mesh.get_aabb()
-	# groundは回転も拡大もないので、ローカルのYを動かせばよい
-	floor_node.position.y -= aabb.position.y - POOL_FLOOR_Y
-	ground.add_child(floor_node)
-	floor_node.owner = scene
-	print("stage_collision_import: プールの底を作った（y=%.2f）" % POOL_FLOOR_Y)
+	for entry in WATER_FLOORS:
+		var water := ground.get_node_or_null(entry["water"]) as MeshInstance3D
+		if water == null or water.mesh == null:
+			push_warning("stage_collision_import: ground の下に %s のメッシュが見つからないため、%s を作れない" % [entry["water"], entry["floor"]])
+			continue
+		var floor_y: float = entry["floor_y"]
+		var floor_node := MeshInstance3D.new()
+		floor_node.name = entry["floor"]
+		floor_node.mesh = water.mesh.duplicate()
+		floor_node.transform = water.transform
+		var aabb := _scene_transform(water, scene) * water.mesh.get_aabb()
+		# groundは回転も拡大もないので、ローカルのYを動かせばよい
+		floor_node.position.y -= aabb.position.y - floor_y
+		ground.add_child(floor_node)
+		floor_node.owner = scene
+		print("stage_collision_import: %s を作った（y=%.2f）" % [entry["floor"], floor_y])
+		if String(entry["water"]) == FOUNTAIN_WATER_NODE_NAME:
+			water.position.y += FOUNTAIN_WATER_Y - aabb.end.y
+			print("stage_collision_import: 噴水の水面を y=%.2f へ上げた" % FOUNTAIN_WATER_Y)
 
 
 func _is_collidable(node_name: String) -> bool:
@@ -472,8 +483,8 @@ func _add_collisions(node: Node) -> void:
 	for child in node.get_children():
 		_add_collisions(child)
 	if node is MeshInstance3D:
-		# プールの水面は機体が沈むように当たり判定を付けない
-		if String(node.name) == POOL_WATER_NODE_NAME:
+		# プールと噴水の水面は機体が沈むように当たり判定を付けない
+		if String(node.name) in WATER_SURFACE_NODE_NAMES:
 			return
 		node.create_trimesh_collision()
 
@@ -603,6 +614,11 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 			material = _make_pool_water_material()
 		"pool_floor":
 			material = _make_pool_material(true)
+		"fountain_floor":
+			material = _make_pool_material(true)
+			# 噴水の底にはコースラインを引かず、少し暗い水色にする
+			material.set_shader_parameter("draw_lanes", false)
+			material.set_shader_parameter("floor_color", Color(0.30, 0.60, 0.70))
 		"pool_deck":
 			material = _make_pool_material(false)
 		"pool_fence":
