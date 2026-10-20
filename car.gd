@@ -394,7 +394,8 @@ func _end_drift(release: bool) -> void:
     drifting = false
     _drift_charge_sound.stop()
     _charge_sound_stage = -1
-    if release and _is_on_ground():
+    # ブースト中はダッシュを出さない（ブーストとダッシュが重ならないよう、ブーストを優先する）
+    if release and _is_on_ground() and _boost_time <= 0.0:
         if drift_stage == 2:
             _turbo_time = DRIFT_TURBO_TIME2
             dash_count += 1
