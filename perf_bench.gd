@@ -8,10 +8,10 @@ const START_DELAY := 5.0
 # 状態を切り替えてから測り始めるまでの待ち（秒）
 const SETTLE := 1.0
 # 測る時間（秒）と最低フレーム数（両方を満たすまで測る）
-const MEASURE := 3.0
+const MEASURE := 5.0
 const MIN_FRAMES := 4
 # 走らせる状態で測る時間（秒）
-const DRIVE_MEASURE := 5.0
+const DRIVE_MEASURE := 8.0
 # 走らせるときに、左右のハンドルを切り替える間隔（秒）
 const STEER_PERIOD := 1.5
 
@@ -162,6 +162,7 @@ func _next_state() -> void:
         var text := _build_table()
         print(text)
         RenderQuality.set_overlay_text_override(text)
+        RenderQuality.save_report("bench", text)
         return
     _start_state()
 

@@ -1,5 +1,5 @@
 extends Node
-# URL の ?boot で動く、起動直後の重さの記録。起動から40秒を2秒ごとに区切って、
+# URL の ?boot で動く、起動直後の重さの記録。起動から120秒を2秒ごとに区切って、
 # FPS・最大フレーム時間・物理演算の時間と回数などを画面左上のオーバーレイに並べる。
 # RenderQuality が作る（autoload ではない）。
 
@@ -7,7 +7,7 @@ const BOOT_LOG_END := preload("res://boot_log_end.gd")
 
 # 1つの区切りの長さ（秒）と、記録する合計の長さ（秒）
 const BUCKET_SEC := 2.0
-const DURATION_SEC := 40.0
+const DURATION_SEC := 120.0
 # 決まった計算の繰り返し回数
 const CPU_LOOP_COUNT := 200000
 
@@ -112,6 +112,7 @@ func _finish_all() -> void:
     var text := _build_text()
     print(text)
     RenderQuality.set_overlay_text_override(text)
+    RenderQuality.save_report("boot", text)
     set_process(false)
     set_physics_process(false)
     _end_node.set_process(false)
