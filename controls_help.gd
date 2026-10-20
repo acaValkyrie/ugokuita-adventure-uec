@@ -38,6 +38,10 @@ const ICON_BUTTON_SHARE := preload("res://assets/ui/controls/button_share.png")
 const ICON_BUTTON_START := preload("res://assets/ui/controls/button_start.png")
 const ICON_BUTTON_OPTIONS := preload("res://assets/ui/controls/button_options.png")
 const ICON_BUTTON_OPTIONS_PS4 := preload("res://assets/ui/controls/button_options_ps4.png")
+const ICON_KEY_CTRL := preload("res://assets/ui/controls/key_ctrl.png")
+const ICON_SHOULDER_LB_RB := preload("res://assets/ui/controls/shoulder_lb_rb.png")
+const ICON_SHOULDER_L_R := preload("res://assets/ui/controls/shoulder_l_r.png")
+const ICON_SHOULDER_L1_R1 := preload("res://assets/ui/controls/shoulder_l1_r1.png")
 
 # モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
 const ITEMS := {
@@ -45,6 +49,7 @@ const ITEMS := {
         [ICON_KEYS_WASD, "Drive"],
         [ICON_KEYS_ARROWS, "Camera"],
         [ICON_KEY_SPACE, "Jump", 0.4375],  # 絵の上下の余白を切ってあるので、キーの高さが R・M のキー（倍率 0.6）とそろう倍率
+        [ICON_KEY_CTRL, "Drift", 0.4375],  # SHIFT・SPACE と同じく上下の余白を切った絵なので、SPACE と同じ倍率
         [ICON_KEY_R, "Reset", 0.6],
         [ICON_KEY_M, "Map", 0.6],
     ],
@@ -64,6 +69,7 @@ const ICON_ALIGN := {
 # コントローラのボタン表記ごとのアイコン。
 # Godot のボタン番号は位置で決まるため（下のボタン＝ジャンプ、左のボタン＝ブースト、
 # 左側の小さいボタン＝リセット、上のボタン＝マップ）、表記が変わっても操作は同じでアイコンだけが変わる。
+# ドリフトは左右のショルダーボタン（どちらでも効く）なので、左右を並べた1枚の絵にしている。
 # ただし "interact"（看板を開く）と "cancel" は例外で、表記ごとの標準の決定・キャンセルのボタン
 # （game_menu.gd の _apply_pad_buttons。Nintendo は A・B、PlayStation は ×・○、Xbox は A・B）なので、
 # 割り当ても表記で変わる。決定とキャンセルを入れ替える設定は get_confirm_icon_for / get_cancel_icon_for で反映する。
@@ -72,16 +78,19 @@ const PAD_ICONS := {
         "rt": ICON_TRIGGER_ZR, "lt": ICON_TRIGGER_ZL,
         "jump": ICON_BUTTON_B, "boost": ICON_BUTTON_Y, "reset": ICON_BUTTON_MINUS,
         "interact": ICON_BUTTON_A, "map": ICON_BUTTON_X, "cancel": ICON_BUTTON_B,
+        "drift": ICON_SHOULDER_L_R,
     },
     "playstation": {
         "rt": ICON_TRIGGER_R2, "lt": ICON_TRIGGER_L2,
         "jump": ICON_BUTTON_CROSS, "boost": ICON_BUTTON_SQUARE, "reset": ICON_BUTTON_CREATE,
         "interact": ICON_BUTTON_CROSS, "map": ICON_BUTTON_TRIANGLE, "cancel": ICON_BUTTON_CIRCLE,
+        "drift": ICON_SHOULDER_L1_R1,
     },
     "xbox": {
         "rt": ICON_TRIGGER_RT, "lt": ICON_TRIGGER_LT,
         "jump": ICON_BUTTON_A, "boost": ICON_BUTTON_X, "reset": ICON_BUTTON_BACK,
         "interact": ICON_BUTTON_A, "map": ICON_BUTTON_Y, "cancel": ICON_BUTTON_B,
+        "drift": ICON_SHOULDER_LB_RB,
     },
 }
 
@@ -196,6 +205,7 @@ func _items_for(mode: Mode) -> Array:
         [icons.rt, "Accelerate"],
         [ICON_STICK_RIGHT, "Camera"],
         [icons.jump, "Jump", 0.8],
+        [icons.drift, "Drift", 0.8],
         [icons.reset, "Reset", 0.8],
         [icons.map, "Map", 0.8],
     ]
