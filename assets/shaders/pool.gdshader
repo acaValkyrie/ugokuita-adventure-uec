@@ -14,6 +14,8 @@ uniform vec2 pool_half_size = vec2(6.69, 12.705);
 uniform vec4 floor_color : source_color = vec4(0.18, 0.70, 0.86, 1.0);
 // コースラインの色
 uniform vec4 lane_color : source_color = vec4(0.12, 0.30, 0.62, 1.0);
+// コースラインを描くか（噴水の底では描かない）
+uniform bool draw_lanes = true;
 // コースの数
 uniform int lane_count = 6;
 // コースラインの太さ（メートル）
@@ -81,7 +83,7 @@ void fragment() {
 		// 縦のコースラインと、その両端のT字の横棒
 		bool line_body = ds < lane_line_width * 0.5 && abs(l) < end_l;
 		bool line_cross = abs(abs(l) - end_l) < lane_line_width * 0.5 && ds < lane_cross_length * 0.5;
-		albedo = (line_body || line_cross) ? lane_color.rgb : floor_color.rgb;
+		albedo = (draw_lanes && (line_body || line_cross)) ? lane_color.rgb : floor_color.rgb;
 		// 底への光の写り方（ヤコビ行列 J = I − focus × 曲がり方）。行列式が0に近いところに光が集まる。明るさは light() で足す
 		float ja = 1.0 - caustic_focus * hess.x;
 		float jd = 1.0 - caustic_focus * hess.y;

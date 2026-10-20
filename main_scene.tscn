@@ -111,3 +111,12 @@ poster = ExtResource("11_poster_homecloud")
 
 [node name="PoolRipples" type="Node" parent="." unique_id=275545926]
 script = ExtResource("7_poolrip")
+
+[node name="FountainRipples" type="Node" parent="." unique_id=1693540218]
+script = ExtResource("7_poolrip")
+floor_path = NodePath("../UEC/ground/噴水の底")
+water_center = Vector2(109.4, 58.8)
+water_y = 0.12
+radius = 5.3
+constant_ripple_interval = 1.2
+constant_ripple_strength = 2.0
