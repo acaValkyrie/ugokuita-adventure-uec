@@ -516,11 +516,17 @@ func _layout_panel() -> void:
         return
     var screen := _dimmer.size
     var width := minf(PANEL_MAX_WIDTH, screen.x - 32.0)
+    # 並びを先に切り替える。左右並びのままだと最小幅に押し広げられ、狭い幅に設定し直せない
+    var stacked := width < NARROW_WIDTH
+    var changed := stacked != _stacked
+    if changed:
+        _set_stacked(stacked)
     _panel.position = Vector2((screen.x - width) * 0.5, PANEL_TOP)
     _panel.size = Vector2(width, maxf(screen.y - PANEL_TOP - PANEL_BOTTOM, 0.0))
-    var stacked := width < NARROW_WIDTH
-    if stacked != _stacked:
-        _set_stacked(stacked)
+    if changed:
+        # 並びを変えた直後は最小サイズが更新されていないことがあるので、次のフレームでもう一度決める
+        # （2回目は並びが変わらないので繰り返さない）
+        _layout_panel.call_deferred()
 
 
 # 左右の列を、上下に並べる（true）か左右に並べる（false）か切り替える
