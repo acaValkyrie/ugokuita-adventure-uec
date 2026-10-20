@@ -3,9 +3,11 @@ extends Node
 # URL の ?scale=0.5 で倍率を、?lod=0.01 で機体の LOD の偏りを強制でき、
 # ?fps で FPS などを画面左上に表示する。
 # ?bench で、描画の要素を1つずつ外して FPS を測るベンチ（perf_bench.gd）を動かす。
+# ?boot で、起動から40秒の重さを2秒ごとに記録して表示する（boot_log.gd）。
 # ?tick=30 で物理演算の毎秒の回数を、?steps=2 で1フレームの物理演算の最大回数を変える。
 
 const PERF_BENCH := preload("res://perf_bench.gd")
+const BOOT_LOG := preload("res://boot_log.gd")
 
 # 3D の描画バッファの短い辺の目安（実際の画素）
 const TARGET_SHORT_SIDE := 600.0
@@ -126,6 +128,9 @@ func _read_url_parameters() -> void:
         elif key == "bench":
             set_overlay_visible(true)
             add_child(PERF_BENCH.new())
+        elif key == "boot":
+            set_overlay_visible(true)
+            add_child(BOOT_LOG.new())
 
 
 func _is_touch_device() -> bool:
