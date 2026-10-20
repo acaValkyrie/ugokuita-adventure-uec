@@ -296,7 +296,9 @@ func _update_drift(delta: float, steer_input: float, forward_speed: float, on_gr
                 wheel.wheel_friction_slip = DRIFT_FRICTION_SLIP
         return
     if on_ground:
-        _drift_time += delta
+        # ブーストゲージ2倍のパワーアップを取っていると、段階も2倍の速さで上がる
+        var charge_rate := PowerUps.BOOST_CHARGE_MULTIPLIER if PowerUps.has("boost_charge") else 1.0
+        _drift_time += delta * charge_rate
         _drift_air_time = 0.0
     else:
         _drift_air_time += delta
