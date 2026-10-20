@@ -147,6 +147,8 @@ var _drift_air_time := 0.0
 var _drift_speed := 0.0
 # ドリフトのダッシュの残り時間 [s]
 var _turbo_time := 0.0
+# ブーストやドリフトのダッシュを出した回数（カメラが出した瞬間を知るのに使う）
+var dash_count := 0
 # 曲がるときの速さの補助で使う、前のフレームの終わりの水平の速さ
 var _turn_prev_speed := 0.0
 # VehicleWheel3D -> 元の wheel_friction_slip（ドリフトの後で戻す）
@@ -213,6 +215,7 @@ func _physics_process(delta: float) -> void:
             and boost_gauge >= 1.0:
         boost_gauge = 0.0
         _boost_time = BOOST_DURATION
+        dash_count += 1
         # ブーストを優先し、後ろ向きのブーストとダッシュが同時にかからないようにする
         _turbo_time = 0.0
         # ブーストでもドリフトのダッシュと同じ発射の音を鳴らす（鳴っている途中なら頭から鳴らし直す）
@@ -379,9 +382,11 @@ func _end_drift(release: bool) -> void:
     if release and _is_on_ground():
         if drift_stage == 2:
             _turbo_time = DRIFT_TURBO_TIME2
+            dash_count += 1
             _drift_dash_sound.play()
         elif drift_stage == 1:
             _turbo_time = DRIFT_TURBO_TIME1
+            dash_count += 1
             _drift_dash_sound.play()
     drift_stage = 0
 
