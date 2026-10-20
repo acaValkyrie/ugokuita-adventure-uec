@@ -71,6 +71,8 @@ var _has_start := false
 # 走らせている間の経過時間（ハンドルの切り替え用）
 var _drive_time := 0.0
 var _driving := false
+# 止めたパワーアップのメダル [node, 元の process_mode]
+var _saved_medals: Array = []
 
 
 func _ready() -> void:
@@ -84,6 +86,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
     _release_inputs()
+    _restore_medals()
 
 
 func _physics_process(_delta: float) -> void:
@@ -111,6 +114,7 @@ func _process(delta: float) -> void:
                 if player != null:
                     _start_transform = player.global_transform
                     _has_start = true
+                _disable_medals()
                 _start_state()
         Phase.SETTLE:
             _timer += delta
@@ -198,6 +202,7 @@ func _next_state() -> void:
         print(text)
         RenderQuality.set_overlay_text_override(text)
         RenderQuality.save_report("bench", text)
+        _restore_medals()
         return
     _start_state()
 
@@ -223,6 +228,28 @@ func _build_table() -> String:
         else:
             lines.append("%-13s n/a" % r["key"])
     return "\n".join(lines)
+
+
+# パワーアップのメダルを止める。
+# 場所の状態の位置はメダルの上なので、移すと機体が拾ってしまい、
+# ポップアップが開いてゲームがポーズされ、以降の測定が狂うため
+func _disable_medals() -> void:
+    var scene := get_tree().current_scene
+    if scene == null:
+        return
+    for node in scene.find_children("*", "", true, false):
+        var script: Script = node.get_script()
+        if script != null and script.resource_path == "res://power_up_item.gd":
+            _saved_medals.append([node, node.process_mode])
+            node.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+# 止めたメダルを元に戻す
+func _restore_medals() -> void:
+    for pair in _saved_medals:
+        if is_instance_valid(pair[0]):
+            pair[0].process_mode = pair[1]
+    _saved_medals.clear()
 
 
 func _find_player() -> VehicleBody3D:
