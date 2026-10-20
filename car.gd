@@ -84,9 +84,9 @@ const DriftSparksScript := preload("res://drift_sparks.gd")
 # 2段目で離したときのダッシュの時間 [s]
 @export var DRIFT_TURBO_TIME2 := 0.7
 # ドリフト中のチャージの音の音量 [dB]
-@export var DRIFT_CHARGE_VOLUME_DB := 0.0
+@export var DRIFT_CHARGE_VOLUME_DB := 12.0
 # ドリフトのダッシュの音の音量 [dB]
-@export var DRIFT_DASH_VOLUME_DB := 0.0
+@export var DRIFT_DASH_VOLUME_DB := 6.0
 # このプレイヤーの機体（MODELS のキー。GameMenu.ROBOT_MODELS と同じ値）
 @export var robot_key: String = "neo"
 # サスペンションが無い機体として、見た目のタイヤを上下させない（物理のホイールの上下は無視し、回転とステアリングだけ反映する）
