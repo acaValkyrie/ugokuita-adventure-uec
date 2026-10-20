@@ -59,6 +59,18 @@ jobs:
               -pass env:BGM_KEY
             test -s "assets/audio/water/${name}.ogg"
           done
+      # ドリフトのチャージ音と発射音（Pixabay）も規約で素材そのままの配布ができないので、同じ鍵で戻す
+      - name: Decrypt drift sounds
+        env:
+          BGM_KEY: ${{ secrets.BGM_KEY }}
+        run: |
+          for name in drift_charge drift_charge_loop2 drift_charge_loop3 drift_dash; do
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+              -in "assets/audio/drift/${name}.ogg.enc" \
+              -out "assets/audio/drift/${name}.ogg" \
+              -pass env:BGM_KEY
+            test -s "assets/audio/drift/${name}.ogg"
+          done
       - name: Install Godot and export templates
         run: |
           base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
