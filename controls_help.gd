@@ -39,9 +39,9 @@ const ICON_BUTTON_START := preload("res://assets/ui/controls/button_start.png")
 const ICON_BUTTON_OPTIONS := preload("res://assets/ui/controls/button_options.png")
 const ICON_BUTTON_OPTIONS_PS4 := preload("res://assets/ui/controls/button_options_ps4.png")
 const ICON_KEY_CTRL := preload("res://assets/ui/controls/key_ctrl.png")
-const ICON_SHOULDER_LB_RB := preload("res://assets/ui/controls/shoulder_lb_rb.png")
-const ICON_SHOULDER_L_R := preload("res://assets/ui/controls/shoulder_l_r.png")
-const ICON_SHOULDER_L1_R1 := preload("res://assets/ui/controls/shoulder_l1_r1.png")
+const ICON_SHOULDER_RB := preload("res://assets/ui/controls/shoulder_rb.png")
+const ICON_SHOULDER_R := preload("res://assets/ui/controls/shoulder_r.png")
+const ICON_SHOULDER_R1 := preload("res://assets/ui/controls/shoulder_r1.png")
 
 # モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
 const ITEMS := {
@@ -69,7 +69,7 @@ const ICON_ALIGN := {
 # コントローラのボタン表記ごとのアイコン。
 # Godot のボタン番号は位置で決まるため（下のボタン＝ジャンプ、左のボタン＝ブースト、
 # 左側の小さいボタン＝リセット、上のボタン＝マップ）、表記が変わっても操作は同じでアイコンだけが変わる。
-# ドリフトは左右のショルダーボタン（どちらでも効く）なので、左右を並べた1枚の絵にしている。
+# ドリフトは右のショルダーボタン。
 # ただし "interact"（看板を開く）と "cancel" は例外で、表記ごとの標準の決定・キャンセルのボタン
 # （game_menu.gd の _apply_pad_buttons。Nintendo は A・B、PlayStation は ×・○、Xbox は A・B）なので、
 # 割り当ても表記で変わる。決定とキャンセルを入れ替える設定は get_confirm_icon_for / get_cancel_icon_for で反映する。
@@ -78,19 +78,19 @@ const PAD_ICONS := {
         "rt": ICON_TRIGGER_ZR, "lt": ICON_TRIGGER_ZL,
         "jump": ICON_BUTTON_B, "boost": ICON_BUTTON_Y, "reset": ICON_BUTTON_MINUS,
         "interact": ICON_BUTTON_A, "map": ICON_BUTTON_X, "cancel": ICON_BUTTON_B,
-        "drift": ICON_SHOULDER_L_R,
+        "drift": ICON_SHOULDER_R,
     },
     "playstation": {
         "rt": ICON_TRIGGER_R2, "lt": ICON_TRIGGER_L2,
         "jump": ICON_BUTTON_CROSS, "boost": ICON_BUTTON_SQUARE, "reset": ICON_BUTTON_CREATE,
         "interact": ICON_BUTTON_CROSS, "map": ICON_BUTTON_TRIANGLE, "cancel": ICON_BUTTON_CIRCLE,
-        "drift": ICON_SHOULDER_L1_R1,
+        "drift": ICON_SHOULDER_R1,
     },
     "xbox": {
         "rt": ICON_TRIGGER_RT, "lt": ICON_TRIGGER_LT,
         "jump": ICON_BUTTON_A, "boost": ICON_BUTTON_X, "reset": ICON_BUTTON_BACK,
         "interact": ICON_BUTTON_A, "map": ICON_BUTTON_Y, "cancel": ICON_BUTTON_B,
-        "drift": ICON_SHOULDER_LB_RB,
+        "drift": ICON_SHOULDER_RB,
     },
 }
 

@@ -1,8 +1,8 @@
-# ドリフトの操作説明用に、CTRL キーのアイコンと、左右のショルダーボタン（バンパー）のアイコン3種を作る。
+# ドリフトの操作説明用に、CTRL キーのアイコンと、右のショルダーボタン（バンパー）のアイコン3種を作る。
 # 入力: assets/ui/controls/ の key_shift.png（CTRL キーの見本）・trigger_lt.png（バンパーの色・縁・文字の高さの見本）、
 #       assets/fonts/noto_sans_cjk_jp_bold_ui.otf（文字のフォント）。
 # 出力: assets/ui/controls/ の key_ctrl.png（key_shift.png と同じ 512x112）と、
-#       shoulder_lb_rb.png・shoulder_l_r.png・shoulder_l1_r1.png（余白を切った 368x93 RGBA。左に左のバンパー、右に右のバンパー、間は 20px）
+#       shoulder_rb.png・shoulder_r.png・shoulder_r1.png（右のバンパー1個だけ、四方に 4px の透明な余白を付けた 178x93 RGBA）
 # 実行: uv run --with pillow --with numpy python tools/make_drift_icons.py
 # key_ctrl は key_shift の「SHIFT」の文字を make_glyph_swap_icons.py と同じ方法で消し、
 # 同じ高さ・同じ中心に「CTRL」を (242,242,242) で描く。
@@ -24,12 +24,11 @@ BUMPER_HEIGHT_RATIO = 0.5  # 外形の高さ / 外形の幅
 BUMPER_RADIUS_RATIO = 0.45  # 角の半径 / 外形の高さ
 BUMPER_LETTER_RATIO = 0.8  # 文字の高さ / LT の文字の高さ
 MARGIN = 4  # 絵の四方の透明な余白（px）
-GAP = 20  # 左右のバンパーの外形どうしの間（px）
 
 BUMPERS = [
-    ("shoulder_lb_rb", "LB", "RB"),
-    ("shoulder_l_r", "L", "R"),
-    ("shoulder_l1_r1", "L1", "R1"),
+    ("shoulder_rb", "RB"),
+    ("shoulder_r", "R"),
+    ("shoulder_r1", "R1"),
 ]
 
 
@@ -132,16 +131,13 @@ def draw_bumper_half(m: dict, label: str) -> Image.Image:
 def make_bumpers() -> None:
     m = measure_trigger()
     print("trigger_lt measured:", m)
-    for name, left, right in BUMPERS:
-        l_img, r_img = draw_bumper_half(m, left), draw_bumper_half(m, right)
-        canvas = Image.new("RGBA", (l_img.width + r_img.width + GAP - 2 * MARGIN, l_img.height), (0, 0, 0, 0))
-        canvas.paste(l_img, (0, 0))
-        canvas.paste(r_img, (l_img.width + GAP - 2 * MARGIN, 0))
-        out = np.asarray(canvas)
+    for name, label in BUMPERS:
+        img = draw_bumper_half(m, label)
+        out = np.asarray(img)
         corners = [out[0, 0, 3], out[0, -1, 3], out[-1, 0, 3], out[-1, -1, 3]]
         assert all(c == 0 for c in corners), corners
-        canvas.save(CTRL / f"{name}.png")
-        print(f"{name}: size={canvas.size} corner_alpha={corners} labels={left},{right}")
+        img.save(CTRL / f"{name}.png")
+        print(f"{name}: size={img.size} corner_alpha={corners} label={label}")
 
 
 def main() -> None:
