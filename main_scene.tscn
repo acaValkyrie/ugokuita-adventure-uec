@@ -125,3 +125,10 @@ constant_ripple_strength = 2.0
 [node name="FountainJet" type="Node3D" parent="." unique_id=1284706359]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.4, 0.12, 58.8)
 script = ExtResource("13_fountainjet")
+jet_amount = 342
+jet_lifetime = 2.81
+jet_speed_min = 6.78
+jet_speed_max = 10.285
+jet_spread = 10.28
+jet_size_max = 0.195
+drop_rim_color = Color(0.9864089, 0.9920189, 0.9980778, 1)
