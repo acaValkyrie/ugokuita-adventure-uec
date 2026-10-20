@@ -35,8 +35,20 @@ const STATES := [
     "no_vehicle", "no_campus", "far150",
 ]
 
+# 場所ごとに測る位置（この順に、止まっている状態と走っている状態を測る）
+const LOCATIONS := {
+    "west11": Vector3(-187.11, 0.9, -160.23),   # 西11号館前
+    "hall": Vector3(74.02, 0.9, -293.62),       # 学生会館前
+    "port": Vector3(-225.60, 0.9, 44.51),       # 100周年記念キャンパス前
+    "e3roof": Vector3(81.0, 42.9, -154.0),      # 東3号館の屋上
+}
+# 場所の状態で、移したあと測り始めるまでの待ち（秒）。カメラが追いつくのを待つ
+const LOCATION_SETTLE := 2.0
+
 enum Phase { DELAY, SETTLE, MEASURE, DONE }
 
+# 実際に測る状態の一覧（STATES のあとに場所の状態を足したもの）
+var _states: Array[String] = []
 var _phase := Phase.DELAY
 var _timer := 0.0
 var _index := 0
@@ -64,6 +76,10 @@ var _driving := false
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
     set_physics_process(true)
+    _states.assign(STATES)
+    for loc in LOCATIONS:
+        _states.append(loc + ":idle")
+        _states.append(loc + ":drive")
 
 
 func _exit_tree() -> void:
@@ -98,7 +114,7 @@ func _process(delta: float) -> void:
                 _start_state()
         Phase.SETTLE:
             _timer += delta
-            if _timer >= SETTLE:
+            if _timer >= _settle_time():
                 _phase = Phase.MEASURE
                 _timer = 0.0
                 _frames = 0
@@ -117,15 +133,31 @@ func _process(delta: float) -> void:
                 _finish_state()
 
 
+# 場所の状態か（"west11:idle" など）
+func _is_location(key: String) -> bool:
+    return key.contains(":")
+
+
+# 走らせる状態か
+func _is_drive(key: String) -> bool:
+    return DRIVE_SETTINGS.has(key) or key.ends_with(":drive")
+
+
+func _settle_time() -> float:
+    if _is_location(_states[_index]):
+        return LOCATION_SETTLE
+    return SETTLE
+
+
 func _measure_time() -> float:
-    if DRIVE_SETTINGS.has(STATES[_index]):
+    if _is_drive(_states[_index]):
         return DRIVE_MEASURE
     return MEASURE
 
 
 # 現在の状態を適用して、待ちに入る
 func _start_state() -> void:
-    var key: String = STATES[_index]
+    var key: String = _states[_index]
     if not _apply(key):
         _results.append({"key": key, "ok": false})
         _next_state()
@@ -137,9 +169,9 @@ func _start_state() -> void:
 
 # 測定を記録して、元に戻す
 func _finish_state() -> void:
-    var key: String = STATES[_index]
+    var key: String = _states[_index]
     var speed := -1.0
-    if DRIVE_SETTINGS.has(key):
+    if _is_drive(key):
         var player := _find_player()
         if player != null:
             speed = player.linear_velocity.length()
@@ -160,7 +192,7 @@ func _finish_state() -> void:
 
 func _next_state() -> void:
     _index += 1
-    if _index >= STATES.size():
+    if _index >= _states.size():
         _phase = Phase.DONE
         var text := _build_table()
         print(text)
@@ -172,7 +204,7 @@ func _next_state() -> void:
 
 func _show_progress() -> void:
     var text := _build_table()
-    text += "\nmeasuring: %s (%d/%d)" % [STATES[_index], _index + 1, STATES.size()]
+    text += "\nmeasuring: %s (%d/%d)" % [_states[_index], _index + 1, _states.size()]
     RenderQuality.set_overlay_text_override(text)
 
 
@@ -185,7 +217,7 @@ func _build_table() -> String:
             var line := "%-13s %7.1fms %5.1ffps phys %5.1fms st %.1f/%d draw %4d tris %.2fM" % [
                 r["key"], ms, fps, r["phys"], r["steps_avg"], r["steps_max"],
                 r["draws"], r["prims"] / 1000000.0]
-            if DRIVE_SETTINGS.has(r["key"]):
+            if _is_drive(r["key"]):
                 line += " v %.1f" % r["speed"]
             lines.append(line)
         else:
@@ -198,8 +230,11 @@ func _find_player() -> VehicleBody3D:
 
 
 # 機体を開始位置に戻す（respawn.gd と同じやり方）
-func _reset_vehicle(vehicle: VehicleBody3D) -> void:
+# place を省くと開始位置（少し浮かせる）、渡すとその位置にそのまま置く
+func _reset_vehicle(vehicle: VehicleBody3D, place: Variant = null) -> void:
     var target := Transform3D(_start_transform.basis, _start_transform.origin + Vector3.UP * 0.3)
+    if place != null:
+        target = place
     var rid := vehicle.get_rid()
     PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, target)
     PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
@@ -244,6 +279,18 @@ func _apply(key: String) -> bool:
         _reset_vehicle(player)
         _drive_time = 0.0
         _driving = true
+        return true
+    if _is_location(key):
+        var player := _find_player()
+        if player == null:
+            return false
+        var parts := key.split(":")
+        _reset_vehicle(player, Transform3D(Basis.IDENTITY, LOCATIONS[parts[0]]))
+        # 元に戻す処理を呼ばせるための印
+        _saved[key] = true
+        if parts[1] == "drive":
+            _drive_time = 0.0
+            _driving = true
         return true
     match key:
         "base":
@@ -313,6 +360,10 @@ func _revert(key: String) -> void:
         return
     var data = _saved[key]
     _saved.erase(key)
+    if _is_location(key):
+        _driving = false
+        _release_inputs()
+        return
     if DRIVE_SETTINGS.has(key):
         _driving = false
         _release_inputs()
