@@ -82,6 +82,9 @@ func _process(delta: float) -> void:
         _update_steering(delta)
     match _phase:
         Phase.DELAY:
+            # シェーダーの事前の準備が終わってから待ち始める
+            if not ShaderWarmup.is_done():
+                return
             _timer += delta
             if _timer >= START_DELAY:
                 var root := get_tree().root

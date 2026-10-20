@@ -45,6 +45,11 @@ func _ready() -> void:
     _setup_screen()
 
 
+# 事前の準備が終わった（または飛ばした）か
+func is_done() -> bool:
+    return _done
+
+
 func _process(_delta: float) -> void:
     if _done:
         set_process(false)
