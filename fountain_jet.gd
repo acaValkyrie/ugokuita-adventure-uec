@@ -1,46 +1,114 @@
+@tool
 extends Node3D
 
 # 噴水の中央に湧き上がる水。まっすぐ上へ噴き上がる水柱と、根元の盛り上がりの2つの粒を、_ready でコードから作る。
 # このノードを噴水の水面の中心（水面の高さ）に置く。粒は半透明の白で、影は落とさない。
 
 # 水柱の粒の数
-@export var jet_amount := 160
+@export var jet_amount := 160:
+    set(value):
+        jet_amount = value
+        _rebuild()
 # 水柱の粒が消えるまでの時間 [s]
-@export var jet_lifetime := 0.9
+@export var jet_lifetime := 0.9:
+    set(value):
+        jet_lifetime = value
+        _rebuild()
 # 水柱の粒の初速の範囲 [m/s]（この速さと重力で高さ約1mまで上がる）
-@export var jet_speed_min := 4.0
-@export var jet_speed_max := 4.6
+@export var jet_speed_min := 4.0:
+    set(value):
+        jet_speed_min = value
+        _rebuild()
+@export var jet_speed_max := 4.6:
+    set(value):
+        jet_speed_max = value
+        _rebuild()
 # 水柱の広がり（度）
-@export var jet_spread := 6.0
+@export var jet_spread := 6.0:
+    set(value):
+        jet_spread = value
+        _rebuild()
 # 水柱の粒の大きさの範囲（メートル）
-@export var jet_size_min := 0.14
-@export var jet_size_max := 0.2
+@export var jet_size_min := 0.14:
+    set(value):
+        jet_size_min = value
+        _rebuild()
+@export var jet_size_max := 0.2:
+    set(value):
+        jet_size_max = value
+        _rebuild()
 # 水柱の粒の色（白。不透明度は 0.95 から透明へ薄れる）
-@export var jet_color := Color(1.0, 1.0, 1.0)
+@export var jet_color := Color(1.0, 1.0, 1.0):
+    set(value):
+        jet_color = value
+        _rebuild()
 # 根元の盛り上がりの粒の数
-@export var base_amount := 60
+@export var base_amount := 60:
+    set(value):
+        base_amount = value
+        _rebuild()
 # 根元の粒が消えるまでの時間 [s]
-@export var base_lifetime := 0.6
+@export var base_lifetime := 0.6:
+    set(value):
+        base_lifetime = value
+        _rebuild()
 # 根元の粒の初速の範囲 [m/s]
-@export var base_speed_min := 0.6
-@export var base_speed_max := 1.2
+@export var base_speed_min := 0.6:
+    set(value):
+        base_speed_min = value
+        _rebuild()
+@export var base_speed_max := 1.2:
+    set(value):
+        base_speed_max = value
+        _rebuild()
 # 根元の粒の広がり（度）
-@export var base_spread := 35.0
+@export var base_spread := 35.0:
+    set(value):
+        base_spread = value
+        _rebuild()
 # 根元の粒の大きさの範囲（メートル）
-@export var base_size_min := 0.25
-@export var base_size_max := 0.35
+@export var base_size_min := 0.25:
+    set(value):
+        base_size_min = value
+        _rebuild()
+@export var base_size_max := 0.35:
+    set(value):
+        base_size_max = value
+        _rebuild()
 # 根元の粒の色（白）
-@export var base_color := Color(1.0, 1.0, 1.0)
+@export var base_color := Color(1.0, 1.0, 1.0):
+    set(value):
+        base_color = value
+        _rebuild()
 # 水柱の粒の放出元の球の半径（メートル）
-@export var emitter_radius := 0.08
+@export var emitter_radius := 0.08:
+    set(value):
+        emitter_radius = value
+        _rebuild()
 # 粒にかかる重力
-@export var gravity := Vector3(0.0, -9.8, 0.0)
+@export var gravity := Vector3(0.0, -9.8, 0.0):
+    set(value):
+        gravity = value
+        _rebuild()
 
 # 起動時のシェーダーの先読み（shader_warmup.gd）が、ツリーを止めている間も粒を動かせるよう、この名前のグループに入れる
 const WARMUP_GROUP := &"warmup_particles"
 
 func _ready() -> void:
+    _rebuild()
+
+# 粒を作り直す。@tool なのでエディタでも動き、export の値を変えるとすぐ反映される。
+# シーン読み込み中にもセッターが呼ばれるので、_ready の前（is_node_ready でない間）は何もしない
+func _rebuild() -> void:
+    if not is_node_ready():
+        return
+    for child_name in ["Jet", "Base"]:
+        var old := get_node_or_null(NodePath(child_name))
+        if old != null:
+            remove_child(old)
+            old.free()
     var mesh := _make_mesh(_make_material(_make_texture()))
+    # 作った粒には owner を付けない（シーンファイルに保存されないようにするため）
     add_child(_make_particles("Jet", mesh, jet_amount, jet_lifetime, jet_speed_min, jet_speed_max, jet_spread, jet_size_min, jet_size_max, jet_color, 0.95, emitter_radius))
     add_child(_make_particles("Base", mesh, base_amount, base_lifetime, base_speed_min, base_speed_max, base_spread, base_size_min, base_size_max, base_color, 0.9, 0.0))
 
