@@ -2,9 +2,11 @@ extends CanvasLayer
 # 画面右上のミニマップ。自分を中心に120m四方の地図を、カメラの前方が上になるように回して表示する。
 # 看板の場所と自分の矢印、北の印を重ね、押すと全体マップを開く。
 
-const SIZE := 180.0  # 表示の大きさ（px）
+const SIZE := 180.0  # 表示の大きさ（px）。タッチ端末では、これを上限に小さくする
+const MIN_SIZE := 100.0  # タッチ端末での最小の大きさ（px）
 const TOP := 100.0  # 画面の上端から（時速の表示とタッチ用リセットボタンの下）
 const MARGIN := 16.0  # 画面の右端から
+const BUTTON_GAP := 12.0  # タッチ端末で、リセットボタンや JUMP・DRIFT ボタンとの隙間（px）
 const SPAN_M := 120.0  # 表示する範囲（m四方）
 const MAP_TEXTURE := preload("res://assets/map/campus_map.png")
 const BACK_COLOR := UiStyle.PANEL_COLOR
@@ -29,6 +31,9 @@ const NORTH_INSET := 14.0
 var _view: Control
 # ワールドの xz を画面に回す角度（カメラの前方が上になる）
 var _angle: float = 0.0
+# いまの表示の大きさと上端の位置（タッチ端末では、大きくなったボタンに合わせて決める）
+var _size := SIZE
+var _top := TOP
 
 
 func _ready() -> void:
@@ -38,14 +43,28 @@ func _ready() -> void:
     _view = Control.new()
     _view.set_anchors_preset(Control.PRESET_TOP_RIGHT)
     _view.offset_right = -MARGIN
-    _view.offset_left = -MARGIN - SIZE
-    _view.offset_top = TOP
-    _view.offset_bottom = TOP + SIZE
+    _view.offset_left = -MARGIN - _size
+    _view.offset_top = _top
+    _view.offset_bottom = _top + _size
     _view.clip_contents = true
     _view.mouse_filter = Control.MOUSE_FILTER_STOP
     _view.draw.connect(_on_draw)
     _view.gui_input.connect(_on_gui_input)
     add_child(_view)
+    get_viewport().size_changed.connect(_update_layout)
+    _update_layout()
+
+
+# タッチ端末では、リセットボタンの下から JUMP・DRIFT ボタンの上までに収まる大きさにする（PC は SIZE のまま）
+func _update_layout() -> void:
+    _top = TOP
+    _size = SIZE
+    if UiStyle.is_touch_device():
+        _top = MARGIN + TouchControls.get_reset_button_size() + BUTTON_GAP
+        _size = clampf(TouchControls.get_buttons_top() - BUTTON_GAP - _top, MIN_SIZE, SIZE)
+    _view.offset_left = -MARGIN - _size
+    _view.offset_top = _top
+    _view.offset_bottom = _top + _size
 
 
 # ミニマップの画面上の矩形（タッチ運転の除外領域に使う）。表示していなければ空
@@ -59,6 +78,8 @@ func _process(_delta: float) -> void:
     var player := get_tree().get_first_node_in_group("player") as Node3D
     _view.visible = player != null and not Map.is_open
     if _view.visible:
+        # JUMP・DRIFT ボタンは車が出てから現れるので、大きさを毎フレーム確かめる
+        _update_layout()
         _view.queue_redraw()
 
 
@@ -78,7 +99,7 @@ func _on_gui_input(event: InputEvent) -> void:
 func _to_view(xz: Vector2) -> Vector2:
     var player := get_tree().get_first_node_in_group("player") as Node3D
     var p := Vector2(player.global_position.x, player.global_position.z)
-    return _view.size * 0.5 + (xz - p).rotated(_angle) * (SIZE / SPAN_M)
+    return _view.size * 0.5 + (xz - p).rotated(_angle) * (_size / SPAN_M)
 
 
 func _on_draw() -> void:
@@ -86,7 +107,7 @@ func _on_draw() -> void:
     if player == null:
         return
     var center := _view.size * 0.5
-    var k := SIZE / SPAN_M
+    var k := _size / SPAN_M
     var p := Vector2(player.global_position.x, player.global_position.z)
 
     # カメラの前方が画面の上を向く角度
@@ -113,7 +134,7 @@ func _on_draw() -> void:
     if Map.has_marker:
         var pos := _to_view(Map.marker_xz)
         var offset := pos - center
-        var limit := SIZE * 0.5 - MARKER_INSET
+        var limit := _size * 0.5 - MARKER_INSET
         var over := maxf(absf(offset.x), absf(offset.y))
         if over > limit:
             pos = center + offset * (limit / over)
@@ -123,7 +144,7 @@ func _on_draw() -> void:
     for hint_xz in Map.get_visible_hint_points():
         var hint_pos := _to_view(hint_xz)
         var hint_offset := hint_pos - center
-        var hint_limit := SIZE * 0.5 - HINT_MARK_INSET
+        var hint_limit := _size * 0.5 - HINT_MARK_INSET
         var hint_over := maxf(absf(hint_offset.x), absf(hint_offset.y))
         if hint_over > hint_limit:
             hint_pos = center + hint_offset * (hint_limit / hint_over)
@@ -145,7 +166,7 @@ func _on_draw() -> void:
 
     # 北の印（文字の中心が north_pos に来るようにベースラインをずらす）
     var font := UiStyle.FONT
-    var north_pos := center + Vector2(0.0, -1.0).rotated(_angle) * (SIZE * 0.5 - NORTH_INSET)
+    var north_pos := center + Vector2(0.0, -1.0).rotated(_angle) * (_size * 0.5 - NORTH_INSET)
     var text_size := font.get_string_size("N", HORIZONTAL_ALIGNMENT_CENTER, -1.0, NORTH_FONT_SIZE)
     var base := Vector2(north_pos.x - text_size.x * 0.5, north_pos.y + (font.get_ascent(NORTH_FONT_SIZE) - font.get_descent(NORTH_FONT_SIZE)) * 0.5)
     _view.draw_string_outline(font, base, "N", HORIZONTAL_ALIGNMENT_LEFT, -1.0, NORTH_FONT_SIZE, NORTH_OUTLINE_SIZE, UiStyle.OUTLINE_COLOR)
