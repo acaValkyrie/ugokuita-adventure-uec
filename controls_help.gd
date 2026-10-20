@@ -115,6 +115,8 @@ const ICON_LABEL_GAP := 4.5
 const FONT_SIZE := 14
 # ラベルの縁取りの太さ（px）
 const LABEL_OUTLINE_SIZE := 4
+# 右下のブーストのゲージと、その横のブーストのボタンのアイコンのためにあける幅（px）
+const RIGHT_RESERVE := 240.0
 
 var _mode: Mode = Mode.KEYBOARD
 var _hbox: HBoxContainer
@@ -134,6 +136,7 @@ func _ready() -> void:
     _hbox.offset_left = MARGIN
     _hbox.offset_bottom = -MARGIN
     add_child(_hbox)
+    get_viewport().size_changed.connect(_fit_to_width)
 
     _rebuild()
     # GameMenu はこのノードより後に追加される Autoload なので、全 Autoload の準備後に接続する
@@ -276,6 +279,19 @@ func _rebuild() -> void:
         var icon_scale: float = item[2] if item.size() > 2 else 1.0
         var spacer_height := max_below - _below_center(item[0], icon_scale)
         _hbox.add_child(_make_item(item[0], item[1], icon_scale, spacer_height))
+    # 項目を並べ直したあとに最小サイズが決まるので、縮めるのは次のフレームにする
+    _fit_to_width.call_deferred()
+
+
+# 入りきらないときは、左下を動かさずに HBox 全体を縮めて、画面の幅に収める
+func _fit_to_width() -> void:
+    var min_size := _hbox.get_combined_minimum_size()
+    var available := get_viewport().get_visible_rect().size.x - MARGIN - RIGHT_RESERVE
+    if min_size.x > available and available > 0.0:
+        _hbox.scale = Vector2.ONE * (available / min_size.x)
+    else:
+        _hbox.scale = Vector2.ONE
+    _hbox.pivot_offset = Vector2(0, min_size.y)
 
 
 # アイコンの表示の高さ（px）
