@@ -9,7 +9,7 @@ var vehicle
 # この速さ [m/s] を超えて走っているときだけ真後ろへ戻す
 @export var return_min_speed: float = 0.3
 
-# ブーストやドリフトのダッシュを出した瞬間にカメラを引く距離 [m]
+# ブーストやドリフトのダッシュを出した瞬間に、カメラを機体の進む向きと逆へ水平に引く距離 [m]
 @export var kick_distance: float = 2.0
 # 引いた位置を目指す時間 [s]。過ぎたら元の距離へ戻す
 @export var kick_hold: float = 0.1
@@ -38,6 +38,8 @@ var phi: float = 0.3 * PI
 var theta_offset: float = 0.0
 # ダッシュを出してからの時間 [s]
 var _kick_time := INF
+# いまカメラを引いている距離 [m]
+var _kick_amount := 0.0
 # 最後に見た機体の dash_count
 var _last_dash_count := 0
 
@@ -54,6 +56,20 @@ func behind_vehicle_theta() -> float:
     if flat.length() < 0.1:
         return theta - theta_offset
     return atan2(-flat.y, -flat.x)
+
+# カメラを引く向き。機体の進む向きと逆の水平方向（ほぼ止まっているときは機体の後ろ）。
+# 後ろ向きのブーストなどでカメラのほうへ進んでいるときは、カメラを機体の向こうへ押し出さないよう引かない
+func _kick_direction(camera_offset: Vector3) -> Vector3:
+    var flat := Vector3(vehicle.linear_velocity.x, 0.0, vehicle.linear_velocity.z)
+    if flat.length() < 0.5:
+        flat = vehicle.global_basis.z
+        flat.y = 0.0
+    if flat.length() < 0.01:
+        return Vector3.ZERO
+    var dir := -flat.normalized()
+    if dir.dot(Vector3(camera_offset.x, 0.0, camera_offset.z)) < 0.0:
+        return Vector3.ZERO
+    return dir
 
 func _ready():
     vehicle = get_node(vehicle_path)
@@ -92,22 +108,23 @@ func _physics_process(delta: float) -> void:
     var follow_theta = lerp_angle(theta - theta_offset, behind_vehicle_theta(), 1.0 - exp(-follow_speed * delta))
     theta = follow_theta + theta_offset
 
-    # ブーストやドリフトのダッシュを出した瞬間だけ、カメラを一瞬引いてすぐ戻す
+    # ブーストやドリフトのダッシュを出した瞬間だけ、カメラを一瞬引いてすぐ戻す（高さは変えず、進む向きと逆へ水平に引く）
     if vehicle.dash_count != _last_dash_count:
         _last_dash_count = vehicle.dash_count
         _kick_time = 0.0
     _kick_time += delta
-    var target_radius := BASE_RADIUS + (kick_distance if _kick_time < kick_hold else 0.0)
+    var kick_target := kick_distance if _kick_time < kick_hold else 0.0
+    var kick_speed := kick_out_speed if kick_target > _kick_amount else kick_in_speed
+    _kick_amount = lerpf(_kick_amount, kick_target, 1.0 - exp(-kick_speed * delta))
     # エンディング中は機体に寄せる
-    if Ending.is_shown():
-        target_radius = ending_radius
-    var kick_speed := kick_out_speed if target_radius > radius else kick_in_speed
-    radius = lerpf(radius, target_radius, 1.0 - exp(-kick_speed * delta))
+    var target_radius := ending_radius if Ending.is_shown() else BASE_RADIUS
+    radius = lerpf(radius, target_radius, 1.0 - exp(-kick_in_speed * delta))
 
     # 機体からカメラへ光線を飛ばし、壁に遮られたら壁の手前へ寄せる
     # （寄るときは即座に、戻るときはゆっくり）
     var origin: Vector3 = vehicle.global_transform.origin
     var offset := to_camera_position()
+    offset += _kick_direction(offset) * _kick_amount
     var desired := offset.length()
     var query := PhysicsRayQueryParameters3D.create(origin, origin + offset, obstacle_mask, [vehicle.get_rid()])
     var hit := get_world_3d().direct_space_state.intersect_ray(query)
