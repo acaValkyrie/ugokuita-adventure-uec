@@ -125,6 +125,8 @@ const PANEL_MAX_WIDTH := 1000.0
 const PANEL_TOP := 72.0
 const PANEL_BOTTOM := 24.0
 const LEFT_COLUMN_WIDTH := 430.0
+# パネルの幅がこれより狭いと、左右に並べると右の列がはみ出すので上下に並べる
+const NARROW_WIDTH := LEFT_COLUMN_WIDTH + 500.0
 const ROBOT_ROT_SPEED := 35.0
 # 機体シーン（car.tscn・car_classic.tscn）と同じモデルの姿勢
 const ROBOT_MODEL_TRANSFORM := "Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, 0, 0)"
@@ -142,6 +144,14 @@ var _se_volume: int = 100
 var _menu_button: Button
 var _dimmer: ColorRect
 var _panel: PanelContainer
+# 左右（狭いときは上下）に並べる列と、その中身
+var _columns: BoxContainer
+var _left_column: Control
+var _right_column: Control
+var _divider_margin: MarginContainer
+var _divider: ColorRect
+# 今、列を上下に並べているか
+var _stacked: bool = false
 # 右の列（音量の中身）の BGM・SE の行（HBoxContainer）、名前、バー、バーの埋まった部分のスタイル、「30%」、試聴ボタン、ボタンの中の印
 var _bgm_row: HBoxContainer
 var _bgm_name_label: Label
@@ -466,20 +476,22 @@ func _build_menu() -> void:
     _panel.theme = theme
     _dimmer.add_child(_panel)
 
-    var columns := HBoxContainer.new()
-    columns.add_theme_constant_override("separation", 0)
-    _panel.add_child(columns)
+    _columns = BoxContainer.new()
+    _columns.add_theme_constant_override("separation", 0)
+    _panel.add_child(_columns)
 
-    columns.add_child(_build_left_column())
+    _left_column = _build_left_column()
+    _columns.add_child(_left_column)
 
-    # 縦の区切り線（上下 28px あける）
-    var divider_margin := _make_margin(0, 28, 0, 28)
-    var divider := _make_line()
-    divider.custom_minimum_size = Vector2(1, 0)
-    divider_margin.add_child(divider)
-    columns.add_child(divider_margin)
+    # 縦の区切り線（上下 28px あける。上下に並べるときは _set_stacked で横線にする）
+    _divider_margin = _make_margin(0, 28, 0, 28)
+    _divider = _make_line()
+    _divider.custom_minimum_size = Vector2(1, 0)
+    _divider_margin.add_child(_divider)
+    _columns.add_child(_divider_margin)
 
-    columns.add_child(_build_right_column())
+    _right_column = _build_right_column()
+    _columns.add_child(_right_column)
 
     # 一時停止中も鳴らすため、このノードの PROCESS_MODE_ALWAYS を継承させる
     _player = AudioStreamPlayer.new()
@@ -500,12 +512,42 @@ func _build_menu() -> void:
 
 # 画面の大きさに合わせてパネルの位置と大きさを決める
 func _layout_panel() -> void:
-    if _panel == null:
+    if _panel == null or _columns == null:
         return
     var screen := _dimmer.size
     var width := minf(PANEL_MAX_WIDTH, screen.x - 32.0)
     _panel.position = Vector2((screen.x - width) * 0.5, PANEL_TOP)
     _panel.size = Vector2(width, maxf(screen.y - PANEL_TOP - PANEL_BOTTOM, 0.0))
+    var stacked := width < NARROW_WIDTH
+    if stacked != _stacked:
+        _set_stacked(stacked)
+
+
+# 左右の列を、上下に並べる（true）か左右に並べる（false）か切り替える
+func _set_stacked(stacked: bool) -> void:
+    _stacked = stacked
+    _columns.vertical = stacked
+    if stacked:
+        # 左の列の中の伸びる余白がつぶれて、「閉じる」が項目の一覧のすぐ下に来る
+        _left_column.custom_minimum_size.x = 0.0
+        _left_column.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+        _divider.custom_minimum_size = Vector2(0, 1)
+        _divider_margin.add_theme_constant_override("margin_left", 28)
+        _divider_margin.add_theme_constant_override("margin_right", 28)
+        _divider_margin.add_theme_constant_override("margin_top", 0)
+        _divider_margin.add_theme_constant_override("margin_bottom", 0)
+        _right_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+        _right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    else:
+        _left_column.custom_minimum_size.x = LEFT_COLUMN_WIDTH
+        _left_column.size_flags_vertical = Control.SIZE_FILL
+        _divider.custom_minimum_size = Vector2(1, 0)
+        _divider_margin.add_theme_constant_override("margin_left", 0)
+        _divider_margin.add_theme_constant_override("margin_right", 0)
+        _divider_margin.add_theme_constant_override("margin_top", 28)
+        _divider_margin.add_theme_constant_override("margin_bottom", 28)
+        _right_column.size_flags_vertical = Control.SIZE_FILL
+        _right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 # ---- 左の列 ----
