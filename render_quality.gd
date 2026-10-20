@@ -3,6 +3,7 @@ extends Node
 # URL の ?scale=0.5 で倍率を、?lod=0.01 で機体の LOD の偏りを強制でき、
 # ?fps で FPS などを画面左上に表示する。
 # ?bench で、描画の要素を1つずつ外して FPS を測るベンチ（perf_bench.gd）を動かす。
+# ?tick=30 で物理演算の毎秒の回数を、?steps=2 で1フレームの物理演算の最大回数を変える。
 
 const PERF_BENCH := preload("res://perf_bench.gd")
 
@@ -28,11 +29,16 @@ var _label: Label
 var _elapsed := 0.0
 # 空でなければ、通常の表示の代わりに出す文字
 var _text_override := ""
+# 物理演算の回数（直近のフレームと、表示の間隔内の最大）
+var _steps_this_frame := 0
+var _last_steps := 0
+var _max_steps := 0
 
 
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
     _setup_overlay()
+    set_physics_process(true)
     if OS.has_feature("web"):
         _read_url_parameters()
     _apply_scale()
@@ -42,7 +48,15 @@ func _ready() -> void:
         _apply_vehicle_lod.call_deferred(vehicle)
 
 
+func _physics_process(_delta: float) -> void:
+    _steps_this_frame += 1
+
+
 func _process(delta: float) -> void:
+    # 1フレームの間に回った物理演算の回数を数える
+    _last_steps = _steps_this_frame
+    _steps_this_frame = 0
+    _max_steps = maxi(_max_steps, _last_steps)
     _elapsed += delta
     if _elapsed < OVERLAY_INTERVAL:
         return
@@ -62,6 +76,7 @@ func set_forced_scale(value: float) -> void:
 func set_overlay_visible(on: bool) -> void:
     _layer.visible = on
     set_process(on)
+    set_physics_process(on)
     if on:
         _elapsed = 0.0
         _update_overlay()
@@ -98,6 +113,10 @@ func _read_url_parameters() -> void:
             set_forced_scale(value.to_float())
         elif key == "lod" and value.is_valid_float():
             forced_lod_bias = clampf(value.to_float(), 0.001, 1.0)
+        elif key == "tick" and value.is_valid_int():
+            Engine.physics_ticks_per_second = clampi(value.to_int(), 10, 120)
+        elif key == "steps" and value.is_valid_int():
+            Engine.max_physics_steps_per_frame = clampi(value.to_int(), 1, 8)
         elif key == "fps":
             set_overlay_visible(true)
         elif key == "bench":
@@ -161,7 +180,13 @@ func _update_overlay() -> void:
     var scale := root.scaling_3d_scale
     var buffer := Vector2i((Vector2(root.size) * scale).round())
     var tris := Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000000.0
-    _label.text = "FPS %d  draw %d  tris %.2fM  3D x%.2f (%dx%d)  lod x%.2f" % [
+    var line1 := "FPS %d  draw %d  tris %.2fM  3D x%.2f (%dx%d)  lod x%.2f" % [
         Performance.get_monitor(Performance.TIME_FPS),
         Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
         tris, scale, buffer.x, buffer.y, _vehicle_lod_bias()]
+    var line2 := "phys %.1fms  steps %d (max %d)  tick %d  maxsteps %d" % [
+        Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+        _last_steps, _max_steps, Engine.physics_ticks_per_second,
+        Engine.max_physics_steps_per_frame]
+    _label.text = line1 + "\n" + line2
+    _max_steps = 0
