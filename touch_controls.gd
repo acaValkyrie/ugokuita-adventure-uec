@@ -59,8 +59,16 @@ func _process(_delta: float) -> void:
     # 車の有無でボタンの表示が変わるので、毎フレーム描き直す
     _overlay.queue_redraw()
     # メニューとエンディングの間はリセットを使わないので隠す（パネルを上から始められるように）
-    if _reset_button:
-        _reset_button.visible = _touch_enabled and not GameMenu.is_open and not Ending.is_shown()
+    _update_reset_visible()
+
+
+# リセットボタンの見え方を決める（一時停止中は _process が動かないので、通知からも呼ぶ）
+func _update_reset_visible() -> void:
+    if not _reset_button:
+        return
+    var paused := is_inside_tree() and get_tree().paused
+    _reset_button.visible = _touch_enabled and not paused \
+            and not GameMenu.is_open and not Ending.is_shown()
 
 
 # タッチ端末向けの表示を切り替える（テスト用にも使う）
@@ -68,8 +76,7 @@ func set_touch_enabled(on: bool) -> void:
     _touch_enabled = on
     if not on:
         _release_held_buttons()
-    if _reset_button:
-        _reset_button.visible = on
+    _update_reset_visible()
 
 
 # JUMP / DRIFT ボタンを出すか（タッチ端末で、操作する車がいるとき）
@@ -162,6 +169,11 @@ func _notification(what: int) -> void:
     if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT \
             or what == NOTIFICATION_PAUSED:
         _reset()
+    # 一時停止中は _process が動かないので、ここでリセットボタンの見え方を決める
+    if what == NOTIFICATION_PAUSED and _reset_button:
+        _reset_button.visible = false
+    elif what == NOTIFICATION_UNPAUSED:
+        _update_reset_visible()
 
 
 # 指がボタンの上にあるか（リセット／JUMP・DRIFT／メニュー／ブースト／看板のヒント／エンディング）
