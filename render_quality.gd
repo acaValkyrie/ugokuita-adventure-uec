@@ -1,6 +1,7 @@
 extends Node
 # スマホなどタッチ操作の端末で、3D を描く解像度を下げて Web 版を軽くする。
-# URL の ?scale=0.5 で倍率を強制でき、?fps で FPS などを画面左上に表示する。
+# URL の ?scale=0.5 で倍率を、?lod=0.01 で機体の LOD の偏りを強制でき、
+# ?fps で FPS などを画面左上に表示する。
 
 # 3D の描画バッファの短い辺の目安（実際の画素）
 const TARGET_SHORT_SIDE := 600.0
@@ -11,9 +12,13 @@ const OVERRIDE_MIN := 0.25
 const OVERRIDE_MAX := 1.0
 # オーバーレイの文字を更新する間隔（秒）
 const OVERLAY_INTERVAL := 0.5
+# タッチ操作の端末で、機体のメッシュに付ける LOD の偏り（小さいほど粗い LOD を使う）
+const VEHICLE_LOD_BIAS := 0.01
 
 # 強制する倍率（0 なら自動）
 var forced_scale := 0.0
+# 強制する機体の LOD の偏り（0 なら自動）
+var forced_lod_bias := 0.0
 
 var _layer: CanvasLayer
 var _label: Label
@@ -27,6 +32,9 @@ func _ready() -> void:
         _read_url_parameters()
     _apply_scale()
     get_tree().root.size_changed.connect(_apply_scale)
+    get_tree().node_added.connect(_on_node_added)
+    for vehicle in get_tree().get_nodes_in_group("player"):
+        _apply_vehicle_lod.call_deferred(vehicle)
 
 
 func _process(delta: float) -> void:
@@ -67,7 +75,7 @@ func _setup_overlay() -> void:
     set_overlay_visible(false)
 
 
-# URL の ?scale=... と ?fps を読む
+# URL の ?scale=... と ?lod=... と ?fps を読む
 func _read_url_parameters() -> void:
     var query := str(JavaScriptBridge.eval("window.location.search", true))
     query = query.trim_prefix("?")
@@ -77,6 +85,8 @@ func _read_url_parameters() -> void:
         var value := parts[1] if parts.size() > 1 else ""
         if key == "scale" and value.is_valid_float():
             set_forced_scale(value.to_float())
+        elif key == "lod" and value.is_valid_float():
+            forced_lod_bias = clampf(value.to_float(), 0.001, 1.0)
         elif key == "fps":
             set_overlay_visible(true)
 
@@ -104,12 +114,37 @@ func _apply_scale() -> void:
     root.scaling_3d_scale = _current_scale()
 
 
+func _vehicle_lod_bias() -> float:
+    if forced_lod_bias > 0.0:
+        return forced_lod_bias
+    if _is_touch_device():
+        return VEHICLE_LOD_BIAS
+    return 1.0
+
+
+func _on_node_added(node: Node) -> void:
+    if node is VehicleBody3D:
+        # 子ノードが揃ってから処理する
+        _apply_vehicle_lod.call_deferred(node)
+
+
+# 機体のメッシュに LOD の偏りを付ける（1.0 なら何もしない）
+func _apply_vehicle_lod(vehicle: Node) -> void:
+    if not is_instance_valid(vehicle):
+        return
+    var bias := _vehicle_lod_bias()
+    if is_equal_approx(bias, 1.0):
+        return
+    for child in vehicle.find_children("*", "GeometryInstance3D", true, false):
+        (child as GeometryInstance3D).lod_bias = bias
+
+
 func _update_overlay() -> void:
     var root := get_tree().root
     var scale := root.scaling_3d_scale
     var buffer := Vector2i((Vector2(root.size) * scale).round())
     var tris := Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000000.0
-    _label.text = "FPS %d  draw %d  tris %.2fM  3D x%.2f (%dx%d)" % [
+    _label.text = "FPS %d  draw %d  tris %.2fM  3D x%.2f (%dx%d)  lod x%.2f" % [
         Performance.get_monitor(Performance.TIME_FPS),
         Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
-        tris, scale, buffer.x, buffer.y]
+        tris, scale, buffer.x, buffer.y, _vehicle_lod_bias()]
