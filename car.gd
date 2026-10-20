@@ -78,11 +78,11 @@ const DriftSparksScript := preload("res://drift_sparks.gd")
 # 2段目（オレンジの火花）になるまでの時間 [s]
 @export var DRIFT_STAGE2_TIME := 2.2
 # ドリフトのダッシュの加速度 [m/s²]
-@export var DRIFT_TURBO_ACCEL := 8.0
+@export var DRIFT_TURBO_ACCEL := 25.0
 # 1段目で離したときのダッシュの時間 [s]
-@export var DRIFT_TURBO_TIME1 := 0.3
+@export var DRIFT_TURBO_TIME1 := 0.25
 # 2段目で離したときのダッシュの時間 [s]
-@export var DRIFT_TURBO_TIME2 := 0.7
+@export var DRIFT_TURBO_TIME2 := 0.5
 # ドリフト中のチャージの音の音量 [dB]
 @export var DRIFT_CHARGE_VOLUME_DB := 12.0
 # ドリフトのダッシュの音の音量 [dB]
