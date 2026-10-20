@@ -173,7 +173,12 @@ func _physics_process(delta: float) -> void:
 
     var forward_speed = linear_velocity.dot(global_basis.z)
     # 速いほどハンドルの最大角を絞る
-    var steer_limit = lerpf(MAX_STEER, MAX_STEER_AT_SPEED, clampf(absf(forward_speed) / get_max_speed(), 0.0, 1.0))
+    var speed_ratio: float = absf(forward_speed) / get_max_speed()
+    var steer_limit: float = lerpf(MAX_STEER, MAX_STEER_AT_SPEED, clampf(speed_ratio, 0.0, 1.0))
+    # ブーストやダッシュで最高速度を超えたら、曲がるときの横の加速度が最高速度のときと同じになるよう、
+    # 速さの2乗に反比例して絞る（そのままだと横転しかけて片側の車輪が浮き、急に減速する）
+    if speed_ratio > 1.0:
+        steer_limit /= speed_ratio * speed_ratio
     var steer_input := Input.get_axis("right", "left")
     var on_ground := _is_on_ground()
     _update_drift(delta, steer_input, forward_speed, on_ground)
