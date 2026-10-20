@@ -142,5 +142,10 @@ func _physics_process(delta: float) -> void:
         var kick_hit := get_world_3d().direct_space_state.intersect_ray(kick_query)
         if not kick_hit.is_empty():
             kick = kick.normalized() * maxf(base_position.distance_to(kick_hit.position) - obstacle_margin, 0.0)
+    # 引いた位置から機体が見えないとき（低い壁や建物の角）は引かない
+    if not kick.is_zero_approx():
+        var view_query := PhysicsRayQueryParameters3D.create(origin, base_position + kick, obstacle_mask, [vehicle.get_rid()])
+        if not get_world_3d().direct_space_state.intersect_ray(view_query).is_empty():
+            kick = Vector3.ZERO
     global_transform.origin = base_position + kick
     look_at(origin, Vector3.UP)
