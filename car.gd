@@ -30,6 +30,8 @@ const DriftTrailsScript := preload("res://drift_trails.gd")
 # ブーストの加速度 [m/s²] と、かける時間 [s]
 @export var BOOST_ACCEL = 20.0
 @export var BOOST_DURATION = 0.4
+# ブーストとドリフトのダッシュで押すのをやめる速さ（最高速度に対する倍率）。ダッシュを続けて速さが際限なく上がらないようにする
+@export var BOOST_MAX_SPEED_RATIO := 2.2
 # ブーストのゲージが満タンになるまでに走る距離 [m]
 @export var BOOST_CHARGE_DISTANCE = 40.0
 # 激突の音: 1回の物理フレームでの水平速度の変化 [m/s]。これ以上で激突とみなす
@@ -258,12 +260,16 @@ func _physics_process(delta: float) -> void:
             _air_jump_used = true
             _play_jump_sound()
 
+    # ブーストとダッシュは、押す向きの速さが上限に達したら押さない（時間は減らし続ける）
+    var push_limit := get_max_speed() * BOOST_MAX_SPEED_RATIO
     if _boost_time > 0.0:
-        apply_central_force(global_basis.z * _boost_dir * BOOST_ACCEL * mass)
+        if linear_velocity.dot(global_basis.z) * _boost_dir < push_limit:
+            apply_central_force(global_basis.z * _boost_dir * BOOST_ACCEL * mass)
         _boost_time -= delta
 
     if _turbo_time > 0.0:
-        apply_central_force(global_basis.z * DRIFT_TURBO_ACCEL * mass)
+        if linear_velocity.dot(global_basis.z) < push_limit:
+            apply_central_force(global_basis.z * DRIFT_TURBO_ACCEL * mass)
         _turbo_time -= delta
 
     _assist_turn_speed(delta, throttle, steer_input, forward_speed, on_ground)
