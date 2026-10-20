@@ -213,7 +213,8 @@ func _physics_process(delta: float) -> void:
         _boost_time = BOOST_DURATION
         # ブーストを優先し、後ろ向きのブーストとダッシュが同時にかからないようにする
         _turbo_time = 0.0
-        _drift_dash_sound.stop()
+        # ブーストでもドリフトのダッシュと同じ発射の音を鳴らす（鳴っている途中なら頭から鳴らし直す）
+        _drift_dash_sound.play()
         _boost_dir = -1.0 if throttle < 0.0 else 1.0
 
     # アクセル中はモーターの指令に、離したら実際の回転に合わせる（乗り上げて空転しても回り、音も鳴るようにする）
