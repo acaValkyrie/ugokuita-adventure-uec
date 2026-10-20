@@ -95,6 +95,21 @@ extends Node3D
     set(value):
         gravity = value
         _rebuild()
+# 噴水の音の大きさ [dB]
+@export var sound_volume_db := 0.0:
+    set(value):
+        sound_volume_db = value
+        _apply_sound()
+# この距離 [m] までは音量がほぼ下がらない
+@export var sound_unit_size := 4.0:
+    set(value):
+        sound_unit_size = value
+        _apply_sound()
+# この距離 [m] より遠くでは聞こえない
+@export var sound_max_distance := 40.0:
+    set(value):
+        sound_max_distance = value
+        _apply_sound()
 
 # 起動時のシェーダーの先読み（shader_warmup.gd）が、ツリーを止めている間も粒を動かせるよう、この名前のグループに入れる
 const WARMUP_GROUP := &"warmup_particles"
@@ -105,6 +120,38 @@ const BASE_FADE_START := 0.5
 
 func _ready() -> void:
     _rebuild()
+    # 水音はゲーム中だけ流す（エディタでは鳴らさない）
+    if not Engine.is_editor_hint():
+        _make_sound()
+
+# 噴水の水音を流し続ける。_rebuild は "Sound" を消さない（消すのは "Jet" と "Base" だけ）
+func _make_sound() -> void:
+    var stream := load("res://assets/audio/water/fountain.ogg") as AudioStream
+    if stream == null:
+        push_warning("噴水の音を読み込めませんでした: res://assets/audio/water/fountain.ogg")
+        return
+    # 取り込み設定に頼らず、ここでループにする
+    if stream is AudioStreamOggVorbis:
+        stream.loop = true
+    var player := AudioStreamPlayer3D.new()
+    player.name = "Sound"
+    player.stream = stream
+    player.bus = &"SE"
+    player.position = Vector3(0.0, 0.5, 0.0)
+    add_child(player)
+    _apply_sound()
+    # 毎回同じところから始まらないよう、再生位置をランダムにする
+    player.play(randf() * stream.get_length())
+
+# "Sound" があれば、export の値を反映する
+func _apply_sound() -> void:
+    var player := get_node_or_null(^"Sound") as AudioStreamPlayer3D
+    if player == null:
+        return
+    player.volume_db = sound_volume_db
+    player.max_db = sound_volume_db
+    player.unit_size = sound_unit_size
+    player.max_distance = sound_max_distance
 
 # 粒を作り直す。@tool なのでエディタでも動き、export の値を変えるとすぐ反映される。
 # シーン読み込み中にもセッターが呼ばれるので、_ready の前（is_node_ready でない間）は何もしない
