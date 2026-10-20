@@ -76,16 +76,20 @@ const DriftTrailsScript := preload("res://drift_trails.gd")
 @export var DRIFT_COUNTER_STEER := 0.2
 # 段差などで浮いても、ドリフトを続ける時間 [s]
 @export var DRIFT_AIR_GRACE := 0.3
-# 1段目（青い火花）になるまでのドリフトの時間 [s]
+# 1段目（オレンジの火花）になるまでのドリフトの時間 [s]
 @export var DRIFT_STAGE1_TIME := 1.0
-# 2段目（オレンジの火花）になるまでの時間 [s]
+# 2段目（赤い火花）になるまでの時間 [s]
 @export var DRIFT_STAGE2_TIME := 2.2
+# 3段目（虹色の火花）になるまでの時間 [s]
+@export var DRIFT_STAGE3_TIME := 3.4
 # ドリフトのダッシュの加速度 [m/s²]
 @export var DRIFT_TURBO_ACCEL := 25.0
 # 1段目で離したときのダッシュの時間 [s]
 @export var DRIFT_TURBO_TIME1 := 0.25
 # 2段目で離したときのダッシュの時間 [s]
 @export var DRIFT_TURBO_TIME2 := 0.5
+# 3段目で離したときのダッシュの時間 [s]
+@export var DRIFT_TURBO_TIME3 := 0.7
 # ドリフト中のチャージの音の音量 [dB]
 @export var DRIFT_CHARGE_VOLUME_DB := 12.0
 # ドリフトのダッシュの音の音量 [dB]
@@ -294,7 +298,9 @@ func _update_drift(delta: float, steer_input: float, forward_speed: float, on_gr
         _drift_air_time = 0.0
     else:
         _drift_air_time += delta
-    if _drift_time >= DRIFT_STAGE2_TIME:
+    if _drift_time >= DRIFT_STAGE3_TIME:
+        drift_stage = 3
+    elif _drift_time >= DRIFT_STAGE2_TIME:
         drift_stage = 2
     elif _drift_time >= DRIFT_STAGE1_TIME:
         drift_stage = 1
@@ -363,7 +369,10 @@ func _end_drift(release: bool) -> void:
     drifting = false
     _drift_charge_sound.stop()
     if release and _is_on_ground():
-        if drift_stage == 2:
+        if drift_stage == 3:
+            _turbo_time = DRIFT_TURBO_TIME3
+            _drift_dash_sound.play()
+        elif drift_stage == 2:
             _turbo_time = DRIFT_TURBO_TIME2
             _drift_dash_sound.play()
         elif drift_stage == 1:
