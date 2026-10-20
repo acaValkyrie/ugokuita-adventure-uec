@@ -2,10 +2,12 @@ extends Node3D
 
 # ドリフトの光の帯。ドリフト中、左右の後輪の接地点に、段階の色で光る帯を地面に引く。帯は少しずつ消える。
 
-# 段階ごとの帯の色（drift_sparks.gd と同じ。0: 淡い黄色、1: 青、2: オレンジ）
+# 段階ごとの帯の色（drift_sparks.gd と同じ。0: 淡い黄色、1: オレンジ、2: 赤、3: 虹色）
 const COLOR_STAGE0 := Color(1.0, 0.9, 0.5)
-const COLOR_STAGE1 := Color(0.3, 0.6, 1.0)
-const COLOR_STAGE2 := Color(1.0, 0.5, 0.1)
+const COLOR_STAGE1 := Color(1.0, 0.5, 0.1)
+const COLOR_STAGE2 := Color(1.0, 0.12, 0.08)
+# 3段目の虹色で色相が一周する速さ [周/s]
+const RAINBOW_SPEED := 1.5
 # 記録した点が残る時間（秒）
 const LIFETIME := 0.5
 # 帯の幅（m）
@@ -61,6 +63,8 @@ func _process(delta: float) -> void:
             color = COLOR_STAGE1
         2:
             color = COLOR_STAGE2
+        3:
+            color = Color.from_hsv(fmod(_time * RAINBOW_SPEED, 1.0), 0.8, 1.0)
     var drifting: bool = _vehicle.get("drifting")
     for i in _meshes.size():
         var wheel := _wheels[i]
