@@ -2,6 +2,9 @@ extends Node
 # スマホなどタッチ操作の端末で、3D を描く解像度を下げて Web 版を軽くする。
 # URL の ?scale=0.5 で倍率を、?lod=0.01 で機体の LOD の偏りを強制でき、
 # ?fps で FPS などを画面左上に表示する。
+# ?bench で、描画の要素を1つずつ外して FPS を測るベンチ（perf_bench.gd）を動かす。
+
+const PERF_BENCH := preload("res://perf_bench.gd")
 
 # 3D の描画バッファの短い辺の目安（実際の画素）
 const TARGET_SHORT_SIDE := 600.0
@@ -23,6 +26,8 @@ var forced_lod_bias := 0.0
 var _layer: CanvasLayer
 var _label: Label
 var _elapsed := 0.0
+# 空でなければ、通常の表示の代わりに出す文字
+var _text_override := ""
 
 
 func _ready() -> void:
@@ -62,6 +67,12 @@ func set_overlay_visible(on: bool) -> void:
         _update_overlay()
 
 
+# オーバーレイに通常の表示の代わりの文字を出す（空で通常に戻す）
+func set_overlay_text_override(text: String) -> void:
+    _text_override = text
+    _update_overlay()
+
+
 func _setup_overlay() -> void:
     _layer = CanvasLayer.new()
     _layer.layer = 128
@@ -89,6 +100,9 @@ func _read_url_parameters() -> void:
             forced_lod_bias = clampf(value.to_float(), 0.001, 1.0)
         elif key == "fps":
             set_overlay_visible(true)
+        elif key == "bench":
+            set_overlay_visible(true)
+            add_child(PERF_BENCH.new())
 
 
 func _is_touch_device() -> bool:
@@ -140,6 +154,9 @@ func _apply_vehicle_lod(vehicle: Node) -> void:
 
 
 func _update_overlay() -> void:
+    if _text_override != "":
+        _label.text = _text_override
+        return
     var root := get_tree().root
     var scale := root.scaling_3d_scale
     var buffer := Vector2i((Vector2(root.size) * scale).round())
