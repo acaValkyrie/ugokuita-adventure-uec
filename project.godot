@@ -38,6 +38,7 @@ PowerUps="*res://power_ups.gd"
 TreeLook="*res://tree_look.gd"
 RenderQuality="*res://render_quality.gd"
 ShaderWarmup="*res://shader_warmup.gd"
+ScreenOrientation="*res://screen_orientation.gd"
 
 [display]
 
