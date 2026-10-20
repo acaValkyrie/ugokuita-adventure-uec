@@ -18,17 +18,14 @@ const EFFECT_FRAMES := 4
 # メインのシーンとプレイヤーが揃ってから待つフレーム数（パワーアップなどがシーンの開始時に出るため）
 const START_WAIT_FRAMES := 3
 
-# 読み込み画面の見た目
-const LOGO_TEXTURE := preload("res://assets/ui/menu/logo_robot.png")
-const MARGIN := 64.0
-const BAND_WIDTH := 26.0
-const BAND_GAP := 14.0
-const CELL_W := 18.0
-const CELL_H := 14.0
-const CELL_SLANT := 5.0
-const CELL_GAP := 5.0
-# マス目の下端の、画面の下からの距離
-const CELL_BASELINE := 96.0
+# 読み込み画面の見た目（DOS のような黒い画面に文字が並ぶ）
+const TERM_FONT := preload("res://assets/fonts/vt323/VT323-Regular.ttf")
+const TERM_COLOR := Color("#c0c0c0")
+const BAR_COLOR := Color("#e0182d")
+const TERM_FONT_SIZE := 32
+const TERM_MARGIN := 32.0
+# 進み具合の棒の文字数
+const BAR_CHARS := 20
 
 enum State { WAIT_SCENE, WAIT_FRAMES, RUNNING }
 
@@ -47,12 +44,7 @@ var _effects_active := false
 var _saved_particles: Array = []
 var _warm_meshes: Array[MeshInstance3D] = []
 var _screen: ColorRect
-var _decor: Control
-var _logo: TextureRect
-var _title: Label
-var _label: Label
-# 終えた視点の数（マス目の赤い数）
-var _progress_done := 0
+var _term: RichTextLabel
 
 
 func _ready() -> void:
@@ -76,105 +68,65 @@ func _process(_delta: float) -> void:
             if _wait_frames >= START_WAIT_FRAMES:
                 _start()
         State.RUNNING:
+            _render_term()
             _step()
 
 
-# 読み込み中の画面（レース風。黒い背景に、赤い斜めの帯、LOADING の文字、ロゴ、区画のマス目）。入力は受け止める
+# 読み込み中の画面（黒い背景に、DOS のコマンドの文字が並ぶ）。入力は受け止める
 func _setup_screen() -> void:
     _screen = ColorRect.new()
     _screen.set_anchors_preset(Control.PRESET_FULL_RECT)
     _screen.color = Color(0, 0, 0)
     _screen.mouse_filter = Control.MOUSE_FILTER_STOP
     add_child(_screen)
-    # 帯とマス目を描く層
-    _decor = Control.new()
-    _decor.set_anchors_preset(Control.PRESET_FULL_RECT)
-    _decor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    _decor.draw.connect(_draw_decor)
-    _screen.add_child(_decor)
-    # ロゴ
-    _logo = TextureRect.new()
-    _logo.texture = LOGO_TEXTURE
-    _logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    _logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-    _logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    _screen.add_child(_logo)
-    # タイトル（斜めに傾けた文字）
-    var font := FontVariation.new()
-    font.base_font = UiStyle.FONT
-    font.spacing_glyph = 10
-    font.variation_transform = Transform2D(Vector2(1, 0), Vector2(0.2, 1), Vector2.ZERO)
-    _title = Label.new()
-    _title.text = "LOADING"
-    _title.add_theme_font_override("font", font)
-    _title.add_theme_font_size_override("font_size", 56)
-    _title.add_theme_color_override("font_color", UiStyle.TEXT_COLOR)
-    _title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    _screen.add_child(_title)
-    # 進み具合の数
-    _label = UiStyle.make_label("0 / 0", 18, UiStyle.TEXT_DIM_COLOR)
-    _label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    _screen.add_child(_label)
-    _screen.resized.connect(_layout)
+    _term = RichTextLabel.new()
+    _term.set_anchors_preset(Control.PRESET_FULL_RECT)
+    _term.offset_left = TERM_MARGIN
+    _term.offset_top = TERM_MARGIN
+    _term.offset_right = -TERM_MARGIN
+    _term.offset_bottom = -TERM_MARGIN
+    _term.bbcode_enabled = true
+    _term.scroll_active = false
+    _term.fit_content = false
+    _term.autowrap_mode = TextServer.AUTOWRAP_OFF
+    _term.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _term.add_theme_font_override("normal_font", TERM_FONT)
+    _term.add_theme_font_size_override("normal_font_size", TERM_FONT_SIZE)
+    _term.add_theme_color_override("default_color", TERM_COLOR)
+    _screen.add_child(_term)
     _screen.visible = false
-    _layout()
 
 
-# 画面の大きさに合わせて、文字とロゴの位置を決める
-func _layout() -> void:
-    var size := _screen.size
-    _title.position = Vector2(MARGIN, size.y * 0.28)
-    var box := minf(size.x, size.y) * 0.36
-    _logo.size = Vector2(box, box)
-    _logo.position = Vector2((size.x - box) * 0.5, size.y * 0.55 - box * 0.5)
-    _label.position = Vector2(MARGIN, size.y - CELL_BASELINE + 8.0)
-    _decor.queue_redraw()
-
-
-# 帯とマス目を描く
-func _draw_decor() -> void:
-    var size := _screen.size
-    # 左上の帯。右下は同じものを画面の中心で180度回して、0.6倍にする
-    var colors := [Color("#e0182d"), Color("#c8102e"), Color("#4a0b12")]
-    var step_x := (BAND_WIDTH + BAND_GAP) / sin(deg_to_rad(60.0))
-    var width_x := BAND_WIDTH / sin(deg_to_rad(60.0))
-    var drop := 260.0
-    var shift := -drop / tan(deg_to_rad(60.0))
-    for k in colors.size():
-        var x := 150.0 + k * step_x
-        var pts := [Vector2(x, 0.0), Vector2(x + width_x, 0.0),
-                Vector2(x + width_x + shift, drop), Vector2(x + shift, drop)]
-        draw_colored_polygon(PackedVector2Array(pts), colors[k])
-        var far := PackedVector2Array()
-        for p in pts:
-            far.append(size - (p as Vector2) * 0.6)
-        draw_colored_polygon(far, colors[k])
-    # 区画のマス目（終えた分だけ赤）
-    var count := _views.size()
-    if count == 0:
-        return
-    var cell_w := CELL_W
-    var gap := CELL_GAP
-    var total := count * cell_w + (count - 1) * gap
-    var room := size.x - MARGIN * 2.0
-    var k_scale := 1.0
-    if total > room:
-        k_scale = room / total
-        cell_w *= k_scale
-        gap *= k_scale
-    var base_y := size.y - CELL_BASELINE - CELL_H
-    for i in count:
-        var x0 := MARGIN + i * (cell_w + gap)
-        var cell := PackedVector2Array([
-            Vector2(x0 + CELL_SLANT, base_y), Vector2(x0 + CELL_SLANT + cell_w, base_y),
-            Vector2(x0 + cell_w, base_y + CELL_H), Vector2(x0, base_y + CELL_H)])
-        var c := Color("#e0182d") if i < _progress_done else Color(1, 1, 1, 0.15)
-        draw_colored_polygon(cell, c)
+# 始まった段階だけ、コマンドと進み具合の棒を並べる。最後の行はまたたくカーソル
+func _render_term() -> void:
+    var phases: Array = [
+        ["LOAD CAMPUS.DAT", 0, GRID * GRID],
+        ["SCAN GROUND.DAT", GRID * GRID, 4],
+    ]
+    if _effects_view_index >= 0:
+        phases.append(["INIT EFFECTS.SYS", _effects_view_index, 1])
+    var text := "UGOKUITA-OS v1.0\n(C) Ugokuita Project\n\n"
+    for phase in phases:
+        var start: int = phase[1]
+        var total: int = phase[2]
+        if _view_index < start:
+            break
+        var done := clampi(_view_index - start, 0, total)
+        var filled := BAR_CHARS * done / total
+        text += "C:\\> %s\n" % phase[0]
+        text += "  [lb][color=#%s]%s[/color]%s] %d/%d" % [
+                BAR_COLOR.to_html(false), "#".repeat(filled),
+                ".".repeat(BAR_CHARS - filled), done, total]
+        if done >= total:
+            text += " OK"
+        text += "\n"
+    # カーソルは0.5秒ごとに出たり消えたりする
+    text += "_" if (Time.get_ticks_msec() / 500) % 2 == 0 else " "
+    _term.text = text
 
 
 func _start() -> void:
     _screen.visible = true
-    _layout()
     get_tree().paused = true
     _prev_camera = get_viewport().get_camera_3d()
     _camera = Camera3D.new()
@@ -218,9 +170,7 @@ func _build_views() -> void:
 
 func _apply_view() -> void:
     _camera.global_transform = _views[_view_index]
-    _progress_done = _view_index
-    _label.text = "%d / %d" % [_progress_done, _views.size()]
-    _decor.queue_redraw()
+    _render_term()
     if _view_index == _effects_view_index:
         _begin_effects()
 
