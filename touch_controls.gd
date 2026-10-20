@@ -58,6 +58,9 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
     # 車の有無でボタンの表示が変わるので、毎フレーム描き直す
     _overlay.queue_redraw()
+    # メニューとエンディングの間はリセットを使わないので隠す（パネルを上から始められるように）
+    if _reset_button:
+        _reset_button.visible = _touch_enabled and not GameMenu.is_open and not Ending.is_shown()
 
 
 # タッチ端末向けの表示を切り替える（テスト用にも使う）

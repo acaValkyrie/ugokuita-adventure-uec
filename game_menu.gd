@@ -512,13 +512,11 @@ func _build_menu() -> void:
 
 
 # メニューやエンディングのパネルを置く上端 [px]
-# 左上のメニュー・マップのボタンと右上のリセットボタンの、大きいほうの下に余白を足した位置
-# PC ではリセットボタンを数えないので 16 + 40 + 16 = 72 で、これまでの決め打ちと同じになる
+# 左上のメニュー・マップのボタンの下に余白を足した位置
+# 右上のリセットボタンはメニューとエンディングの間は隠すので考えない
+# PC では 16 + 40 + 16 = 72 で、これまでの決め打ちと同じになる
 func get_content_top() -> float:
-    var reset_size := 0.0
-    if UiStyle.is_touch_device():
-        reset_size = TouchControls.get_reset_button_size()
-    return MARGIN + maxf(button_size, reset_size) + 16.0
+    return MARGIN + button_size + 16.0
 
 
 # 画面の大きさに合わせてパネルの位置と大きさを決める
