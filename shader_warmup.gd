@@ -3,7 +3,6 @@ extends CanvasLayer
 # Compatibility では初めて描いた瞬間にシェーダーを作るので、走り出してから止まるのを防ぐ。
 # 一時的なカメラを上空のタイルごとと、地上の4方向に向けて、各視点を数フレームずつ見せる。
 # 最後に前のカメラの視点で、プレイヤーの効果（ドリフトの帯、火花、ジェット、集中線）も一度描く。
-# URL の ?nowarm で飛ばせる（render_quality.gd）。
 
 # タイルに分ける範囲は Map.WORLD_RECT（x / z の範囲）を使う
 # 1辺のタイルの数
@@ -22,7 +21,7 @@ const START_WAIT_FRAMES := 3
 enum State { WAIT_SCENE, WAIT_FRAMES, RUNNING }
 
 var _state := State.WAIT_SCENE
-# 一度でも終えた（または飛ばした）ら true。起動ごとに1回だけ動かす
+# 一度でも終えたら true。起動ごとに1回だけ動かす
 var _done := false
 var _wait_frames := 0
 var _camera: Camera3D
@@ -43,11 +42,6 @@ func _ready() -> void:
     layer = 100
     process_mode = Node.PROCESS_MODE_ALWAYS
     _setup_screen()
-
-
-# 事前の準備が終わった（または飛ばした）か
-func is_done() -> bool:
-    return _done
 
 
 func _process(_delta: float) -> void:
@@ -86,9 +80,6 @@ func _setup_screen() -> void:
 
 
 func _start() -> void:
-    if RenderQuality.skip_warmup:
-        _finish_without_run()
-        return
     _screen.visible = true
     get_tree().paused = true
     _prev_camera = get_viewport().get_camera_3d()
@@ -103,11 +94,6 @@ func _start() -> void:
     _view_frames = 0
     _apply_view()
     _state = State.RUNNING
-
-
-func _finish_without_run() -> void:
-    _done = true
-    set_process(false)
 
 
 # 視点の一覧を先に作る（上空のタイルと、地上の4方向）

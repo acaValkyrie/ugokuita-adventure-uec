@@ -1,186 +1,25 @@
 extends Node
-# スマホなどタッチ操作の端末で、3D を描く解像度を下げ、1フレームの物理演算の回数も制限して Web 版を軽くする。
-# URL の ?scale=0.5 で倍率を、?lod=0.01 で機体の LOD の偏りを強制でき、
-# ?fps で FPS などを画面左上に表示する。
-# ?bench で、描画の要素を1つずつ外して FPS を測るベンチ（perf_bench.gd）を動かす。
-# ?boot で、起動から120秒の重さを2秒ごとに記録して表示する（boot_log.gd）。
-# ?tick=30 で物理演算の毎秒の回数を、?steps=2 で1フレームの物理演算の最大回数を変える。
-# ?nowarm で、起動直後のシェーダーの事前の準備（shader_warmup.gd）を飛ばす。
-
-const PERF_BENCH := preload("res://perf_bench.gd")
-const BOOT_LOG := preload("res://boot_log.gd")
+# スマホなどタッチ操作の端末で Web 版を軽くする。
+# 3D を描く解像度を下げ、機体のメッシュには粗い LOD を使い、1フレームの物理演算の回数も制限する。
 
 # 3D の描画バッファの短い辺の目安（実際の画素）
 const TARGET_SHORT_SIDE := 600.0
-# 自動で下げるときの倍率の下限
+# 解像度を下げるときの倍率の下限
 const MIN_SCALE := 0.4
-# URL や set_forced_scale で指定できる倍率の範囲
-const OVERRIDE_MIN := 0.25
-const OVERRIDE_MAX := 1.0
-# オーバーレイの文字を更新する間隔（秒）
-const OVERLAY_INTERVAL := 0.5
 # タッチ操作の端末で、機体のメッシュに付ける LOD の偏り（小さいほど粗い LOD を使う）
 const VEHICLE_LOD_BIAS := 0.01
 # タッチ操作の端末で、1フレームに回す物理演算の最大回数。重い端末で物理演算が追いつこうとして何回も回り、さらに遅くなるのを防ぐ（60回/秒なので 30FPS を下回るとゲームの進みが遅くなる）
 const TOUCH_MAX_PHYSICS_STEPS := 2
-# 差し替えの文字を画面に出すとき、見出しの次から出す最新の行数（全文は保存するファイルに残る）
-const OVERLAY_MAX_LINES := 20
-
-# 強制する倍率（0 なら自動）
-var forced_scale := 0.0
-# 強制する機体の LOD の偏り（0 なら自動）
-var forced_lod_bias := 0.0
-# true なら、起動直後のシェーダーの事前の準備を飛ばす（?nowarm）
-var skip_warmup := false
-
-var _layer: CanvasLayer
-var _label: Label
-var _elapsed := 0.0
-# 空でなければ、通常の表示の代わりに出す文字
-var _text_override := ""
-# 物理演算の回数（直近のフレームと、表示の間隔内の最大）
-var _steps_this_frame := 0
-var _last_steps := 0
-var _max_steps := 0
-# 最後に保存した結果（SAVE ボタンでもう一度保存する）
-var _last_report_prefix := ""
-var _last_report_text := ""
-var _save_button: Button
 
 
 func _ready() -> void:
-    process_mode = Node.PROCESS_MODE_ALWAYS
-    _setup_overlay()
-    set_physics_process(true)
     if _is_touch_device():
         Engine.max_physics_steps_per_frame = TOUCH_MAX_PHYSICS_STEPS
-    if OS.has_feature("web"):
-        _read_url_parameters()
     _apply_scale()
     get_tree().root.size_changed.connect(_apply_scale)
     get_tree().node_added.connect(_on_node_added)
     for vehicle in get_tree().get_nodes_in_group("player"):
         _apply_vehicle_lod.call_deferred(vehicle)
-
-
-func _physics_process(_delta: float) -> void:
-    _steps_this_frame += 1
-
-
-func _process(delta: float) -> void:
-    # 1フレームの間に回った物理演算の回数を数える
-    _last_steps = _steps_this_frame
-    _steps_this_frame = 0
-    _max_steps = maxi(_max_steps, _last_steps)
-    _elapsed += delta
-    if _elapsed < OVERLAY_INTERVAL:
-        return
-    _elapsed = 0.0
-    _update_overlay()
-
-
-# 強制する倍率を決めて、すぐ反映する（0 で自動に戻す）
-func set_forced_scale(value: float) -> void:
-    if value <= 0.0:
-        forced_scale = 0.0
-    else:
-        forced_scale = clampf(value, OVERRIDE_MIN, OVERRIDE_MAX)
-    _apply_scale()
-
-
-func set_overlay_visible(on: bool) -> void:
-    _layer.visible = on
-    set_process(on)
-    set_physics_process(on)
-    if on:
-        _elapsed = 0.0
-        _update_overlay()
-
-
-# オーバーレイに通常の表示の代わりの文字を出す（空で通常に戻す）
-func set_overlay_text_override(text: String) -> void:
-    _text_override = text
-    _update_overlay()
-
-
-func _setup_overlay() -> void:
-    _layer = CanvasLayer.new()
-    _layer.layer = 128
-    add_child(_layer)
-    _label = UiStyle.make_label("", 14)
-    _label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    _label.add_theme_color_override("font_outline_color", UiStyle.OUTLINE_COLOR)
-    _label.add_theme_constant_override("outline_size", 4)
-    _label.position = Vector2(8, 8)
-    _layer.add_child(_label)
-    _save_button = Button.new()
-    _save_button.text = "SAVE"
-    _save_button.add_theme_font_override("font", UiStyle.FONT)
-    _save_button.add_theme_font_size_override("font_size", 18)
-    _save_button.custom_minimum_size = Vector2(96, 44)
-    _save_button.process_mode = Node.PROCESS_MODE_ALWAYS
-    _save_button.visible = false
-    _save_button.pressed.connect(func() -> void: save_report(_last_report_prefix, _last_report_text))
-    _layer.add_child(_save_button)
-    _save_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 8)
-    set_overlay_visible(false)
-
-
-# 計測の結果をテキストファイルに保存する（Web ではダウンロード）
-func save_report(prefix: String, text: String) -> void:
-    var d := Time.get_datetime_dict_from_system()
-    var stamp := "%04d%02d%02d-%02d%02d%02d" % [
-        d["year"], d["month"], d["day"], d["hour"], d["minute"], d["second"]]
-    var file_name := "%s-%s.txt" % [prefix, stamp]
-    var first_line := ""
-    if OS.has_feature("web"):
-        first_line = "ua: " + str(JavaScriptBridge.eval("navigator.userAgent", true))
-    else:
-        first_line = "os: " + OS.get_name()
-    var full := first_line + "\n" + "saved: " + Time.get_datetime_string_from_system() + "\n" + text
-    if OS.has_feature("web"):
-        JavaScriptBridge.download_buffer(full.to_utf8_buffer(), file_name, "text/plain")
-    else:
-        var file := FileAccess.open("user://" + file_name, FileAccess.WRITE)
-        if file != null:
-            file.store_string(full)
-            file.close()
-            print("saved: ", ProjectSettings.globalize_path("user://" + file_name))
-    _last_report_prefix = prefix
-    _last_report_text = text
-    _show_save_button(true)
-
-
-func _show_save_button(on: bool) -> void:
-    _save_button.visible = on
-
-
-# URL の ?scale=... と ?lod=... と ?fps を読む
-func _read_url_parameters() -> void:
-    var query := str(JavaScriptBridge.eval("window.location.search", true))
-    query = query.trim_prefix("?")
-    for pair in query.split("&", false):
-        var parts := pair.split("=", true, 1)
-        var key := parts[0]
-        var value := parts[1] if parts.size() > 1 else ""
-        if key == "scale" and value.is_valid_float():
-            set_forced_scale(value.to_float())
-        elif key == "lod" and value.is_valid_float():
-            forced_lod_bias = clampf(value.to_float(), 0.001, 1.0)
-        elif key == "tick" and value.is_valid_int():
-            Engine.physics_ticks_per_second = clampi(value.to_int(), 10, 120)
-        elif key == "steps" and value.is_valid_int():
-            Engine.max_physics_steps_per_frame = clampi(value.to_int(), 1, 8)
-        elif key == "nowarm":
-            skip_warmup = true
-        elif key == "fps":
-            set_overlay_visible(true)
-        elif key == "bench":
-            set_overlay_visible(true)
-            add_child(PERF_BENCH.new())
-        elif key == "boot":
-            set_overlay_visible(true)
-            add_child(BOOT_LOG.new())
 
 
 func _is_touch_device() -> bool:
@@ -189,8 +28,6 @@ func _is_touch_device() -> bool:
 
 
 func _current_scale() -> float:
-    if forced_scale > 0.0:
-        return forced_scale
     if _is_touch_device():
         var size := get_tree().root.size
         var short_side := float(mini(size.x, size.y))
@@ -207,8 +44,6 @@ func _apply_scale() -> void:
 
 
 func _vehicle_lod_bias() -> float:
-    if forced_lod_bias > 0.0:
-        return forced_lod_bias
     if _is_touch_device():
         return VEHICLE_LOD_BIAS
     return 1.0
@@ -229,30 +64,3 @@ func _apply_vehicle_lod(vehicle: Node) -> void:
         return
     for child in vehicle.find_children("*", "GeometryInstance3D", true, false):
         (child as GeometryInstance3D).lod_bias = bias
-
-
-func _update_overlay() -> void:
-    if _text_override != "":
-        # 見出しの1行と、最新の OVERLAY_MAX_LINES 行だけを出す
-        var lines := _text_override.split("\n")
-        if lines.size() > OVERLAY_MAX_LINES + 1:
-            var shown := PackedStringArray([lines[0]])
-            shown.append_array(lines.slice(lines.size() - OVERLAY_MAX_LINES))
-            _label.text = "\n".join(shown)
-        else:
-            _label.text = _text_override
-        return
-    var root := get_tree().root
-    var scale := root.scaling_3d_scale
-    var buffer := Vector2i((Vector2(root.size) * scale).round())
-    var tris := Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000000.0
-    var line1 := "FPS %d  draw %d  tris %.2fM  3D x%.2f (%dx%d)  lod x%.2f" % [
-        Performance.get_monitor(Performance.TIME_FPS),
-        Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
-        tris, scale, buffer.x, buffer.y, _vehicle_lod_bias()]
-    var line2 := "phys %.1fms  steps %d (max %d)  tick %d  maxsteps %d" % [
-        Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
-        _last_steps, _max_steps, Engine.physics_ticks_per_second,
-        Engine.max_physics_steps_per_frame]
-    _label.text = line1 + "\n" + line2
-    _max_steps = 0
