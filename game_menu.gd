@@ -122,7 +122,6 @@ const ACCENT_COLOR := Color("#e0182d")
 const DOT_OFF_COLOR := Color(0.35, 0.35, 0.35)
 # 寸法
 const PANEL_MAX_WIDTH := 1000.0
-const PANEL_TOP := 72.0
 const PANEL_BOTTOM := 24.0
 const LEFT_COLUMN_WIDTH := 430.0
 # パネルの幅がこれより狭いと、左右に並べると右の列がはみ出すので上下に並べる
@@ -512,6 +511,16 @@ func _build_menu() -> void:
     add_child(_preview_player)
 
 
+# メニューやエンディングのパネルを置く上端 [px]
+# 左上のメニュー・マップのボタンと右上のリセットボタンの、大きいほうの下に余白を足した位置
+# PC ではリセットボタンを数えないので 16 + 40 + 16 = 72 で、これまでの決め打ちと同じになる
+func get_content_top() -> float:
+    var reset_size := 0.0
+    if UiStyle.is_touch_device():
+        reset_size = TouchControls.get_reset_button_size()
+    return MARGIN + maxf(button_size, reset_size) + 16.0
+
+
 # 画面の大きさに合わせてパネルの位置と大きさを決める
 func _layout_panel() -> void:
     if _panel == null or _columns == null:
@@ -523,8 +532,9 @@ func _layout_panel() -> void:
     var changed := stacked != _stacked
     if changed:
         _set_stacked(stacked)
-    _panel.position = Vector2((screen.x - width) * 0.5, PANEL_TOP)
-    _panel.size = Vector2(width, maxf(screen.y - PANEL_TOP - PANEL_BOTTOM, 0.0))
+    var top := get_content_top()
+    _panel.position = Vector2((screen.x - width) * 0.5, top)
+    _panel.size = Vector2(width, maxf(screen.y - top - PANEL_BOTTOM, 0.0))
     if changed:
         # 並びを変えた直後は最小サイズが更新されていないことがあるので、次のフレームでもう一度決める
         # （2回目は並びが変わらないので繰り返さない）
