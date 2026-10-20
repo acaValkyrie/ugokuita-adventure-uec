@@ -3,7 +3,7 @@ extends Node
 # URL の ?scale=0.5 で倍率を、?lod=0.01 で機体の LOD の偏りを強制でき、
 # ?fps で FPS などを画面左上に表示する。
 # ?bench で、描画の要素を1つずつ外して FPS を測るベンチ（perf_bench.gd）を動かす。
-# ?boot で、起動から40秒の重さを2秒ごとに記録して表示する（boot_log.gd）。
+# ?boot で、起動から120秒の重さを2秒ごとに記録して表示する（boot_log.gd）。
 # ?tick=30 で物理演算の毎秒の回数を、?steps=2 で1フレームの物理演算の最大回数を変える。
 # ?nowarm で、起動直後のシェーダーの事前の準備（shader_warmup.gd）を飛ばす。
 
@@ -23,6 +23,8 @@ const OVERLAY_INTERVAL := 0.5
 const VEHICLE_LOD_BIAS := 0.01
 # タッチ操作の端末で、1フレームに回す物理演算の最大回数。重い端末で物理演算が追いつこうとして何回も回り、さらに遅くなるのを防ぐ（60回/秒なので 30FPS を下回るとゲームの進みが遅くなる）
 const TOUCH_MAX_PHYSICS_STEPS := 2
+# 差し替えの文字を画面に出すとき、見出しの次から出す最新の行数（全文は保存するファイルに残る）
+const OVERLAY_MAX_LINES := 20
 
 # 強制する倍率（0 なら自動）
 var forced_scale := 0.0
@@ -40,6 +42,10 @@ var _text_override := ""
 var _steps_this_frame := 0
 var _last_steps := 0
 var _max_steps := 0
+# 最後に保存した結果（SAVE ボタンでもう一度保存する）
+var _last_report_prefix := ""
+var _last_report_text := ""
+var _save_button: Button
 
 
 func _ready() -> void:
@@ -107,7 +113,46 @@ func _setup_overlay() -> void:
     _label.add_theme_constant_override("outline_size", 4)
     _label.position = Vector2(8, 8)
     _layer.add_child(_label)
+    _save_button = Button.new()
+    _save_button.text = "SAVE"
+    _save_button.add_theme_font_override("font", UiStyle.FONT)
+    _save_button.add_theme_font_size_override("font_size", 18)
+    _save_button.custom_minimum_size = Vector2(96, 44)
+    _save_button.process_mode = Node.PROCESS_MODE_ALWAYS
+    _save_button.visible = false
+    _save_button.pressed.connect(func() -> void: save_report(_last_report_prefix, _last_report_text))
+    _layer.add_child(_save_button)
+    _save_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 8)
     set_overlay_visible(false)
+
+
+# 計測の結果をテキストファイルに保存する（Web ではダウンロード）
+func save_report(prefix: String, text: String) -> void:
+    var d := Time.get_datetime_dict_from_system()
+    var stamp := "%04d%02d%02d-%02d%02d%02d" % [
+        d["year"], d["month"], d["day"], d["hour"], d["minute"], d["second"]]
+    var file_name := "%s-%s.txt" % [prefix, stamp]
+    var first_line := ""
+    if OS.has_feature("web"):
+        first_line = "ua: " + str(JavaScriptBridge.eval("navigator.userAgent", true))
+    else:
+        first_line = "os: " + OS.get_name()
+    var full := first_line + "\n" + "saved: " + Time.get_datetime_string_from_system() + "\n" + text
+    if OS.has_feature("web"):
+        JavaScriptBridge.download_buffer(full.to_utf8_buffer(), file_name, "text/plain")
+    else:
+        var file := FileAccess.open("user://" + file_name, FileAccess.WRITE)
+        if file != null:
+            file.store_string(full)
+            file.close()
+            print("saved: ", ProjectSettings.globalize_path("user://" + file_name))
+    _last_report_prefix = prefix
+    _last_report_text = text
+    _show_save_button(true)
+
+
+func _show_save_button(on: bool) -> void:
+    _save_button.visible = on
 
 
 # URL の ?scale=... と ?lod=... と ?fps を読む
@@ -188,7 +233,14 @@ func _apply_vehicle_lod(vehicle: Node) -> void:
 
 func _update_overlay() -> void:
     if _text_override != "":
-        _label.text = _text_override
+        # 見出しの1行と、最新の OVERLAY_MAX_LINES 行だけを出す
+        var lines := _text_override.split("\n")
+        if lines.size() > OVERLAY_MAX_LINES + 1:
+            var shown := PackedStringArray([lines[0]])
+            shown.append_array(lines.slice(lines.size() - OVERLAY_MAX_LINES))
+            _label.text = "\n".join(shown)
+        else:
+            _label.text = _text_override
         return
     var root := get_tree().root
     var scale := root.scaling_3d_scale
