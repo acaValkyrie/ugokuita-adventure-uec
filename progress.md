@@ -839,6 +839,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - 本番のマップ（main_scene.tscn）のカメラには、ユーザーがインスペクタで調整した `kick_hold = 0.2`、`kick_out_speed = 10.0` を入れてコミットした（`kick_distance` はスクリプトの 2m）。
 - ユーザーの要望で、チャージ音を段階で切り替えるようにした（ユーザーは黒い跡を「段階1」、赤を「段階2」、虹を「段階3」と呼ぶ。コードの `drift_stage` は 0/1/2 のまま）。`tools/make_drift_sounds.py` で、出だし（元の 0〜2.4 秒、`drift_charge.ogg`）と、継ぎ目なく繰り返せる 2.4〜2.9 秒（`drift_charge_loop2.ogg`）・2.9〜3.4 秒（`drift_charge_loop3.ogg`）を作る。段階1で出だしを鳴らし、段階が上がった瞬間に次の流れへ切り替えて頭から鳴らす。テスト用ステージで、段階2・段階3に上がった瞬間に切り替わり、それぞれ 0.5 秒ごとに繰り返し、離すと止まることを確かめた（耳では聞いていない）。新しい ogg 2本も `.gitignore` に入れて手元にだけ置き、`.import` はコミットした。途中でエディタが落ちていたので起動し直した。
 - 操作説明にドリフトを足した（「Drift」、ジャンプの次）。キーボードは CTRL キー（`key_ctrl.png`、SHIFT の絵の文字を消して CTRL を描いた）、コントローラは左右のショルダーボタンを並べた1枚（Xbox は `shoulder_lb_rb.png`、Nintendo は `shoulder_l_r.png`、PlayStation は `shoulder_l1_r1.png`）。絵は `tools/make_drift_icons.py` で、LT の絵から本体・縁の色と縁の太さを測って描く（Codex の画像生成は使っていない）。最初は余白が大きく小さく見えたので、余白を切って倍率 0.45 にした。キーボードとコントローラ（Xbox 表記）の表示をゲーム画面で確かめた。タッチ操作にはまだドリフトが無いので、スマホの操作説明は変えていない。
+  - → ユーザーの判断で LB でのドリフトを取りやめ、RB だけにした。操作説明の絵も右のショルダーボタンだけ（`shoulder_rb.png`・`shoulder_r.png`・`shoulder_r1.png`、178x93）にした。入力の設定が Ctrl と RB だけになっていることと、操作説明に RB が出ることをゲーム画面で確かめた。
 - 未対応: 操作説明（`controls_help.gd`）に Ctrl・RB の絵がない。スマホには操作がない。火花は小さめで地味かもしれない。Classic と実機のコントローラーではまだ試していない。
 
 ## まだやっていないこと
