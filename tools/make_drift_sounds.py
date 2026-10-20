@@ -4,8 +4,6 @@ import numpy as np
 
 SR = 48000
 PEAK_LIMIT_DB = -1.0
-# チャージの音のループの開始位置 [s]。car.gd の CHARGE_LOOP_START と合わせる
-CHARGE_LOOP_START = 2.9
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 SRC_DIR = os.path.join(ROOT, "assets", "audio", "bgm", "source")
 DST_DIR = os.path.join(ROOT, "assets", "audio", "drift")
@@ -33,20 +31,27 @@ def rms_db(x):
     return 20 * np.log10(np.sqrt(np.mean(x ** 2)))
 
 
-def make_charge(mono):
-    # 元の0〜3.4秒を切り出す。ループ（CHARGE_LOOP_START〜末尾）の継ぎ目が出ないように、
-    # 出力の2.9〜3.0秒を「元の2.9〜3.0秒のフェードイン＋元の3.4〜3.5秒のフェードアウト」に置き換える
-    out = mono[:int(3.4 * SR)].copy()
-    a = int(CHARGE_LOOP_START * SR)
-    f = int(0.1 * SR)
-    b = int(3.4 * SR)
-    t = np.linspace(0.0, 1.0, f)
-    fade_in = np.sin(t * np.pi / 2)
-    fade_out = np.cos(t * np.pi / 2)
-    out[a:a + f] = mono[a:a + f] * fade_in + mono[b:b + f] * fade_out
+def make_charge_intro(mono):
+    # 元の0〜2.4秒を切り出す（段階1で鳴らす。段階2になったら切り替えるので、最後までは鳴らさないことが多い）
+    out = mono[:int(2.4 * SR)].copy()
     # 先頭5msのフェードイン
     n = int(0.005 * SR)
     out[:n] *= np.linspace(0.0, 1.0, n)
+    return out
+
+
+def make_loop(mono, start, end):
+    # 元の start〜end 秒を切り出し、繰り返しの継ぎ目が出ないようにする。
+    # 出力の先頭0.1秒を「元の start 側のフェードイン＋元の end 側（end〜end+0.1秒）のフェードアウト」に置き換えると、
+    # 末尾から先頭へ戻るところが元の音の流れと同じにつながる
+    a = int(start * SR)
+    b = int(end * SR)
+    out = mono[a:b].copy()
+    f = int(0.1 * SR)
+    t = np.linspace(0.0, 1.0, f)
+    fade_in = np.sin(t * np.pi / 2)
+    fade_out = np.cos(t * np.pi / 2)
+    out[:f] = mono[a:a + f] * fade_in + mono[b:b + f] * fade_out
     return out
 
 
@@ -65,14 +70,19 @@ def make_dash(mono):
 def main():
     os.makedirs(DST_DIR, exist_ok=True)
     mono = decode_mono(os.path.join(SRC_DIR, "freesound_community-charged-laser-7125.mp3"))
-    charge = make_charge(mono)
+    charge = make_charge_intro(mono)
+    loop2 = make_loop(mono, 2.4, 2.9)
+    loop3 = make_loop(mono, 2.9, 3.4)
     dash = make_dash(mono)
-    # 発射のピークを-1 dBFSにそろえるゲインを、チャージにも掛ける（2つの大きさの関係を保つ）
+    # 発射のピークを-1 dBFSにそろえるゲインを、チャージにも掛ける（音の大きさの関係を保つ）
     gain = 10 ** (PEAK_LIMIT_DB / 20) / np.max(np.abs(dash))
     charge *= gain
+    loop2 *= gain
+    loop3 *= gain
     dash *= gain
     print(f"gain: {20 * np.log10(gain):.2f} dB")
-    for name, x in (("drift_charge", charge), ("drift_dash", dash)):
+    for name, x in (("drift_charge", charge), ("drift_charge_loop2", loop2),
+                    ("drift_charge_loop3", loop3), ("drift_dash", dash)):
         print(f"{name}: {len(x) / SR:.3f} s, RMS {rms_db(x):.2f} dBFS, peak {peak_db(x):.2f} dBFS")
         encode_ogg(x, os.path.join(DST_DIR, name + ".ogg"))
 
