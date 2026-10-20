@@ -30,7 +30,8 @@ var _timer := 0.0
 var _index := 0
 var _frames := 0
 var _sum := 0.0
-# 状態ごとの結果（key, ok, ms, draws, prims）
+var _phys_sum := 0.0
+# 状態ごとの結果（key, ok, ms, phys, draws, prims）
 var _results: Array[Dictionary] = []
 # 適用時に保存した元の値
 var _saved := {}
@@ -47,7 +48,7 @@ func _process(delta: float) -> void:
             _timer += delta
             if _timer >= START_DELAY:
                 var root := get_tree().root
-                _header = "bench  画面 %dx%d  3D x%.2f" % [
+                _header = "bench  screen %dx%d  3D x%.2f" % [
                     root.size.x, root.size.y, root.scaling_3d_scale]
                 _start_state()
         Phase.SETTLE:
@@ -57,10 +58,12 @@ func _process(delta: float) -> void:
                 _timer = 0.0
                 _frames = 0
                 _sum = 0.0
+                _phys_sum = 0.0
         Phase.MEASURE:
             _timer += delta
             _frames += 1
             _sum += delta
+            _phys_sum += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
             if _timer >= MEASURE and _frames >= MIN_FRAMES:
                 _finish_state()
 
@@ -84,6 +87,7 @@ func _finish_state() -> void:
         "key": key,
         "ok": true,
         "ms": _sum / _frames * 1000.0,
+        "phys": _phys_sum / _frames * 1000.0,
         "draws": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
         "prims": Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
     })
@@ -104,7 +108,7 @@ func _next_state() -> void:
 
 func _show_progress() -> void:
     var text := _build_table()
-    text += "\n測定中: %s (%d/%d)" % [STATES[_index], _index + 1, STATES.size()]
+    text += "\nmeasuring: %s (%d/%d)" % [STATES[_index], _index + 1, STATES.size()]
     RenderQuality.set_overlay_text_override(text)
 
 
@@ -114,8 +118,8 @@ func _build_table() -> String:
         if r["ok"]:
             var ms: float = r["ms"]
             var fps := 1000.0 / ms if ms > 0.0 else 0.0
-            lines.append("%-12s %7.1fms %5.1ffps draw %4d tris %.2fM" % [
-                r["key"], ms, fps, r["draws"], r["prims"] / 1000000.0])
+            lines.append("%-12s %7.1fms %5.1ffps draw %4d tris %.2fM phys %.1fms" % [
+                r["key"], ms, fps, r["draws"], r["prims"] / 1000000.0, r["phys"]])
         else:
             lines.append("%-12s n/a" % r["key"])
     return "\n".join(lines)
