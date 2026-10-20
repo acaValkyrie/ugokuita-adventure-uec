@@ -59,6 +59,13 @@ const POOL_SURFACE_KIND := {"pool_floor": "water", "fountain_floor": "water", "p
 const CAMPUS_BORDER_SOUTH := Vector2(-58.0, 71.0)
 const CAMPUS_BORDER_NORTH := Vector2(14.0, -299.0)
 
+# 工事のあいだの仮囲い。工事が終わって今は無いので、取り込み時に塀のメッシュから消す。
+# 塀のノード名と、取り除く範囲（ワールドXZ）。3頂点すべてがこの範囲に入る三角形を取り除く
+const REMOVED_WALL_NODE_NAME := "UEC壁"
+const REMOVED_WALL_RECT := Rect2(Vector2(-261.5, 19.3), Vector2(9.1, 6.9))
+# 取り除く三角形の想定の数（これと違えばモデルが変わったとみて警告する）
+const REMOVED_WALL_EXPECTED_TRIS := 24
+
 # 建物の屋根・外壁の色（もとの外壁テクスチャの地の色）
 const BUILDING_COLOR := Color(0.77, 0.703, 0.621)
 # 窓ガラスの色
@@ -137,6 +144,7 @@ func _post_import(scene: Node) -> Object:
 	var strip_stats := {"tris": 0, "buildings": 0}
 	_keep_low_poly_parts(scene)
 	_add_pool_floor(scene)
+	_remove_temporary_wall(scene)
 	for child in scene.get_children():
 		if _is_low_poly(child.name):
 			scene.remove_child(child)
@@ -320,15 +328,43 @@ func _strip_ground_faces_recursive(node: Node, scene: Node, cache: Dictionary, s
 	var mesh: ArrayMesh = node.mesh
 	if not cache.has(mesh):
 		var xform := _scene_transform(node, scene)
-		var result := _strip_mesh(mesh, xform)
+		var result := _strip_mesh(mesh, xform, _is_ground_face)
 		cache[mesh] = result["mesh"]
 		stats["tris"] += result["removed"]
 	if cache[mesh] != null:
 		node.mesh = cache[mesh]
 
 
-# 3頂点すべてが |y| < 閾値 の三角形を除いたメッシュを返す。取り除くものが無ければ mesh は null
-func _strip_mesh(mesh: ArrayMesh, xform: Transform3D) -> Dictionary:
+# 3頂点（ワールド座標）すべてが |y| < 閾値 の三角形かを返す
+func _is_ground_face(a: Vector3, b: Vector3, c: Vector3) -> bool:
+	return absf(a.y) < GROUND_FACE_MAX_Y and absf(b.y) < GROUND_FACE_MAX_Y and absf(c.y) < GROUND_FACE_MAX_Y
+
+
+# 3頂点（ワールド座標）すべてが REMOVED_WALL_RECT の中（x と z）にある三角形かを返す
+func _is_in_removed_wall_rect(a: Vector3, b: Vector3, c: Vector3) -> bool:
+	for p in [a, b, c]:
+		if not REMOVED_WALL_RECT.has_point(Vector2(p.x, p.z)):
+			return false
+	return true
+
+
+# 塀のメッシュから、工事の仮囲いの三角形を取り除く（このあとで当たり判定を付けるので、当たり判定も消える）
+func _remove_temporary_wall(scene: Node) -> void:
+	var wall := scene.get_node_or_null(NodePath(REMOVED_WALL_NODE_NAME)) as MeshInstance3D
+	if wall == null or not (wall.mesh is ArrayMesh):
+		push_warning("stage_collision_import: %s のメッシュが見つからないため、工事の仮囲いを取り除けない" % REMOVED_WALL_NODE_NAME)
+		return
+	var result := _strip_mesh(wall.mesh, _scene_transform(wall, scene), _is_in_removed_wall_rect)
+	var removed: int = result["removed"]
+	if result["mesh"] != null:
+		wall.mesh = result["mesh"]
+	print("stage_collision_import: 塀から工事の仮囲いを取り除いた: %d 三角形" % removed)
+	if removed != REMOVED_WALL_EXPECTED_TRIS:
+		push_warning("stage_collision_import: 工事の仮囲いの三角形が %d 枚だった（想定は %d 枚）。モデルが変わった可能性がある" % [removed, REMOVED_WALL_EXPECTED_TRIS])
+
+
+# is_removed(a, b, c) が true を返す三角形（3頂点はワールド座標）を除いたメッシュを返す。取り除くものが無ければ mesh は null
+func _strip_mesh(mesh: ArrayMesh, xform: Transform3D, is_removed: Callable) -> Dictionary:
 	var removed := 0
 	var importer_mesh := ImporterMesh.new()
 	importer_mesh.set_lightmap_size_hint(mesh.lightmap_size_hint)
@@ -344,12 +380,7 @@ func _strip_mesh(mesh: ArrayMesh, xform: Transform3D) -> Dictionary:
 				var ids := [i, i + 1, i + 2]
 				if old_indices != null:
 					ids = [old_indices[i], old_indices[i + 1], old_indices[i + 2]]
-				var is_ground := true
-				for id in ids:
-					if absf((xform * vertices[id]).y) >= GROUND_FACE_MAX_Y:
-						is_ground = false
-						break
-				if is_ground:
+				if is_removed.call(xform * vertices[ids[0]], xform * vertices[ids[1]], xform * vertices[ids[2]]):
 					removed += 1
 				else:
 					kept.append_array(PackedInt32Array(ids))
