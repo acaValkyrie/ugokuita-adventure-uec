@@ -69,6 +69,8 @@ vehicle_path = NodePath("../VehicleBody3D")
 transform = Transform3D(-0.965408, -0.0909086, 0.244382, -0.00699109, 0.94594, 0.324266, -0.260649, 0.311341, -0.913854, 70.6502, 1.61572, -114.37)
 script = ExtResource("3_gyfs4")
 vehicle_path = NodePath("../VehicleBody3D")
+kick_hold = 0.2
+kick_out_speed = 10.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=575119180]
 environment = SubResource("Environment_nfk4m")

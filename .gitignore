@@ -14,4 +14,10 @@ assets/audio/bgm/city_bird.ogg
 # 水の上を走る音と水しぶきの音（Pixabay）は規約で素材そのままの単体での配布が禁止されているので、暗号化した .enc だけをコミットする
 assets/audio/water/running_stream.ogg
 assets/audio/water/water_splash.ogg
+
+# ドリフトの音（Pixabay）も規約で素材そのままの単体での配布が禁止されている。main に入れるときに暗号化した .enc を置き、GitHub Actions で復号する（それまでは手元にだけ置く）
+assets/audio/drift/drift_charge.ogg
+assets/audio/drift/drift_charge_loop2.ogg
+assets/audio/drift/drift_charge_loop3.ogg
+assets/audio/drift/drift_dash.ogg
 assets/audio/bgm/source/

@@ -2,7 +2,7 @@ extends CanvasLayer
 # スマホ用タッチ操作。
 # 一本指スワイプで運転（既存アクション up/down/left/right）、
 # 二本指スワイプで視点移動（既存アクション view_*）、
-# ダブルタップでジャンプ（アクション jump）を行う（2回目の指を押している間はジャンプを押したまま）。
+# 右下の JUMP / DRIFT ボタンを押している間、ジャンプ / ドリフト（アクション jump / drift）を押し続ける。
 
 # この距離（px）ドラッグしたときの強さが1.0
 @export var STICK_RADIUS: float = 80.0
@@ -10,12 +10,14 @@ extends CanvasLayer
 @export var DEADZONE: float = 0.15
 # 表示用のノブの半径（px）
 @export var KNOB_RADIUS: float = 30.0
-# ダブルタップとみなす、1回目と2回目のタッチ開始の間隔（秒）
-@export var DOUBLE_TAP_TIME: float = 0.3
-# ダブルタップとみなす、1回目と2回目のタッチ開始位置の距離（px）
-@export var DOUBLE_TAP_DISTANCE: float = 60.0
 
 const RESET_ICON := preload("res://assets/ui/controls/reset.png")
+
+# JUMP / DRIFT ボタンの半径と、ブーストのゲージとの隙間（px）
+const BUTTON_RADIUS := 34.0
+const BUTTON_GAP := 12.0
+const BUTTON_FONT_SIZE := 13
+const BUTTON_COLOR_BACK := Color(1, 1, 1, 0.15)
 
 enum Mode { NONE, DRIVE, VIEW, LOCKED }
 
@@ -32,11 +34,10 @@ var _overlay: Control
 var _reset_button: TextureButton
 # ボタンの上で始まった指のindex（運転に使わない）
 var _button_touches: Dictionary = {}
-# 直前の1本指タッチの開始時刻（ミリ秒、-1は無し）と位置
-var _last_tap_msec: int = -1
-var _last_tap_pos: Vector2 = Vector2.ZERO
-# ダブルタップの2回目の指のindex（ジャンプを押している間。-1は無し）
-var _jump_touch: int = -1
+# JUMP / DRIFT ボタンを押している指: index -> アクション名
+var _held_buttons: Dictionary = {}
+# タッチ端末か（JUMP / DRIFT とリセットのボタンを出す）
+var _touch_enabled := false
 
 
 func _ready() -> void:
@@ -46,6 +47,51 @@ func _ready() -> void:
     _overlay.draw.connect(_on_overlay_draw)
     add_child(_overlay)
     _setup_reset_button()
+    set_touch_enabled(OS.has_feature("web_android") or OS.has_feature("web_ios") \
+        or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available())
+
+
+func _process(_delta: float) -> void:
+    # 車の有無でボタンの表示が変わるので、毎フレーム描き直す
+    _overlay.queue_redraw()
+
+
+# タッチ端末向けの表示を切り替える（テスト用にも使う）
+func set_touch_enabled(on: bool) -> void:
+    _touch_enabled = on
+    if not on:
+        _release_held_buttons()
+    if _reset_button:
+        _reset_button.visible = on
+
+
+# JUMP / DRIFT ボタンを出すか（タッチ端末で、操作する車がいるとき）
+func _buttons_visible() -> bool:
+    return _touch_enabled and get_tree().get_first_node_in_group("player") != null
+
+
+# JUMP / DRIFT ボタンの中心（アクション名 -> 位置）。画面右下のブーストのゲージを基準に並べる
+func _button_centers() -> Dictionary:
+    var view_size := get_viewport().get_visible_rect().size
+    var boost_radius := BoostGauge.RADIUS + BoostGauge.RING_WIDTH / 2.0
+    var boost_center := view_size - Vector2.ONE * (BoostGauge.MARGIN + boost_radius)
+    return {
+        # ブーストの左（下端はブーストと同じ）
+        "jump": boost_center - Vector2(boost_radius + BUTTON_GAP + BUTTON_RADIUS, 0.0),
+        # ブーストの真上
+        "drift": boost_center - Vector2(0.0, boost_radius + BUTTON_GAP + BUTTON_RADIUS),
+    }
+
+
+# 位置にあるボタンのアクション名（無ければ空文字）
+func _button_action_at(pos: Vector2) -> String:
+    if not _buttons_visible():
+        return ""
+    var centers := _button_centers()
+    for action in centers:
+        if pos.distance_to(centers[action]) <= BUTTON_RADIUS:
+            return action
+    return ""
 
 
 # 右上のリセットボタン（タッチ端末のみ表示）
@@ -62,8 +108,7 @@ func _setup_reset_button() -> void:
     _reset_button.offset_right = -16
     _reset_button.offset_top = 16
     _reset_button.offset_bottom = 16 + 72
-    _reset_button.visible = OS.has_feature("web_android") or OS.has_feature("web_ios") \
-        or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
+    _reset_button.visible = false
     _reset_button.pressed.connect(_on_reset_pressed)
     add_child(_reset_button)
 
@@ -75,24 +120,11 @@ func _on_reset_pressed() -> void:
     Input.action_release("respawn")
 
 
-# 何も触れていない状態から始まったタッチが、直前のタッチの近くで素早く続いたらジャンプする
-func _check_double_tap(pos: Vector2, index: int) -> void:
-    var now := Time.get_ticks_msec()
-    if _last_tap_msec >= 0 and now - _last_tap_msec <= DOUBLE_TAP_TIME * 1000.0 \
-            and pos.distance_to(_last_tap_pos) <= DOUBLE_TAP_DISTANCE:
-        # 3回目のタップで再びジャンプしないよう記録を消す
-        _last_tap_msec = -1
-        # 2回目の指が触れている間はジャンプを押したままにする（長押しで機体のジェットが働く）
-        _jump_touch = index
-        Input.action_press("jump")
-        return
-    _last_tap_msec = now
-    _last_tap_pos = pos
-
-
-func _release_jump() -> void:
-    _jump_touch = -1
-    Input.action_release("jump")
+# 押している JUMP / DRIFT ボタンをすべて離す
+func _release_held_buttons() -> void:
+    for action in _held_buttons.values():
+        Input.action_release(action)
+    _held_buttons.clear()
 
 
 func _notification(what: int) -> void:
@@ -102,9 +134,11 @@ func _notification(what: int) -> void:
         _reset()
 
 
-# 指がボタンの上にあるか（リセット／メニュー／ブースト／看板のヒント／エンディング）
+# 指がボタンの上にあるか（リセット／JUMP・DRIFT／メニュー／ブースト／看板のヒント／エンディング）
 func _is_on_button(pos: Vector2) -> bool:
     if _reset_button.visible and _reset_button.get_global_rect().has_point(pos):
+        return true
+    if _button_action_at(pos) != "":
         return true
     if BoostGauge.get_button_rect().has_point(pos):
         return true
@@ -122,17 +156,26 @@ func _is_on_button(pos: Vector2) -> bool:
 func _input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
         if event.pressed:
+            var action := _button_action_at(event.position)
+            if action != "":
+                # 指を離すまでジャンプ / ドリフトを押したままにする
+                _held_buttons[event.index] = action
+                Input.action_press(action)
+                _button_touches[event.index] = true
+                return
             if _is_on_button(event.position):
                 _button_touches[event.index] = true
                 return
-            if _touches.is_empty():
-                _check_double_tap(event.position, event.index)
             _touches[event.index] = event.position
         else:
+            if _held_buttons.has(event.index):
+                var released_action: String = _held_buttons[event.index]
+                _held_buttons.erase(event.index)
+                # 同じボタンを別の指がまだ押していれば、押したままにする
+                if not _held_buttons.values().has(released_action):
+                    Input.action_release(released_action)
             if _button_touches.erase(event.index):
                 return
-            if event.index == _jump_touch:
-                _release_jump()
             _touches.erase(event.index)
     elif event is InputEventScreenDrag:
         if _button_touches.has(event.index) or not _touches.has(event.index):
@@ -244,18 +287,38 @@ func _release_all() -> void:
 func _reset() -> void:
     _touches.clear()
     _button_touches.clear()
-    _last_tap_msec = -1
+    _release_held_buttons()
     _pair = []
     _mode = Mode.NONE
-    if _jump_touch >= 0:
-        _release_jump()
     _release_all()
     if _overlay:
         _overlay.queue_redraw()
 
 
 func _on_overlay_draw() -> void:
+    _draw_buttons()
     if _mode != Mode.DRIVE and _mode != Mode.VIEW:
         return
     _overlay.draw_circle(_origin, STICK_RADIUS, Color(1, 1, 1, 0.25))
     _overlay.draw_circle(_origin + _clamped_vector() * STICK_RADIUS, KNOB_RADIUS, Color(1, 1, 1, 0.5))
+
+
+# JUMP / DRIFT ボタンを、ブーストのゲージと同じ見た目で描く（押している間はリングを赤にする）
+func _draw_buttons() -> void:
+    if not _buttons_visible():
+        return
+    var centers := _button_centers()
+    var font := UiStyle.FONT
+    var ascent := font.get_ascent(BUTTON_FONT_SIZE)
+    var descent := font.get_descent(BUTTON_FONT_SIZE)
+    for action in centers:
+        var center: Vector2 = centers[action]
+        var held := _held_buttons.values().has(action)
+        _overlay.draw_circle(center, BUTTON_RADIUS, UiStyle.PANEL_COLOR)
+        _overlay.draw_arc(center, BUTTON_RADIUS - 4.0, 0.0, TAU, 64,
+            UiStyle.ACCENT_COLOR if held else BUTTON_COLOR_BACK, 6.0, true)
+        # 文字を中央に置く（横は文字幅、縦は ascent / descent から決める）
+        var text: String = action.to_upper()
+        var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, BUTTON_FONT_SIZE)
+        var pos := Vector2(center.x - size.x / 2.0, center.y + (ascent - descent) / 2.0)
+        _overlay.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, BUTTON_FONT_SIZE, UiStyle.TEXT_COLOR)
