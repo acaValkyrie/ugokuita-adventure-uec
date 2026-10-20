@@ -317,11 +317,11 @@ func _build_button() -> void:
     _button = Button.new()
     _button.focus_mode = Control.FOCUS_NONE
     _button.set_anchors_preset(Control.PRESET_TOP_LEFT)
-    var left := GameMenu.MARGIN + GameMenu.BUTTON_SIZE + BUTTON_GAP
+    var left := GameMenu.MARGIN + GameMenu.button_size + BUTTON_GAP
     _button.offset_left = left
-    _button.offset_right = left + GameMenu.BUTTON_SIZE
+    _button.offset_right = left + GameMenu.button_size
     _button.offset_top = GameMenu.MARGIN
-    _button.offset_bottom = GameMenu.MARGIN + GameMenu.BUTTON_SIZE
+    _button.offset_bottom = GameMenu.MARGIN + GameMenu.button_size
     # 見た目はアイコン側で描くので、ボタン自体の枠は空にする
     var empty := StyleBoxEmpty.new()
     for state in ["normal", "hover", "pressed", "focus", "disabled"]:

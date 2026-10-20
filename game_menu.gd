@@ -142,6 +142,8 @@ var ps_generation: String = "ps5"
 var _bgm_volume: int = 100
 var _se_volume: int = 100
 var _menu_button: Button
+# メニューボタンの一辺（px。タッチ端末では倍率をかけた値）。マップのボタンも同じ大きさにする
+var button_size: float = BUTTON_SIZE * UiStyle.button_scale()
 var _dimmer: ColorRect
 var _panel: PanelContainer
 # 左右（狭いときは上下）に並べる列と、その中身
@@ -343,9 +345,9 @@ func _build_button() -> void:
     _menu_button.focus_mode = Control.FOCUS_NONE
     _menu_button.set_anchors_preset(Control.PRESET_TOP_LEFT)
     _menu_button.offset_left = MARGIN
-    _menu_button.offset_right = MARGIN + BUTTON_SIZE
+    _menu_button.offset_right = MARGIN + button_size
     _menu_button.offset_top = MARGIN
-    _menu_button.offset_bottom = MARGIN + BUTTON_SIZE
+    _menu_button.offset_bottom = MARGIN + button_size
     # 見た目はアイコン側で描くので、ボタン自体の枠は空にする
     var empty := StyleBoxEmpty.new()
     for state in ["normal", "hover", "pressed", "focus", "disabled"]:

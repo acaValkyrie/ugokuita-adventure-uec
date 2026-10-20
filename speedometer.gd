@@ -5,8 +5,6 @@ const MARGIN := 16  # 画面端からの余白（px）
 const NUMBER_SIZE := 26
 const UNIT_SIZE := 15
 const NUMBER_MIN_WIDTH := 48
-# touch_controls.gd のリセットボタンの幅（タッチ端末では右上に表示される）
-const RESET_BUTTON_WIDTH := 72
 const GAP := 12
 
 var _panel: PanelContainer
@@ -27,10 +25,9 @@ func _ready() -> void:
     _panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
     _panel.offset_top = MARGIN
     _panel.offset_right = -MARGIN
-    var has_touch := OS.has_feature("web_android") or OS.has_feature("web_ios") or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
-    if has_touch:
+    if UiStyle.is_touch_device():
         # リセットボタンと重ならないように左へずらす
-        _panel.offset_right = -(MARGIN + RESET_BUTTON_WIDTH + GAP)
+        _panel.offset_right = -(MARGIN + TouchControls.get_reset_button_size() + GAP)
     add_child(_panel)
 
     var hbox := HBoxContainer.new()

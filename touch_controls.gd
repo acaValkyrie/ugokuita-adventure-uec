@@ -18,6 +18,11 @@ const BUTTON_RADIUS := 34.0
 const BUTTON_GAP := 12.0
 const BUTTON_FONT_SIZE := 13
 const BUTTON_COLOR_BACK := Color(1, 1, 1, 0.15)
+# JUMP / DRIFT ボタンのリングの太さと、ボタンの縁から内側へのずらし（px）
+const BUTTON_RING_WIDTH := 6.0
+const BUTTON_RING_INSET := 4.0
+# 右上のリセットボタンの一辺（px）
+const RESET_BUTTON_SIZE := 72.0
 
 enum Mode { NONE, DRIVE, VIEW, LOCKED }
 
@@ -47,8 +52,7 @@ func _ready() -> void:
     _overlay.draw.connect(_on_overlay_draw)
     add_child(_overlay)
     _setup_reset_button()
-    set_touch_enabled(OS.has_feature("web_android") or OS.has_feature("web_ios") \
-        or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available())
+    set_touch_enabled(UiStyle.is_touch_device())
 
 
 func _process(_delta: float) -> void:
@@ -73,14 +77,36 @@ func _buttons_visible() -> bool:
 # JUMP / DRIFT ボタンの中心（アクション名 -> 位置）。画面右下のブーストのゲージを基準に並べる
 func _button_centers() -> Dictionary:
     var view_size := get_viewport().get_visible_rect().size
-    var boost_radius := BoostGauge.RADIUS + BoostGauge.RING_WIDTH / 2.0
+    var boost_radius := BoostGauge.get_outer_radius()
+    var button_radius := _button_radius()
     var boost_center := view_size - Vector2.ONE * (BoostGauge.MARGIN + boost_radius)
     return {
         # ブーストの左（下端はブーストと同じ）
-        "jump": boost_center - Vector2(boost_radius + BUTTON_GAP + BUTTON_RADIUS, 0.0),
+        "jump": boost_center - Vector2(boost_radius + BUTTON_GAP + button_radius, 0.0),
         # ブーストの真上
-        "drift": boost_center - Vector2(0.0, boost_radius + BUTTON_GAP + BUTTON_RADIUS),
+        "drift": boost_center - Vector2(0.0, boost_radius + BUTTON_GAP + button_radius),
     }
+
+
+# JUMP / DRIFT ボタンの半径（タッチ端末では倍率をかけた値）
+func _button_radius() -> float:
+    return BUTTON_RADIUS * UiStyle.button_scale()
+
+
+# JUMP / DRIFT ボタンの一番上の端の y。ボタンが出ていないときは画面の高さ（ミニマップの大きさを決めるのに使う）
+func get_buttons_top() -> float:
+    if not _buttons_visible():
+        return get_viewport().get_visible_rect().size.y
+    var top := INF
+    var centers := _button_centers()
+    for action in centers:
+        top = minf(top, centers[action].y - _button_radius())
+    return top
+
+
+# リセットボタンの一辺（タッチ端末では倍率をかけた値）
+func get_reset_button_size() -> float:
+    return RESET_BUTTON_SIZE * UiStyle.button_scale()
 
 
 # 位置にあるボタンのアクション名（無ければ空文字）
@@ -89,7 +115,7 @@ func _button_action_at(pos: Vector2) -> String:
         return ""
     var centers := _button_centers()
     for action in centers:
-        if pos.distance_to(centers[action]) <= BUTTON_RADIUS:
+        if pos.distance_to(centers[action]) <= _button_radius():
             return action
     return ""
 
@@ -104,10 +130,11 @@ func _setup_reset_button() -> void:
     # クリック後にフォーカスが残ると、Space などの決定でもう一度働いてしまうので受け取らない
     _reset_button.focus_mode = Control.FOCUS_NONE
     _reset_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-    _reset_button.offset_left = -16 - 72
+    var reset_size := get_reset_button_size()
+    _reset_button.offset_left = -16 - reset_size
     _reset_button.offset_right = -16
     _reset_button.offset_top = 16
-    _reset_button.offset_bottom = 16 + 72
+    _reset_button.offset_bottom = 16 + reset_size
     _reset_button.visible = false
     _reset_button.pressed.connect(_on_reset_pressed)
     add_child(_reset_button)
@@ -308,17 +335,20 @@ func _draw_buttons() -> void:
     if not _buttons_visible():
         return
     var centers := _button_centers()
+    var button_scale := UiStyle.button_scale()
+    var button_radius := _button_radius()
+    var font_size := roundi(BUTTON_FONT_SIZE * button_scale)
     var font := UiStyle.FONT
-    var ascent := font.get_ascent(BUTTON_FONT_SIZE)
-    var descent := font.get_descent(BUTTON_FONT_SIZE)
+    var ascent := font.get_ascent(font_size)
+    var descent := font.get_descent(font_size)
     for action in centers:
         var center: Vector2 = centers[action]
         var held := _held_buttons.values().has(action)
-        _overlay.draw_circle(center, BUTTON_RADIUS, UiStyle.PANEL_COLOR)
-        _overlay.draw_arc(center, BUTTON_RADIUS - 4.0, 0.0, TAU, 64,
-            UiStyle.ACCENT_COLOR if held else BUTTON_COLOR_BACK, 6.0, true)
+        _overlay.draw_circle(center, button_radius, UiStyle.PANEL_COLOR)
+        _overlay.draw_arc(center, button_radius - BUTTON_RING_INSET * button_scale, 0.0, TAU, 64,
+            UiStyle.ACCENT_COLOR if held else BUTTON_COLOR_BACK, BUTTON_RING_WIDTH * button_scale, true)
         # 文字を中央に置く（横は文字幅、縦は ascent / descent から決める）
         var text: String = action.to_upper()
-        var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, BUTTON_FONT_SIZE)
+        var size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
         var pos := Vector2(center.x - size.x / 2.0, center.y + (ascent - descent) / 2.0)
-        _overlay.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, BUTTON_FONT_SIZE, UiStyle.TEXT_COLOR)
+        _overlay.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, UiStyle.TEXT_COLOR)

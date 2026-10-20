@@ -22,6 +22,18 @@ const ACCENT_DARK_COLOR := Color("#4a0b12")
 const DIMMER_COLOR := Color(0, 0, 0, 0.55)
 # 3D の画面の上に直接置く文字の縁取り（パネルに載せない文字だけに使う）
 const OUTLINE_COLOR := Color(0, 0, 0, 0.75)
+# タッチ操作の端末で、押すボタンを大きくする倍率
+const TOUCH_BUTTON_SCALE := 2.0
+
+
+# タッチ操作の端末か
+static func is_touch_device() -> bool:
+    return OS.has_feature("web_android") or OS.has_feature("web_ios") or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available()
+
+
+# 押すボタンの大きさの倍率（タッチ操作の端末だけ大きくする）
+static func button_scale() -> float:
+    return TOUCH_BUTTON_SCALE if is_touch_device() else 1.0
 
 
 # パネルの背景。content_margin は付けないので、呼ぶ側で設定する
