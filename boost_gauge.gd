@@ -105,15 +105,23 @@ func get_outer_radius() -> float:
 # タッチ操作で運転に使わない領域（touch_controls.gd から参照）
 func get_button_rect() -> Rect2:
     if _touch_enabled and _view.visible:
-        return _view.get_global_rect()
+        var r := _hit_radius()
+        var center := _view.get_global_rect().get_center()
+        return Rect2(center - Vector2(r, r), Vector2(2.0 * r, 2.0 * r))
     return Rect2()
+
+
+# タッチの当たり判定の半径（px）
+# 元の作りで、押しやすいよう見た目（get_outer_radius）より少し大きくしている
+func _hit_radius() -> float:
+    return _radius + _ring_width
 
 
 func _input(event: InputEvent) -> void:
     if not _touch_enabled:
         return
     if event is InputEventScreenTouch and event.pressed \
-            and event.position.distance_to(_view.get_global_rect().get_center()) <= _radius + _ring_width:
+            and event.position.distance_to(_view.get_global_rect().get_center()) <= _hit_radius():
         _press_boost()
         get_viewport().set_input_as_handled()
 
