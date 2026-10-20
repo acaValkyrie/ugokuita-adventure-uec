@@ -60,12 +60,12 @@ const DriftSparksScript := preload("res://drift_sparks.gd")
 # ドリフトに入るのに必要なハンドルの入力の大きさ
 @export var DRIFT_START_STEER := 0.3
 # ドリフト中に向きが変わる速さ [rad/s]（スティックが中央のとき）
-@export var DRIFT_YAW_RATE := 2.2
+@export var DRIFT_YAW_RATE := 1.8
 # 曲がる向きにスティックを倒し切ったときの向きの変わる速さ [rad/s]
-@export var DRIFT_YAW_TIGHT := 3.2
+@export var DRIFT_YAW_TIGHT := 3.0
 # 逆向きに倒し切ったときの向きの変わる速さ [rad/s]
-@export var DRIFT_YAW_WIDE := 1.2
-# 進む向きを機体の向きへ近づける速さ [1/s]（小さいほど横に滑る）
+@export var DRIFT_YAW_WIDE := 0.6
+# 進む向きを機体の向きへ近づける速さ [1/s]（スティックが中央のとき。小さいほど横に滑る）
 @export var DRIFT_GRIP := 5.0
 # ドリフト中の全輪の wheel_friction_slip
 @export var DRIFT_FRICTION_SLIP := 0.4
@@ -315,7 +315,9 @@ func _update_drift(delta: float, steer_input: float, forward_speed: float, on_gr
         return
     forward_flat = forward_flat.normalized()
     var angle := horizontal.signed_angle_to(forward_flat, Vector3.UP)
-    horizontal = horizontal.rotated(Vector3.UP, angle * (1.0 - exp(-DRIFT_GRIP * delta)))
+    # 向きの変わる速さに比例させ、大回りでも小回りでも横滑りの角度が同じくらいになるようにする
+    var grip := DRIFT_GRIP * yaw_rate / DRIFT_YAW_RATE
+    horizontal = horizontal.rotated(Vector3.UP, angle * (1.0 - exp(-grip * delta)))
     # タイヤの横の摩擦で失う速さを補い、アクセル中は速さを保つ（向きはそのままで大きさだけ戻す）
     if Input.get_axis("down", "up") > 0.0 and not horizontal.is_zero_approx():
         horizontal = horizontal.normalized() * maxf(horizontal.length(), _drift_speed)
