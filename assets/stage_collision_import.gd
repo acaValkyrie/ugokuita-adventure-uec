@@ -43,14 +43,14 @@ const LOW_POLY_KEEP_NODE_NAMES: Array[String] = ["Body719", "西プール壁"]
 # 水面のノード名（groundの子）。当たり判定を付けず、底のメッシュの元にする
 const WATER_SURFACE_NODE_NAMES: Array[String] = ["Body720", "Body585"]
 # 取り込み時に水面から作る底の一覧: 水面のノード名・底のノード名・底の高さ（ワールドY、メートル）。
-# プールの底は水深 1.2 m（水面 y=0.5）。台座の穴の内壁（下端 y=0）より下は POOL_INNER_WALL_NAME の壁でふさぐ。噴水の底は周りの広場の地面（y=-0.394）より少し上
+# プールの底は水深 1.2 m（水面 y=0.5）。台座の穴の内壁は、下端 y=0 から底まで延ばす。噴水の底は周りの広場の地面（y=-0.394）より少し上
 const WATER_FLOORS := [
 	{"water": "Body720", "floor": "プールの底", "floor_y": -0.7},
 	{"water": "Body585", "floor": "噴水の底", "floor_y": -0.39},
 ]
-# プールの底を下げた分の内壁のノード名と、上端の高さ（台座の穴の内壁の下端、ワールドY）
-const POOL_INNER_WALL_NAME := "プールの内壁"
-const POOL_INNER_WALL_TOP_Y := 0.0
+# プールの台座（穴の内壁を含む）のノード名と、取り込み前の穴の内壁の下端の高さ（ワールドY）
+const POOL_DECK_NODE_NAME := "Body719"
+const POOL_INNER_WALL_BOTTOM_Y := 0.0
 # プールの水面の長方形（assets/shaders/pool.gdshader の既定値と同じ値）
 const POOL_CENTER := Vector2(-207.759, -178.832)
 const POOL_LONG_AXIS := Vector2(0.2664, -0.9639)
@@ -65,7 +65,7 @@ const POOL_WATER_DEPTH := 1.2
 const FOUNTAIN_WATER_NODE_NAME := "Body585"
 const FOUNTAIN_WATER_Y := 0.12
 # プールと噴水のノードごとの地面の種類（水面・底・プールサイド・柵）。元マテリアルによる割り当てより優先する
-const POOL_KIND_BY_NODE_NAME := {"Body720": "pool_water", "Body585": "pool_water", "プールの底": "pool_floor", "噴水の底": "fountain_floor", "Body719": "pool_deck", "プールの内壁": "pool_deck", "西プール壁": "pool_fence"}
+const POOL_KIND_BY_NODE_NAME := {"Body720": "pool_water", "Body585": "pool_water", "プールの底": "pool_floor", "噴水の底": "fountain_floor", "Body719": "pool_deck", "西プール壁": "pool_fence"}
 # プールと噴水の種類を、走行時の効果音に使う地面の種類へ読み替える対応表（水面と柵は走行面ではないので含めない）
 const POOL_SURFACE_KIND := {"pool_floor": "water", "fountain_floor": "water", "pool_deck": "paving_stone"}
 # 東西キャンパスの間の道路を表す線（ワールドXZ）。これより西の舗装はアスファルト、東はレンガ
@@ -505,56 +505,66 @@ func _add_pool_floor(scene: Node) -> void:
 		floor_node.owner = scene
 		print("stage_collision_import: %s を作った（y=%.2f）" % [entry["floor"], floor_y])
 		if String(entry["floor"]) == "プールの底":
-			_add_pool_inner_wall(scene, ground, water, floor_y)
+			_extend_pool_inner_wall(scene, ground, floor_y)
 		if String(entry["water"]) == FOUNTAIN_WATER_NODE_NAME:
 			water.position.y += FOUNTAIN_WATER_Y - aabb.end.y
 			print("stage_collision_import: 噴水の水面を y=%.2f へ上げた" % FOUNTAIN_WATER_Y)
 
 
-# プールの底を下げた分、台座の穴の内壁の下端（POOL_INNER_WALL_TOP_Y）から底までを、水面の長方形の4辺に沿った壁でふさぐ。面は内側（プールの中）を向ける
-func _add_pool_inner_wall(scene: Node, ground: Node3D, water: MeshInstance3D, floor_y: float) -> void:
+# 台座（POOL_DECK_NODE_NAME）の穴の内壁の下端（y=POOL_INNER_WALL_BOTTOM_Y）の頂点を底の高さまで下げ、内壁を延ばす。
+# 別のメッシュを足すとライトマップが別々になり継ぎ目が見えるので、同じメッシュを延ばす
+func _extend_pool_inner_wall(scene: Node, ground: Node, floor_y: float) -> void:
+	var deck := ground.get_node_or_null(POOL_DECK_NODE_NAME) as MeshInstance3D
+	if deck == null or not (deck.mesh is ArrayMesh):
+		push_warning("stage_collision_import: プールの台座（%s）の ArrayMesh が見つからないため、内壁を延ばせない" % POOL_DECK_NODE_NAME)
+		return
+	var mesh := deck.mesh as ArrayMesh
+	var xform := _scene_transform(deck, scene)
+	var inv := xform.affine_inverse()
 	var short_axis := Vector2(-POOL_LONG_AXIS.y, POOL_LONG_AXIS.x)
-	var corners: Array[Vector2] = [
-		POOL_CENTER + short_axis * POOL_HALF_SIZE.x + POOL_LONG_AXIS * POOL_HALF_SIZE.y,
-		POOL_CENTER - short_axis * POOL_HALF_SIZE.x + POOL_LONG_AXIS * POOL_HALF_SIZE.y,
-		POOL_CENTER - short_axis * POOL_HALF_SIZE.x - POOL_LONG_AXIS * POOL_HALF_SIZE.y,
-		POOL_CENTER + short_axis * POOL_HALF_SIZE.x - POOL_LONG_AXIS * POOL_HALF_SIZE.y,
-	]
-	# 頂点はワールド座標で求め、groundのローカル座標に直す
-	var to_local := _scene_transform(ground, scene).affine_inverse()
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.set_material(water.mesh.surface_get_material(0))
-	for i in corners.size():
-		var p0 := corners[i]
-		var p1 := corners[(i + 1) % corners.size()]
-		var edge := (p1 - p0).normalized()
-		var inward := POOL_CENTER - (p0 + p1) * 0.5
-		inward = (inward - edge * inward.dot(edge)).normalized()
-		var normal := Vector3(inward.x, 0.0, inward.y)
-		var a := to_local * Vector3(p0.x, POOL_INNER_WALL_TOP_Y, p0.y)
-		var b := to_local * Vector3(p1.x, POOL_INNER_WALL_TOP_Y, p1.y)
-		var c := to_local * Vector3(p1.x, floor_y, p1.y)
-		var d := to_local * Vector3(p0.x, floor_y, p0.y)
-		var tris: Array = [[a, b, c], [a, c, d]]
-		for tri in tris:
-			# Godotは時計回りが表。時計回りの三角形は (b-a).cross(c-a) が表の向き（内向き法線）と逆の外向きになるので、そうなるよう巻き順を入れ替える
-			if (tri[1] - tri[0]).cross(tri[2] - tri[0]).dot(normal) > 0.0:
-				tri.reverse()
-			assert((tri[1] - tri[0]).cross(tri[2] - tri[0]).dot(normal) < 0.0, "プールの内壁の巻き順が内向きでない")
-			for v in tri:
-				st.set_normal(normal)
-				st.add_vertex(v)
-	var wall_mesh := st.commit()
-	# ライトマップに焼き込めるよう UV2 を作る（台座の穴の内壁と同じ 1 ピクセル 0.5m）
-	if wall_mesh.lightmap_unwrap(Transform3D.IDENTITY, 0.5) != OK:
-		push_warning("stage_collision_import: プールの内壁の UV2 を作れなかった")
-	var wall := MeshInstance3D.new()
-	wall.name = POOL_INNER_WALL_NAME
-	wall.mesh = wall_mesh
-	ground.add_child(wall)
-	wall.owner = scene
-	print("stage_collision_import: プールの内壁を作った（y=%.2f〜%.2f）" % [floor_y, POOL_INNER_WALL_TOP_Y])
+	var surfaces: Array = []
+	for i in mesh.get_surface_count():
+		surfaces.append({
+			"arrays": mesh.surface_get_arrays(i),
+			"primitive": mesh.surface_get_primitive_type(i),
+			"material": mesh.surface_get_material(i),
+			"name": mesh.surface_get_name(i),
+		})
+	var moved := 0
+	for surface in surfaces:
+		var arrays: Array = surface["arrays"]
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+		if normals.size() != verts.size():
+			continue
+		for i in verts.size():
+			var w := xform * verts[i]
+			var n := (xform.basis * normals[i]).normalized()
+			if absf(w.y - POOL_INNER_WALL_BOTTOM_Y) >= 0.01 or absf(n.y) >= 0.1:
+				continue
+			var d := Vector2(w.x, w.z) - POOL_CENTER
+			var s := d.dot(short_axis)
+			var l := d.dot(POOL_LONG_AXIS)
+			var on_rim := (absf(absf(s) - POOL_HALF_SIZE.x) < 0.05 and absf(l) < POOL_HALF_SIZE.y + 0.05) \
+					or (absf(absf(l) - POOL_HALF_SIZE.y) < 0.05 and absf(s) < POOL_HALF_SIZE.x + 0.05)
+			if not on_rim or Vector2(n.x, n.z).dot(-d) <= 0.0:
+				continue
+			w.y = floor_y
+			verts[i] = inv * w
+			moved += 1
+		arrays[Mesh.ARRAY_VERTEX] = verts
+	var lightmap_hint := mesh.lightmap_size_hint
+	mesh.clear_surfaces()
+	for i in surfaces.size():
+		var surface: Dictionary = surfaces[i]
+		mesh.add_surface_from_arrays(surface["primitive"], surface["arrays"])
+		mesh.surface_set_material(i, surface["material"])
+		mesh.surface_set_name(i, surface["name"])
+	mesh.lightmap_size_hint = lightmap_hint
+	if moved == 0:
+		push_warning("stage_collision_import: プールの台座の内壁の下端の頂点が見つからなかった")
+	else:
+		print("stage_collision_import: プールの台座の内壁を y=%.2f まで延ばした（頂点 %d 個）" % [floor_y, moved])
 
 
 func _is_collidable(node_name: String) -> bool:
