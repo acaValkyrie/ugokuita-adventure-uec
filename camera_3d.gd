@@ -29,6 +29,9 @@ var vehicle
 
 # 普段のカメラと機体の距離 [m]
 const BASE_RADIUS := 2.0
+# カメラを水面からこの距離 [m] 以上離す。ニアクリップ面の端（最大で約 0.09m 先）が水面をまたぐと、
+# 水中の見た目が出ないまま画面の一部に水中が見えてしまうため
+const WATER_SURFACE_MARGIN := 0.1
 
 var radius: float = BASE_RADIUS
 # カメラと機体の実際の距離 [m]（壁に遮られたときに縮む）
@@ -149,5 +152,16 @@ func _physics_process(delta: float) -> void:
         var view_query := PhysicsRayQueryParameters3D.create(origin, base_position + kick, obstacle_mask, [vehicle.get_rid()])
         if not get_world_3d().direct_space_state.intersect_ray(view_query).is_empty():
             kick = Vector3.ZERO
-    global_transform.origin = base_position + kick
+    # 水面をまたがないよう、水面から少し離す
+    global_transform.origin = _keep_off_water_surface(base_position + kick)
     look_at(origin, Vector3.UP)
+
+# 水面の範囲の中で、水面の上下 WATER_SURFACE_MARGIN 以内にあれば、近いほうへ押し出した位置を返す
+func _keep_off_water_surface(pos: Vector3) -> Vector3:
+    for area in get_tree().get_nodes_in_group("water_areas"):
+        if not area.is_inside_xz(pos):
+            continue
+        var surface_y: float = area.water_y
+        if absf(pos.y - surface_y) < WATER_SURFACE_MARGIN:
+            pos.y = surface_y + (WATER_SURFACE_MARGIN if pos.y >= surface_y else -WATER_SURFACE_MARGIN)
+    return pos

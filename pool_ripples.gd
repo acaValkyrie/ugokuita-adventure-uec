@@ -88,7 +88,7 @@ func _physics_process(delta: float) -> void:
     var vehicle := get_node_or_null(vehicle_path) as VehicleBody3D
     if vehicle != null:
         var pos := vehicle.global_position
-        var in_water := _is_inside_xz(pos)
+        var in_water := is_inside_xz(pos)
         var below := pos.y < water_y
         # 水面を上下にまたいだ瞬間だけ波紋を出す
         if _has_prev and in_water and below != _was_below:
@@ -106,8 +106,8 @@ func _physics_process(delta: float) -> void:
     _floor_material.set_shader_parameter("ripples", PackedVector4Array(_ripples))
     _floor_material.set_shader_parameter("ripple_now", _now)
 
-# 水面の中（円または長方形）にいるか
-func _is_inside_xz(pos: Vector3) -> bool:
+# その点の真上か真下に水面があるか（水面の範囲の中か）
+func is_inside_xz(pos: Vector3) -> bool:
     var d := Vector2(pos.x, pos.z) - water_center
     if radius > 0.0:
         return d.length() < radius
@@ -117,7 +117,7 @@ func _is_inside_xz(pos: Vector3) -> bool:
 
 # その点が水の中（水面の範囲の真下で、水面より低い）か
 func is_under_water(pos: Vector3) -> bool:
-    return pos.y < water_y and _is_inside_xz(pos)
+    return pos.y < water_y and is_inside_xz(pos)
 
 # 水面をまたいだ位置でしぶきの音を鳴らす（音量は普通の飛び込みより強くしない）
 func _play_splash(pos: Vector3, scale: float) -> void:
