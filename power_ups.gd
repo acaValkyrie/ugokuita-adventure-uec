@@ -93,7 +93,7 @@ const E3_ROOF_ITEM_POSITIONS := [
     Vector3(82.8, 43.13, -151.0),
 ]
 # 一時的なデバッグ用（プールの調整中）。true のとき、スタート地点（とリセットの戻り先）をジャンプ力UPのメダルの場所（西11号館前）にする。終わったら false に戻す
-const DEBUG_START_AT_JUMP_UP := true
+const DEBUG_START_AT_JUMP_UP := false
 # ジャンプ力UPのメダル（ITEM_PLACEMENTS["jump_up"]）の真下。機体の前（+Z）をプールの中心（-207.759, -178.832）へ向ける
 const JUMP_UP_START := Transform3D(Basis(Vector3(-0.6693, 0, 0.743), Vector3.UP, Vector3(-0.743, 0, -0.6693)), Vector3(-187.11, 0.4, -160.23))
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
