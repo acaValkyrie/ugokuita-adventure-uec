@@ -545,9 +545,13 @@ func _add_pool_inner_wall(scene: Node, ground: Node3D, water: MeshInstance3D, fl
 			for v in tri:
 				st.set_normal(normal)
 				st.add_vertex(v)
+	var wall_mesh := st.commit()
+	# ライトマップに焼き込めるよう UV2 を作る（台座の穴の内壁と同じ 1 ピクセル 0.5m）
+	if wall_mesh.lightmap_unwrap(Transform3D.IDENTITY, 0.5) != OK:
+		push_warning("stage_collision_import: プールの内壁の UV2 を作れなかった")
 	var wall := MeshInstance3D.new()
 	wall.name = POOL_INNER_WALL_NAME
-	wall.mesh = st.commit()
+	wall.mesh = wall_mesh
 	ground.add_child(wall)
 	wall.owner = scene
 	print("stage_collision_import: プールの内壁を作った（y=%.2f〜%.2f）" % [floor_y, POOL_INNER_WALL_TOP_Y])
