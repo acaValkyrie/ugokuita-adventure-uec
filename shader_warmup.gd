@@ -18,6 +18,8 @@ const FRAMES_PER_VIEW := 2
 const EFFECT_FRAMES := 4
 # メインのシーンとプレイヤーが揃ってから待つフレーム数（パワーアップなどがシーンの開始時に出るため）
 const START_WAIT_FRAMES := 3
+# シーンはあるのにプレイヤーが居ないまま、このフレーム数たったら先読みをやめて画面を消す
+const NO_PLAYER_GIVE_UP_FRAMES := 30
 
 # 読み込み画面の見た目（DOS のような黒い画面に文字が並ぶ）
 const TERM_FONT := preload("res://assets/fonts/vt323/VT323-Regular.ttf")
@@ -54,6 +56,7 @@ func _ready() -> void:
     layer = 100
     process_mode = Node.PROCESS_MODE_ALWAYS
     _setup_screen()
+    _render_term()
 
 
 func _process(_delta: float) -> void:
@@ -62,11 +65,20 @@ func _process(_delta: float) -> void:
         return
     match _state:
         State.WAIT_SCENE:
-            if get_tree().current_scene != null \
-                    and get_tree().get_first_node_in_group("player") != null:
-                _state = State.WAIT_FRAMES
-                _wait_frames = 0
+            _render_term()
+            if get_tree().current_scene != null:
+                if get_tree().get_first_node_in_group("player") != null:
+                    _state = State.WAIT_FRAMES
+                    _wait_frames = 0
+                else:
+                    _wait_frames += 1
+                    if _wait_frames >= NO_PLAYER_GIVE_UP_FRAMES:
+                        _screen.visible = false
+                        _done = true
+                        set_process(false)
+                        return
         State.WAIT_FRAMES:
+            _render_term()
             _wait_frames += 1
             if _wait_frames >= START_WAIT_FRAMES:
                 _start()
@@ -75,7 +87,7 @@ func _process(_delta: float) -> void:
             _step()
 
 
-# 読み込み中の画面（黒い背景に、DOS のコマンドの文字が並ぶ）。入力は受け止める
+# 読み込み中の画面（黒い背景に、DOS のコマンドの文字が並ぶ）。起動直後から出して、ゲーム画面が見えないようにする。入力は受け止める
 func _setup_screen() -> void:
     _screen = ColorRect.new()
     _screen.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -97,7 +109,6 @@ func _setup_screen() -> void:
     _term.add_theme_font_size_override("normal_font_size", TERM_FONT_SIZE)
     _term.add_theme_color_override("default_color", TERM_COLOR)
     _screen.add_child(_term)
-    _screen.visible = false
 
 
 # 始まった段階だけ、コマンドと進み具合の棒を並べる。最後の行はまたたくカーソル
