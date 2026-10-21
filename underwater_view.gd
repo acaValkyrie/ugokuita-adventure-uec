@@ -7,7 +7,7 @@ const WATER_GROUP := "water_areas"
 # 画面に水の色と揺らぎを重ねるシェーダー
 const UNDERWATER_SHADER := preload("res://assets/shaders/underwater.gdshader")
 # 水中の霧の濃さ
-const FOG_DENSITY := 0.25
+const FOG_DENSITY := 0.12
 # 水中の霧の色
 const FOG_COLOR := Color(0.2, 0.55, 0.75)
 # 水中の霧を空にもかける割合
