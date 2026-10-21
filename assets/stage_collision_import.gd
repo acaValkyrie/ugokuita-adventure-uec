@@ -57,6 +57,10 @@ const POOL_LONG_AXIS := Vector2(0.2664, -0.9639)
 const POOL_HALF_SIZE := Vector2(6.69, 12.705)
 # プールの底の光の網目の集まりやすさ（水深 1.2 m ×（1 − 1/水の屈折率 1.333））
 const POOL_CAUSTIC_FOCUS := 0.3
+# プールの水が光を吸う強さ [1/m]（pool.gdshader の water_absorption。水深 1.2 m の底で約6割が水の色になる）
+const POOL_WATER_ABSORPTION := 0.8
+# プールの水深 [m]（pool_ripples.gdshaderinc の water_depth。波の伝わる速さに使う）
+const POOL_WATER_DEPTH := 1.2
 # 噴水の水面のノード名と、底を作ったあとに水面を上げる高さ（ワールドY、メートル）。縁（上端 y=0.21）より少し低い
 const FOUNTAIN_WATER_NODE_NAME := "Body585"
 const FOUNTAIN_WATER_Y := 0.12
@@ -699,6 +703,8 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 		"pool_floor":
 			material = _make_pool_material(true)
 			material.set_shader_parameter("caustic_focus", POOL_CAUSTIC_FOCUS)
+			material.set_shader_parameter("water_absorption", POOL_WATER_ABSORPTION)
+			material.set_shader_parameter("water_depth", POOL_WATER_DEPTH)
 		"fountain_floor":
 			material = _make_pool_material(true)
 			# 噴水の底にはコースラインを引かず、少し暗い水色にする
@@ -706,6 +712,7 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 			material.set_shader_parameter("floor_color", Color(0.30, 0.60, 0.70))
 		"pool_deck":
 			material = _make_pool_material(false)
+			material.set_shader_parameter("water_absorption", POOL_WATER_ABSORPTION)
 		"pool_fence":
 			material = _make_fence_material()
 			# プールの柵は灰色で、台座の上の高さ1〜2.5m

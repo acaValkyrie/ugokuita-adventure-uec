@@ -10,8 +10,8 @@ uniform vec2 pool_center = vec2(-207.759, -178.832);
 uniform vec2 pool_long_axis = vec2(0.2664, -0.9639);
 // 水面の半分の大きさ（x が短辺方向、y が長辺方向、メートル）
 uniform vec2 pool_half_size = vec2(6.69, 12.705);
-// プールの底の色
-uniform vec4 floor_color : source_color = vec4(0.18, 0.70, 0.86, 1.0);
+// プールの底の色（白い塗装）
+uniform vec4 floor_color : source_color = vec4(0.93, 0.93, 0.90, 1.0);
 // コースラインの色
 uniform vec4 lane_color : source_color = vec4(0.12, 0.30, 0.62, 1.0);
 // コースラインを描くか（噴水の底では描かない）
@@ -45,6 +45,12 @@ uniform float caustic_max = 100.0;
 uniform float defocus_shade = 0.85;
 // 太陽の影の濃さ（DirectionalLight3D の shadow_opacity と同じ値）。影の中で光の網目がちょうど0になるように使う
 uniform float sun_shadow_opacity = 0.85;
+// 水面の高さ（ワールドY）。これより下の面には、深さに応じて水の色を足す
+uniform float water_surface_y = 0.5;
+// 水の色（深いところほどこの色に近づく）
+uniform vec4 water_tint_color : source_color = vec4(0.25, 0.65, 0.85, 1.0);
+// 水が光を吸う強さ [1/m]。深さ d で 1 − exp(−強さ × d) の割合だけ水の色にする。0 のときは足さない（噴水）
+uniform float water_absorption = 0.0;
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -97,6 +103,9 @@ void fragment() {
 		bool in_coping = abs(s) < pool_half_size.x + coping_width && abs(l) < pool_half_size.y + coping_width;
 		albedo = in_coping ? coping_color.rgb : deck_color.rgb;
 	}
+	// 水面より下は、深さに応じて水の色に近づける
+	float tint_depth = max(water_surface_y - world_pos.y, 0.0);
+	albedo = mix(albedo, water_tint_color.rgb, 1.0 - exp(-water_absorption * tint_depth));
 	ALBEDO = albedo;
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
