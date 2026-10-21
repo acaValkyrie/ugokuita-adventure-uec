@@ -119,6 +119,10 @@ func is_inside_xz(pos: Vector3) -> bool:
 func is_under_water(pos: Vector3) -> bool:
     return pos.y < water_y and is_inside_xz(pos)
 
+# 太陽へ向かう方向（ライトは -Z 向きに照らすので +Z）。太陽のライトが無ければ Vector3.ZERO
+func sun_direction() -> Vector3:
+    return _sun.global_basis.z if _sun != null else Vector3.ZERO
+
 # 水面をまたいだ位置でしぶきの音を鳴らす（音量は普通の飛び込みより強くしない）
 func _play_splash(pos: Vector3, scale: float) -> void:
     _splash_player.global_position = pos
