@@ -75,8 +75,10 @@ void fragment() {
 		vec2 grad;
 		vec3 hess;
 		pool_surface(world_pos.xz, TIME * wave_speed, grad, hess);
-		// コースラインは、水面の傾きで光が曲がった分だけずれて見える
-		vec2 seen = world_pos.xz - caustic_focus * grad;
+		// コースラインは、水面の傾きで光が曲がった分だけずれて見える。
+		// カメラが水の中にあるときは、底との間に水面が無いのでずらさない
+		float lane_shift = INV_VIEW_MATRIX[3].y > water_surface_y ? caustic_focus : 0.0;
+		vec2 seen = world_pos.xz - lane_shift * grad;
 		vec2 sd = seen - pool_center;
 		s = dot(sd, short_axis);
 		l = dot(sd, pool_long_axis);
