@@ -7,6 +7,11 @@ extends Node
 @export var vehicle_path: NodePath = ^"../VehicleBody3D"
 # 水面の底のノード
 @export var floor_path: NodePath = ^"../UEC/ground/プールの底"
+# 水面のノード。下から見た水面に太陽の向きを渡す
+# （噴水の PoolRipples も同じ既定のパスで、プールと共通のマテリアルに同じ値を渡すが、太陽の向きは同じなので問題ない）
+@export var water_surface_path: NodePath = ^"../UEC/ground/Body720"
+# 太陽のライト
+@export var sun_path: NodePath = ^"../DirectionalLight3D"
 # 水面の長方形の中心（ワールドXZ。pool.gdshader と同じ値）
 @export var water_center := Vector2(-207.759, -178.832)
 # 水面の長辺の向き（単位ベクトル、ワールドXZ）
@@ -50,6 +55,8 @@ var _next_index := 0
 var _was_below := false
 var _has_prev := false
 var _floor_material: ShaderMaterial
+var _water_material: ShaderMaterial
+var _sun: DirectionalLight3D
 
 func _ready() -> void:
     add_to_group(WATER_GROUP)
@@ -61,6 +68,10 @@ func _ready() -> void:
         _floor_material = floor_mesh.get_surface_override_material(0) as ShaderMaterial
     if _floor_material == null:
         push_warning("水面の底のマテリアルが見つかりません: %s" % floor_path)
+    var water_mesh := get_node_or_null(water_surface_path) as MeshInstance3D
+    if water_mesh:
+        _water_material = water_mesh.get_surface_override_material(0) as ShaderMaterial
+    _sun = get_node_or_null(sun_path) as DirectionalLight3D
     _splash_player = AudioStreamPlayer3D.new()
     _splash_player.unit_size = 3.0
     _splash_player.max_db = SPLASH_VOLUME_DB
@@ -87,6 +98,9 @@ func _physics_process(delta: float) -> void:
             _play_splash(pos, scale)
         _was_below = below
         _has_prev = true
+    # ライトは -Z 向きに照らすので、+Z が太陽の方向
+    if _water_material != null and _sun != null:
+        _water_material.set_shader_parameter("sun_direction", _sun.global_basis.z)
     if _floor_material == null:
         return
     _floor_material.set_shader_parameter("ripples", PackedVector4Array(_ripples))
