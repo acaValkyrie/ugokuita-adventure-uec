@@ -21,7 +21,7 @@ uniform bool light_enabled = false;
 // 差し込む光の色
 uniform vec4 light_color : source_color = vec4(0.85, 0.97, 1.0, 1.0);
 // 光の筋の明るさ
-uniform float shaft_strength = 0.18;
+uniform float shaft_strength = 0.08;
 // 太陽の周りに並ぶ光の筋の数の目安
 uniform float shaft_density = 23.0;
 // 光の筋の細さ（大きいほど細い）
