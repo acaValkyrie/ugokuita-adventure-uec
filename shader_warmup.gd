@@ -3,6 +3,7 @@ extends CanvasLayer
 # Compatibility では初めて描いた瞬間にシェーダーを作るので、走り出してから止まるのを防ぐ。
 # 一時的なカメラを上空のタイルごとと、地上の4方向に向けて、各視点を数フレームずつ見せる。
 # 最後に前のカメラの視点で、プレイヤーの効果（ドリフトの帯、火花、ジェット、集中線）も一度描く。
+# 看板の白枠とヒント（近づくまで隠れている）も、先読みの間だけ出して描かせる。
 
 # タイルに分ける範囲は Map.WORLD_RECT（x / z の範囲）を使う
 # 1辺のタイルの数
@@ -141,6 +142,8 @@ func _start() -> void:
     _camera.process_mode = Node.PROCESS_MODE_ALWAYS
     get_tree().current_scene.add_child(_camera)
     _camera.make_current()
+    # 看板の白枠とヒントは近づくまで隠れているので、先読みの間だけ出す
+    LinkBoard.set_warmup(true)
     _build_views()
     _view_index = 0
     _view_frames = 0
@@ -207,6 +210,7 @@ func _finish() -> void:
     _camera.queue_free()
     if is_instance_valid(_prev_camera):
         _prev_camera.make_current()
+    LinkBoard.set_warmup(false)
     get_tree().paused = false
     _screen.visible = false
     _done = true

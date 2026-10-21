@@ -51,6 +51,17 @@ static func get_prompt_rect() -> Rect2:
     return Rect2()
 
 
+# 起動時のシェーダーの先読み（shader_warmup.gd）の間だけ、全看板の白枠とヒントを出して一度描かせる。
+# 終えたら隠す（次の物理フレームで選択に合わせて出し直される）
+static func set_warmup(on: bool) -> void:
+    for board in _boards:
+        board._outline.visible = on
+        board._layer.visible = on
+        if on:
+            # 「ウェブで開く」の文字も含むので、両方の文言の字形がそろう
+            board._label.text = "タップしてウェブで開く"
+
+
 func _enter_tree() -> void:
     _boards.append(self)
 
