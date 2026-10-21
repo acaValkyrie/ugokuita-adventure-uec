@@ -41,6 +41,8 @@ var _reset_button: TextureButton
 var _button_touches: Dictionary = {}
 # JUMP / DRIFT ボタンを押している指: index -> アクション名
 var _held_buttons: Dictionary = {}
+# タッチのスティックで押しているアクション（自分で押したものだけ離し、コントローラーやキーボードの入力を消さないため）
+var _pressed_actions: Dictionary = {}
 # タッチ端末か（JUMP / DRIFT とリセットのボタンを出す）
 var _touch_enabled := false
 
@@ -310,14 +312,21 @@ func _update_actions() -> void:
 
 func _set_action(action: String, strength: float) -> void:
     if strength <= 0.0:
-        Input.action_release(action)
+        _release_action(action)
     else:
         Input.action_press(action, strength)
+        _pressed_actions[action] = true
 
 
 func _release_actions(actions: Array) -> void:
     for a in actions:
-        Input.action_release(a)
+        _release_action(a)
+
+
+# 自分で押していたときだけ離す
+func _release_action(action: String) -> void:
+    if _pressed_actions.erase(action):
+        Input.action_release(action)
 
 
 func _release_all() -> void:
