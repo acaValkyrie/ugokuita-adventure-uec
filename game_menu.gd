@@ -224,7 +224,7 @@ var _ps_back_label: Label
 var _ps_start_label: Label
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
-# セーブデータの項目（集めた数、リセットのボタンと中の文字）。リセットは2回押して確定する
+# セーブデータの項目（持っているアイテムの切り替え、リセットのボタンと中の文字）。リセットは2回押して確定する
 var _data_selector_box: Control
 var _data_arrow_row: HBoxContainer
 var _data_dots_row: HBoxContainer
@@ -1037,6 +1037,8 @@ func _build_data_content() -> Control:
     center.add_child(_data_item_name)
     _data_item_desc = _make_label("", 17, TEXT_BODY)
     _data_item_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    # 長い説明は矢印の間の幅に収まらないので折り返す
+    _data_item_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     center.add_child(_data_item_desc)
 
     # 点の数は持っている数で変わるので、count = 0 で作って _refresh_data で合わせる。名前は中央に出すので使わない
