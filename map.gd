@@ -149,9 +149,12 @@ func clear_marker() -> void:
 
 
 # 指定したパワーアップの場所のヒントの印を出す。マップを開くまでマップボタンに縁取りを付ける
-func reveal_hints(keys: Array) -> void:
+func reveal_hints(keys: Array, mark_unseen: bool = true) -> void:
     for key in keys:
         revealed_hints[key] = true
+    # 起動時に保存から戻すときは、マップボタンの縁取りを出さない
+    if not mark_unseen:
+        return
     _hint_unseen = true
     if _button_icon != null:
         _button_icon.queue_redraw()

@@ -1,6 +1,7 @@
 extends CanvasLayer
 # パワーアップアイテム。取った種類を覚えて機体の効果に反映し、取ったときは一時停止して名前と説明のポップアップを出す。
 # シーンが変わっても（Back to Start など）取った効果は残す。取った種類のメダルは置き直さない。
+# 取った種類と使ったヒントは user:// に保存し、次に起動したときも残す（Web では user:// はブラウザの IndexedDB に保存される）。
 
 const FONT := preload("res://assets/fonts/noto_sans_cjk_jp_bold_ui.otf")
 const ITEM_SCRIPT := preload("res://power_up_item.gd")
@@ -99,6 +100,9 @@ const JUMP_UP_START := Transform3D(Basis(Vector3(-0.6693, 0, 0.743), Vector3.UP,
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
 const CLOSE_DELAY_MSEC := 300
 
+# 取った種類・使ったヒントの保存先（game_menu.gd の SETTINGS_PATH と同じ ConfigFile）。Web では user:// は IndexedDB に保存される
+const PROGRESS_PATH := "user://progress.cfg"
+
 # ヒントの種類: 印を付けるパワーアップのキー。ヒント1はジャンプ力UPと二段ジャンプ、ヒント2はジェット（図書館の屋上の上）
 const HINTS := {
     "hint1": {"keys": ["jump_up", "double_jump"]},
@@ -155,6 +159,7 @@ func _ready() -> void:
     # メニュー（layer 20）より下、マップ（layer 18）より上に描く
     layer = 19
     process_mode = Node.PROCESS_MODE_ALWAYS
+    _load_progress()
     _build_popup()
     # ファンファーレ用のプレイヤー。一時停止中も鳴らす。ファイルにループ設定があっても繰り返さない
     var stream := FANFARE.duplicate() as AudioStreamOggVorbis
@@ -164,6 +169,46 @@ func _ready() -> void:
     _fanfare_player.bus = "BGM"
     _fanfare_player.process_mode = Node.PROCESS_MODE_ALWAYS
     add_child(_fanfare_player)
+
+
+# 保存した取得状態を読み込む。存在しないキーは捨て、使ったヒントはマップの印を戻す（印の縁取りは出さない）
+func _load_progress() -> void:
+    var config := ConfigFile.new()
+    if config.load(PROGRESS_PATH) != OK:
+        return
+    for key in config.get_value("progress", "acquired", []):
+        if ITEMS.has(key):
+            _acquired[key] = true
+    for id in config.get_value("progress", "used_hints", []):
+        if HINTS.has(id):
+            _used_hints[id] = true
+            Map.reveal_hints(HINTS[id]["keys"], false)
+    for place_id in config.get_value("progress", "used_hint_places", []):
+        if HINT_PLACEMENTS.has(place_id):
+            _used_hint_places[place_id] = true
+
+
+func _save_progress() -> void:
+    var config := ConfigFile.new()
+    config.set_value("progress", "acquired", _acquired.keys())
+    config.set_value("progress", "used_hints", _used_hints.keys())
+    config.set_value("progress", "used_hint_places", _used_hint_places.keys())
+    config.save(PROGRESS_PATH)
+
+
+# 取った種類・使ったヒント・触れたヒントの場所をすべて消して保存する。マップのヒントの印も消す
+# メダルを置き直すのは呼んだ側でシーンを読み込み直したとき（_process がシーンの切り替わりを見て置く）
+func reset_progress() -> void:
+    for id in HINTS:
+        Map.hide_hints(HINTS[id]["keys"])
+    _acquired.clear()
+    _used_hints.clear()
+    _used_hint_places.clear()
+    _save_progress()
+
+
+func acquired_count() -> int:
+    return _acquired.size()
 
 
 func has(key: String) -> bool:
@@ -179,6 +224,7 @@ func acquire(key: String) -> void:
     if _acquired.has(key):
         return
     _acquired[key] = true
+    _save_progress()
     _clear_hint_medals_if_done()
     _queue.append(key)
     if not is_open:
@@ -195,6 +241,7 @@ func set_acquired(key: String, on: bool) -> void:
         _clear_hint_medals_if_done()
     else:
         _acquired.erase(key)
+    _save_progress()
 
 
 # 場所のヒントのメダルに触れたときに出すヒントを決める。ヒント1の場所でも、ジャンプ系を両方持っていればヒント2にする
@@ -220,6 +267,7 @@ func use_hint(id: String) -> void:
         push_warning("ヒントの種類が不明: %s" % id)
         return
     _used_hints[id] = true
+    _save_progress()
     Map.reveal_hints(HINTS[id]["keys"])
 
 
@@ -234,6 +282,7 @@ func set_hint_used(id: String, on: bool) -> void:
     else:
         _used_hints.erase(id)
         Map.hide_hints(HINTS[id]["keys"])
+    _save_progress()
 
 
 func is_hint_used(id: String) -> bool:
