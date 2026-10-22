@@ -1035,9 +1035,9 @@ func _build_data_content() -> Control:
     _data_item_name = _make_label("", 26, TEXT_BODY)
     _data_item_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     center.add_child(_data_item_name)
-    _data_item_desc = _make_label("", 17, TEXT_BODY)
+    _data_item_desc = _make_label("", 16, TEXT_BODY)
     _data_item_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    # 長い説明は矢印の間の幅に収まらないので折り返す
+    # 16px なら PC の幅では1行に収まる。狭い画面では矢印の間の幅で折り返す
     _data_item_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     center.add_child(_data_item_desc)
 
