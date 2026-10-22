@@ -3,9 +3,10 @@ extends CanvasLayer
 # メニュー内でBGM と効果音の音量と、操作説明に出すコントローラのボタン表記（Nintendo / Xbox / DualShock 3 / DualShock 4 / DualSense）、操作する機体（Neo / Classic）を選べる。
 # 決定とキャンセルのボタンを入れ替える設定もある。
 # PlayStation の SELECT・START などの表記（PS3 以前・PS4・PS5）は、選んだ機種（DualShock 3・DualShock 4・DualSense）から決まる。
-# 画面は左に項目（音量・コントローラーの設定［下に ボタンの表示形式・決定とキャンセル］・ロボットタイプ・セーブデータ・閉じる）、右に選んでいる項目の詳細を出す。
-# 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（コントローラーの設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。キーボードは Esc で1つ戻る（TOP では閉じる）。
-# 中分類（ボタンの表示形式・決定とキャンセル）の行は、コントローラーの設定に入ったときだけ開き、それ以外ではたたんでおく。
+# カメラ操作の左右・上下の反転も選べる。
+# 画面は左に項目（音量・操作の設定［下に ボタンの表示形式・決定とキャンセル・カメラの操作］・ロボットタイプ・セーブデータ・閉じる）、右に選んでいる項目の詳細を出す。
+# 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（操作の設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。キーボードは Esc で1つ戻る（TOP では閉じる）。
+# 中分類（ボタンの表示形式・決定とキャンセル・カメラの操作）の行は、操作の設定に入ったときだけ開き、それ以外ではたたんでおく。
 
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
@@ -69,12 +70,13 @@ const ITEM_ICONS := [
     preload("res://assets/ui/menu/icon_robot.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_save.png"),
+    preload("res://assets/ui/menu/icon_controller.png"),
 ]
-# 左の列の「コントローラーの設定」の行
-const CONTROLLER_HEADING := "コントローラーの設定"
+# 左の列の「操作の設定」の行
+const CONTROLLER_HEADING := "操作の設定"
 const CONTROLLER_HEADING_ICON := preload("res://assets/ui/menu/icon_controller.png")
-# コントローラーの設定の下に字下げして並べる項目
-const CHILD_ITEMS := [1, 2]
+# 操作の設定の下に字下げして並べる項目
+const CHILD_ITEMS := [1, 2, 6]
 # 子の行の字下げ（px）
 const CHILD_INDENT := 30
 # ROBOT_MODELS の順
@@ -82,15 +84,16 @@ const ROBOT_SCENES := [
     preload("res://assets/ugokuita-neo.glb"),
     preload("res://assets/ugokuita-classic.fbx"),
 ]
-# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: ロボットタイプ、4: コントローラーの設定、5: セーブデータ）
-const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "ロボットタイプ", CONTROLLER_HEADING, "セーブデータ"]
+# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: ロボットタイプ、4: 操作の設定、5: セーブデータ、6: カメラの操作）
+const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "ロボットタイプ", CONTROLLER_HEADING, "セーブデータ", "カメラの操作"]
 const ITEM_DESCRIPTIONS := [
     "BGM と効果音の音量を調整します。決定ボタンで試聴できます",
     "使っているコントローラーに合わせて変更してください",
     "慣れてる方に変更してください",
     "操作する機体を切り替えます",
-    "ボタンの表示形式と、決定とキャンセルを設定します",
+    "ボタンの表示形式、決定とキャンセル、カメラの操作を設定します",
     "集めたアイテムとヒントの記録をリセットします",
+    "カメラを動かす向きを、左右・上下それぞれで反転できます",
 ]
 const ITEM_VOLUME := 0
 const ITEM_PAD := 1
@@ -98,13 +101,14 @@ const ITEM_CONFIRM := 2
 const ITEM_ROBOT := 3
 const ITEM_CONTROLLER := 4
 const ITEM_DATA := 5
+const ITEM_CAMERA := 6
 # 左の列に並べる順（項目の番号）
-const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_ROBOT, ITEM_DATA]
+const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_CAMERA, ITEM_ROBOT, ITEM_DATA]
 # カーソルが「閉じる」にあるときの番号
 const CURSOR_CLOSE := -1
 # TOP でカーソルが動く順
 const TOP_CURSORS := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_ROBOT, ITEM_DATA, CURSOR_CLOSE]
-# 階層。TOP: 親の項目を選ぶ、SUB: コントローラーの設定の中の項目を選ぶ、EDIT: 右の列を左右で切り替える
+# 階層。TOP: 親の項目を選ぶ、SUB: 操作の設定の中の項目を選ぶ、EDIT: 右の列を左右で切り替える
 enum Level { TOP, SUB, EDIT }
 # 決定とキャンセルの選択肢の名前（SWAP_CONFIRM_VALUES の順）
 const SWAP_CONFIRM_NAMES := ["標準", "入れ替え"]
@@ -208,7 +212,7 @@ var _level: Level = Level.TOP
 var _cursor: int = ITEM_VOLUME
 # EDIT に入る前の階層
 var _edit_return: Level = Level.TOP
-# コントローラーの設定の中分類（CHILD_ITEMS の行）を開いているか
+# 操作の設定の中分類（CHILD_ITEMS の行）を開いているか
 var _children_expanded := false
 # 右の列の操作部品（項目の番号 → 部品の配列）。部品は {"node": 印を付ける Control, "step": 左右の処理（Callable か null）, "accept": 決定の処理（Callable か null）}
 var _edit_controls: Array = []
@@ -228,6 +232,8 @@ var _confirm_name_label: Label
 var _confirm_dots: Array[ColorRect] = []
 var _confirm_icon: TextureRect
 var _confirm_cancel_icon: TextureRect
+var _camera_x_value: Label
+var _camera_y_value: Label
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
 # セーブデータの項目（持っているアイテムの切り替え、リセットのボタンと中の文字）。リセットは2回押して確定する
@@ -274,6 +280,7 @@ func _ready() -> void:
     _refresh_volume_labels()
     _refresh_pad()
     _refresh_confirm()
+    _refresh_camera()
     _refresh_robot_names()
     _set_cursor(Level.TOP, ITEM_VOLUME)
 
@@ -777,7 +784,7 @@ func _build_item_row(index: int) -> Button:
     hbox.add_child(name_label)
     _row_name_labels[index] = name_label
 
-    # 右端の「>」の山形（コントローラーの設定は下向きの「∨」）
+    # 右端の「>」の山形（操作の設定は下向きの「∨」）
     var chevron := Control.new()
     chevron.mouse_filter = Control.MOUSE_FILTER_IGNORE
     chevron.custom_minimum_size = Vector2(9, 16)
@@ -992,7 +999,7 @@ func _build_right_column() -> Control:
     _edit_controls.resize(ITEM_NAMES.size())
     for i in _edit_controls.size():
         _edit_controls[i] = []
-    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_robot_content(), _build_controller_content(), _build_data_content()]
+    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_robot_content(), _build_controller_content(), _build_data_content(), _build_camera_content()]
     for content in contents:
         content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         content.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1090,7 +1097,7 @@ func _on_preview_mark_draw(mark: Control, button: Button, row: Control, is_bgm: 
         mark.draw_colored_polygon(points, color)
 
 
-# コントローラーの設定。音量の中身と同じ作りで、アイコンを薄く中央に出すだけ
+# 操作の設定。音量の中身と同じ作りで、アイコンを薄く中央に出すだけ
 func _build_controller_content() -> Control:
     var box := VBoxContainer.new()
     box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1319,6 +1326,39 @@ func _make_confirm_icon_rect() -> TextureRect:
     return icon
 
 
+# カメラの操作。左右・上下それぞれに「名前 < 値 >」の行を並べる
+func _build_camera_content() -> Control:
+    var box := VBoxContainer.new()
+    box.alignment = BoxContainer.ALIGNMENT_CENTER
+    box.add_theme_constant_override("separation", 24)
+    box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _camera_x_value = _add_camera_row(box, "左右", _step_invert_x)
+    _camera_y_value = _add_camera_row(box, "上下", _step_invert_y)
+    return box
+
+
+# カメラの操作の1行（名前・「<」・値・「>」を左から並べる）。値の Label を返す
+func _add_camera_row(box: VBoxContainer, title: String, step: Callable) -> Label:
+    var row := HBoxContainer.new()
+    row.alignment = BoxContainer.ALIGNMENT_CENTER
+    row.add_theme_constant_override("separation", 8)
+    row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    var name_label := _make_label(title, 20, TEXT_BODY)
+    name_label.custom_minimum_size = Vector2(120, 0)
+    name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+    row.add_child(name_label)
+    row.add_child(_make_arrow_button(-1, step, row))
+    var value_label := _make_label("", 22, TEXT_BODY)
+    value_label.custom_minimum_size = Vector2(140, 0)
+    value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    row.add_child(value_label)
+    row.add_child(_make_arrow_button(1, step, row))
+    box.add_child(row)
+    # 決定でも切り替えられるよう、accept にも同じ切り替えを渡す
+    _add_edit_control(ITEM_CAMERA, row, step, step.bind(1))
+    return value_label
+
+
 func _build_robot_content() -> Control:
     var container := SubViewportContainer.new()
     container.stretch = true
@@ -1461,7 +1501,7 @@ func _update_cursor_visuals() -> void:
     # 項目名の色は、今選べる行は白、選べない行は灰
     for i in ROW_ORDER:
         _row_name_labels[i].add_theme_color_override("font_color", _row_text_color(i))
-    # 中分類の行は、コントローラーの設定に入っているあいだだけ出す
+    # 中分類の行は、操作の設定に入っているあいだだけ出す
     for i in CHILD_ITEMS:
         _rows[i].visible = _children_expanded
     for chevron in _row_chevrons:
@@ -1587,7 +1627,7 @@ func _on_row_mouse_entered(index: int) -> void:
 
 # クリック・タップ。その行にカーソルを移して、決定と同じ動きをする
 func _on_row_pressed(index: int) -> void:
-    # 親の行（コントローラーの設定以外）を押したら中分類はたたむ。コントローラーの設定は _activate で開く
+    # 親の行（操作の設定以外）を押したら中分類はたたむ。操作の設定は _activate で開く
     if index != ITEM_CONTROLLER and index not in CHILD_ITEMS:
         _children_expanded = false
     _set_cursor(_level_of_item(index), index)
@@ -1751,8 +1791,21 @@ func _step_confirm(_direction: int) -> void:
     _save_settings()
     swap_confirm_changed.emit(swap_confirm)
     _refresh_confirm()
-    # コントローラーの設定の中の「決定・キャンセル」の行も追従させる
+    # 操作の設定の中の「決定・キャンセル」の行も追従させる
     _refresh_pad()
+
+
+# 選択肢は2つなので、どちらの向きでも交互に切り替わる
+func _step_invert_x(_direction: int) -> void:
+    invert_camera_x = not invert_camera_x
+    _save_settings()
+    _refresh_camera()
+
+
+func _step_invert_y(_direction: int) -> void:
+    invert_camera_y = not invert_camera_y
+    _save_settings()
+    _refresh_camera()
 
 
 func _step_robot(direction: int) -> void:
@@ -1795,6 +1848,11 @@ func _refresh_confirm() -> void:
     _set_dots(_confirm_dots, index)
     _confirm_icon.texture = ControlsHelp.get_confirm_icon_for(pad_layout)
     _confirm_cancel_icon.texture = ControlsHelp.get_cancel_icon_for(pad_layout)
+
+
+func _refresh_camera() -> void:
+    _camera_x_value.text = "反転" if invert_camera_x else "通常"
+    _camera_y_value.text = "反転" if invert_camera_y else "通常"
 
 
 func _refresh_robot_names() -> void:
