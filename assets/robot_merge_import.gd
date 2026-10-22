@@ -65,6 +65,9 @@ const SIMPLIFY_MAX_ERROR := {
 	"ugokuita-classic.fbx": 0.001,
 }
 
+# 基板の部品の取り除きと、基板に貼る画像の設定（bake_board_textures.gd と共有）
+const BoardParts := preload("res://assets/board_parts.gd")
+
 # 残すノード（サブツリー全体と、その祖先）
 var _keep := {}
 # マテリアルの名前 → 差し替え先として読み込んだマテリアル
@@ -98,6 +101,41 @@ func _post_import(scene: Node) -> Object:
 		target.get_parent().remove_child(target)
 		target.free()
 		removed_count += 1
+	# 基板の背の低い部品を取り除き、画像の設定がある基板には、部品を写した画像を貼る（設定は board_parts.gd）
+	var board_part_count := 0
+	for entry in BoardParts.BOARDS.get(source_name, []):
+		var group := scene.get_node_or_null(NodePath(entry.group)) as Node3D
+		if group == null:
+			push_warning("robot_merge_import: 基板のノードが見つからないため飛ばす: %s" % entry.group)
+			continue
+		var board_mi := BoardParts.find_board_mesh(group, entry.board)
+		if board_mi == null:
+			push_warning("robot_merge_import: 基板のメッシュが見つからないため飛ばす: %s" % entry.board)
+			continue
+		var texture: Texture2D = null
+		if entry.texture != "":
+			if ResourceLoader.exists(entry.texture):
+				texture = load(entry.texture) as Texture2D
+			if texture == null:
+				push_warning("robot_merge_import: 基板の画像が無いため部品を残す: %s" % entry.texture)
+				continue
+		for part in BoardParts.find_low_parts(group, board_mi, entry.top_height, entry.bottom_height):
+			part.get_parent().remove_child(part)
+			part.free()
+			board_part_count += 1
+		if texture != null:
+			# set_projected_uv はメッシュを作り直すので、先にマテリアルを取っておく
+			var board_base := _original_material(board_mi, 0) as BaseMaterial3D
+			if board_base == null:
+				push_warning("robot_merge_import: 基板のマテリアルが BaseMaterial3D ではないため画像を貼らない: %s" % entry.board)
+				continue
+			BoardParts.set_projected_uv(board_mi, entry.view)
+			# 複製したマテリアルにするので、まとめるときは基板だけで1つのメッシュになる
+			var board_copy := board_base.duplicate() as BaseMaterial3D
+			board_copy.albedo_color = Color.WHITE
+			board_copy.albedo_texture = texture
+			for i in board_mi.mesh.get_surface_count():
+				board_mi.set_surface_override_material(i, board_copy)
 	# 内向きになっている面の向きを直す
 	var flipped_count := 0
 	for path in FIX_FACE_NODES.get(source_name, []):
@@ -215,7 +253,7 @@ func _post_import(scene: Node) -> Object:
 	for mi in scene.find_children("*", "MeshInstance3D", true, false):
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 
-	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、三角形 %d -> %d、差し替えたマテリアル %d 面、取り除いた部品 %d 個、色を変えた部品 %d 個、向きを直した面 %d 枚" % [sources.size(), merged_count, kept_count, lod_count, triangles_before, triangles_after, _override_count, removed_count, recolored_count, flipped_count])
+	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、三角形 %d -> %d、差し替えたマテリアル %d 面、取り除いた部品 %d 個、色を変えた部品 %d 個、向きを直した面 %d 枚、取り除いた基板の部品 %d 個" % [sources.size(), merged_count, kept_count, lod_count, triangles_before, triangles_after, _override_count, removed_count, recolored_count, flipped_count, board_part_count])
 	return scene
 
 
