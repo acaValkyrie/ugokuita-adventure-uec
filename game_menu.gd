@@ -152,8 +152,11 @@ var _edit_bar: ColorRect
 var _panel: PanelContainer
 # 左右（狭いときは上下）に並べる列と、その中身
 var _columns: BoxContainer
-# 列をまとめて縦にスクロールさせる枠（画面の高さが低くても全項目に届くように）
+# 列をまとめて縦にスクロールさせる枠（上下に並べるときの全体のスクロール。画面の高さが低くても全項目に届くように）
 var _scroll: ScrollContainer
+# 左右に並べるときに、左の列・右の列を別々に縦にスクロールさせる枠（上下に並べるときは縦スクロールを切って、_scroll に任せる）
+var _left_scroll: ScrollContainer
+var _right_scroll: ScrollContainer
 var _left_column: Control
 var _right_column: Control
 var _divider_margin: MarginContainer
@@ -315,6 +318,8 @@ func open() -> void:
     _data_reset_armed = false
     _data_item_index = 0
     _scroll.scroll_vertical = 0
+    _left_scroll.scroll_vertical = 0
+    _right_scroll.scroll_vertical = 0
     _layout_panel()
     _rebuild_close_hint()
     # 階層とカーソルを最初（TOP の音量）に戻す
@@ -523,7 +528,8 @@ func _build_menu() -> void:
     _edit_bar.visible = false
     _dimmer.add_child(_edit_bar)
 
-    # 高さが足りないときは縦にスクロールする。中身が短いときは今までどおりパネルいっぱいに広がる
+    # 高さが足りないときは縦にスクロールする。中身が短いときは今までどおりパネルいっぱいに広がる。
+    # 左右に並べるときは左の列・右の列がそれぞれスクロールし、上下に並べるときはこの外側の枠が全体をスクロールする
     _scroll = ScrollContainer.new()
     _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
     _scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
@@ -535,8 +541,12 @@ func _build_menu() -> void:
     _columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
     _scroll.add_child(_columns)
 
+    _left_scroll = _make_column_scroll()
     _left_column = _build_left_column()
-    _columns.add_child(_left_column)
+    _left_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    _left_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    _left_scroll.add_child(_left_column)
+    _columns.add_child(_left_scroll)
 
     # 縦の区切り線（上下 28px あける。上下に並べるときは _set_stacked で横線にする）
     _divider_margin = _make_margin(0, 28, 0, 28)
@@ -545,8 +555,12 @@ func _build_menu() -> void:
     _divider_margin.add_child(_divider)
     _columns.add_child(_divider_margin)
 
+    _right_scroll = _make_column_scroll()
     _right_column = _build_right_column()
-    _columns.add_child(_right_column)
+    _right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    _right_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    _right_scroll.add_child(_right_column)
+    _columns.add_child(_right_scroll)
 
     # 一時停止中も鳴らすため、このノードの PROCESS_MODE_ALWAYS を継承させる
     _player = AudioStreamPlayer.new()
@@ -571,6 +585,14 @@ func _build_menu() -> void:
 # PC では 16 + 40 + 16 = 72 で、これまでの決め打ちと同じになる
 func get_content_top() -> float:
     return MARGIN + button_size + 16.0
+
+
+# 1列ぶんの縦スクロール枠（横は切る。縦のモードは _set_stacked で並びに合わせて切り替える）
+func _make_column_scroll() -> ScrollContainer:
+    var scroll := ScrollContainer.new()
+    scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+    return scroll
 
 
 # 画面の大きさに合わせてパネルの位置と大きさを決める
@@ -598,26 +620,32 @@ func _set_stacked(stacked: bool) -> void:
     _stacked = stacked
     _columns.vertical = stacked
     if stacked:
+        # 各列のスクロールは切って、中身の高さをそのまま最小サイズにする（スクロールは外側の _scroll が全体で行う）
+        _left_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+        _right_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
         # 左の列の中の伸びる余白がつぶれて、「閉じる」が項目の一覧のすぐ下に来る
-        _left_column.custom_minimum_size.x = 0.0
-        _left_column.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+        _left_scroll.custom_minimum_size.x = 0.0
+        _left_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
         _divider.custom_minimum_size = Vector2(0, 1)
         _divider_margin.add_theme_constant_override("margin_left", 28)
         _divider_margin.add_theme_constant_override("margin_right", 28)
         _divider_margin.add_theme_constant_override("margin_top", 0)
         _divider_margin.add_theme_constant_override("margin_bottom", 0)
-        _right_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-        _right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        _right_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+        _right_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     else:
-        _left_column.custom_minimum_size.x = LEFT_COLUMN_WIDTH
-        _left_column.size_flags_vertical = Control.SIZE_FILL
+        # 左右に並べるときは、それぞれの列だけがスクロールする（最小の高さは 0 になり、外側の _scroll は動かない）
+        _left_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+        _right_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+        _left_scroll.custom_minimum_size.x = LEFT_COLUMN_WIDTH
+        _left_scroll.size_flags_vertical = Control.SIZE_FILL
         _divider.custom_minimum_size = Vector2(1, 0)
         _divider_margin.add_theme_constant_override("margin_left", 0)
         _divider_margin.add_theme_constant_override("margin_right", 0)
         _divider_margin.add_theme_constant_override("margin_top", 28)
         _divider_margin.add_theme_constant_override("margin_bottom", 28)
-        _right_column.size_flags_vertical = Control.SIZE_FILL
-        _right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        _right_scroll.size_flags_vertical = Control.SIZE_FILL
+        _right_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 # ---- 左の列 ----
@@ -627,7 +655,6 @@ func _build_left_column() -> Control:
     _row_red_texture = _make_gradient_texture(Color("#c8102e"), Color("#4a0b12"))
     _row_gray_texture = _make_gradient_texture(Color(1, 1, 1, 0.16), Color(1, 1, 1, 0.04))
     var margin := _make_margin(28, 24, 20, 16)
-    margin.custom_minimum_size = Vector2(LEFT_COLUMN_WIDTH, 0)
     var vbox := VBoxContainer.new()
     vbox.add_theme_constant_override("separation", 0)
     margin.add_child(vbox)
@@ -1426,6 +1453,8 @@ func _set_cursor(level: Level, index: int) -> void:
     # カーソルのある行が見える位置までスクロールする（レイアウトが確定してから効かせる）
     if _scroll != null and is_open:
         var target: Control = _close_button if index == CURSOR_CLOSE else _rows[index]
+        # 左右並びなら左の列が、上下並びなら全体がスクロールする（動かない方は何もしない）
+        _left_scroll.ensure_control_visible.call_deferred(target)
         _scroll.ensure_control_visible.call_deferred(target)
 
 
@@ -1455,6 +1484,13 @@ func _update_cursor_visuals() -> void:
     _update_close_color()
     _apply_right_text_color()
     _refresh_data()
+    # EDIT で操作している部品が見える位置までスクロールする（右の列と全体の両方。動かない方は何もしない）
+    if is_open and _level == Level.EDIT:
+        var control := _current_edit_control()
+        if not control.is_empty():
+            var node: Control = control["node"]
+            _right_scroll.ensure_control_visible.call_deferred(node)
+            _scroll.ensure_control_visible.call_deferred(node)
 
 
 # 左の列の行の文字（項目名と山形）の色。今選べる階層の行は白、そうでなければ灰。
@@ -1506,7 +1542,7 @@ func _update_edit_bar() -> void:
     var top := rect.position.y - 6.0
     var bottom := rect.end.y + 6.0
     # スクロールの見える範囲からはみ出すところは切り詰める（完全に外れたら隠す）
-    var view := _scroll.get_global_rect()
+    var view := _scroll.get_global_rect().intersection(_right_scroll.get_global_rect())
     top = maxf(top, view.position.y)
     bottom = minf(bottom, view.end.y)
     if bottom <= top:
