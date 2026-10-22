@@ -1,5 +1,6 @@
 extends Node
 # 動けなくなったとき、最後に安全だった地点に戻す（時間では判定せず、手動で呼ぶ）
+# 動けなくなっていそうかも判定する（操作説明の Recover に縁取りを付けるため。自動では戻さない）
 
 # この距離 [m] 進むごとに安全な地点を記録する
 @export var record_interval := 2.0
@@ -13,6 +14,12 @@ extends Node
 @export var lift := 0.3
 # この時間 [s] 以内の連続操作は、さらに古い地点に戻る
 const REPEAT_WINDOW := 3.0
+# 動けなくなっていそうと判定するまでの時間 [s]。この間ずっと条件が続き、動いた距離が STUCK_DISTANCE 未満なら判定する
+const STUCK_TIME := 2.5
+# この時間に動いた距離 [m] がこれ未満なら「ほとんど動いていない」
+const STUCK_DISTANCE := 1.0
+# 位置を記録する間隔 [s]
+const STUCK_SAMPLE_INTERVAL := 0.1
 
 var _points: Array[Transform3D] = []
 var _travel := 0.0
@@ -21,6 +28,11 @@ var _last_time := -100.0
 var _safe_since_respawn := true
 # 戻した回数（テスト用）
 var respawned_count := 0
+# 動けなくなっていそうな状態が続いている時間 [s]、その間に記録した位置、判定の結果
+var _stuck_time := 0.0
+var _stuck_sample_timer := 0.0
+var _stuck_samples: Array[Vector3] = []
+var _stuck := false
 
 func _ready() -> void:
     # 開始位置はそのまま戻り先に使える。
@@ -41,8 +53,55 @@ func _is_safe(vehicle: VehicleBody3D) -> bool:
         return false
     return vehicle.linear_velocity.length() >= min_speed
 
+func is_stuck() -> bool:
+    return _stuck
+
+# 抜け出そうとしている、または機体の状態がおかしい（動けなくなっていそうかを調べる条件）
+func _is_stuck_condition(vehicle: VehicleBody3D) -> bool:
+    # エンディング2の無重力では漂うので判定しない
+    if Ending.is_zero_gravity():
+        return false
+    # 進もうとしている
+    if absf(Input.get_axis("down", "up")) > 0.5:
+        return true
+    # ひっくり返っている
+    if vehicle.global_basis.y.dot(Vector3.UP) < 0.5:
+        return true
+    # 浮いたまま（ジェットで浮いているときは除く）
+    if Input.is_action_pressed("jump"):
+        return false
+    for node in vehicle.get_children():
+        var wheel := node as VehicleWheel3D
+        if wheel != null and wheel.is_in_contact():
+            return false
+    return true
+
+func _clear_stuck() -> void:
+    _stuck_time = 0.0
+    _stuck_sample_timer = 0.0
+    _stuck_samples.clear()
+    _stuck = false
+
+func _update_stuck(vehicle: VehicleBody3D, delta: float) -> void:
+    if not _is_stuck_condition(vehicle):
+        _clear_stuck()
+        return
+    _stuck_time += delta
+    _stuck_sample_timer += delta
+    if _stuck_sample_timer >= STUCK_SAMPLE_INTERVAL:
+        _stuck_sample_timer = 0.0
+        _stuck_samples.append(vehicle.global_position)
+        while _stuck_samples.size() > int(STUCK_TIME / STUCK_SAMPLE_INTERVAL):
+            _stuck_samples.pop_front()
+    # 一番古い記録から、ほとんど動いていなければ動けなくなっていそうと判定する
+    if _stuck_time >= STUCK_TIME and not _stuck_samples.is_empty():
+        _stuck = _stuck_samples[0].distance_to(vehicle.global_position) < STUCK_DISTANCE
+    else:
+        _stuck = false
+
 func _physics_process(delta: float) -> void:
     var vehicle := get_parent() as VehicleBody3D
+    _update_stuck(vehicle, delta)
     if _is_safe(vehicle):
         _safe_since_respawn = true
         _travel += vehicle.linear_velocity.length() * delta
@@ -86,4 +145,5 @@ func respawn() -> void:
     _last_time = now
     _safe_since_respawn = false
     _travel = 0.0
+    _clear_stuck()
     respawned_count += 1
