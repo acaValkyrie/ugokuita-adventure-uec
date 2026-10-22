@@ -151,7 +151,9 @@ var _root: Control
 var _icon: TextureRect
 var _name_label: Label
 var _desc_label: Label
-var _hint_icon: TextureRect
+# 続け方の行のボタンの絵を入れる枠（絵は ControlsHelp が作る Control）と、入れている絵の印（ControlsHelp.get_icon_token）。まだ入れていなければ null
+var _hint_icon: Control
+var _hint_icon_token: Variant = null
 var _hint_label: Label
 var _fanfare_player: AudioStreamPlayer
 
@@ -477,12 +479,14 @@ func _input(event: InputEvent) -> void:
 
 # 続け方の行。ボタンの種類は入力の切り替えで変わるので、毎フレーム合わせる
 func _update_hint() -> void:
-    var icon := ControlsHelp.get_interact_icon()
-    _hint_icon.visible = icon != null
-    if icon != null:
-        _hint_icon.texture = icon
-        # 高さ36pxに合わせて、幅は画像の縦横比から決める
-        _hint_icon.custom_minimum_size.x = 36.0 * icon.get_width() / icon.get_height()
+    # 絵は印が変わったときだけ作り直す（タッチは絵が無いので空の印）
+    var token := ControlsHelp.get_icon_token("interact")
+    if token != _hint_icon_token:
+        _hint_icon_token = token
+        # 高さ36pxの絵を、枠の大きさに合わせて入れる
+        ControlsHelp.set_icon_slot(_hint_icon, ControlsHelp.make_interact_icon(36.0) if token != "" else null)
+    _hint_icon.visible = token != ""
+    if token != "":
         _hint_label.text = "で続ける"
     else:
         _hint_label.text = "タップして続ける"
@@ -569,11 +573,9 @@ func _build_popup() -> void:
     hint_row.add_theme_constant_override("separation", 8)
     box.add_child(hint_row)
 
-    _hint_icon = TextureRect.new()
+    _hint_icon = Control.new()
     _hint_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
     _hint_icon.custom_minimum_size = Vector2(0, 36)
-    _hint_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    _hint_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     _hint_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     hint_row.add_child(_hint_icon)
 

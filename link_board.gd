@@ -32,7 +32,9 @@ static var _selected_frame := -1
 
 var _layer: CanvasLayer
 var _panel: PanelContainer
-var _icon: TextureRect
+# ヒントのボタンの絵を入れる枠（絵は ControlsHelp が作る Control）と、入れている絵の印（ControlsHelp.get_icon_token）。まだ入れていなければ null
+var _icon: Control
+var _icon_token: Variant = null
 var _label: Label
 var _outline: Node3D
 # リンクを開いている途中か（二重に開かない）
@@ -145,11 +147,9 @@ func _ready() -> void:
     box.add_theme_constant_override("separation", 12)
     _panel.add_child(box)
 
-    _icon = TextureRect.new()
+    _icon = Control.new()
     _icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
     _icon.custom_minimum_size = Vector2(0, 40)
-    _icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    _icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     _icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     box.add_child(_icon)
 
@@ -189,12 +189,14 @@ func _process(_delta: float) -> void:
     if not _layer.visible:
         return
     # ボタンの種類は入力の切り替えで変わるので、毎フレーム合わせる
-    var icon := ControlsHelp.get_interact_icon()
-    _icon.visible = icon != null
-    if icon != null:
-        _icon.texture = icon
-        # 高さ40pxに合わせて、幅は画像の縦横比から決める
-        _icon.custom_minimum_size.x = 40.0 * icon.get_width() / icon.get_height()
+    # 絵は印が変わったときだけ作り直す（タッチは絵が無いので空の印）
+    var token := ControlsHelp.get_icon_token("interact")
+    if token != _icon_token:
+        _icon_token = token
+        # 高さ40pxの絵を、枠の大きさに合わせて入れる
+        ControlsHelp.set_icon_slot(_icon, ControlsHelp.make_interact_icon(40.0) if token != "" else null)
+    _icon.visible = token != ""
+    if token != "":
         _label.text = "ウェブで開く"
     else:
         _label.text = "タップしてウェブで開く"

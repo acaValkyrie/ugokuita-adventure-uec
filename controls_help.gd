@@ -41,22 +41,50 @@ const ICON_KEY_SLASH := preload("res://assets/ui/controls/key_slash.png")
 const ICON_SHOULDER_RB := preload("res://assets/ui/controls/shoulder_rb.png")
 const ICON_SHOULDER_R := preload("res://assets/ui/controls/shoulder_r.png")
 const ICON_SHOULDER_R1 := preload("res://assets/ui/controls/shoulder_r1.png")
+# 文字の無いキーの絵（tools/make_blank_key_icons.py で作ったもの）。割り当てを変えたキーは、この上に文字を重ねて描く
+const ICON_KEY_BLANK := preload("res://assets/ui/controls/key_blank.png")
+const ICON_KEY_BLANK_WIDE := preload("res://assets/ui/controls/key_blank_wide.png")
+
+# 専用の絵があるキー（physical_keycode → [絵, 絵に描いてある文字。KeyBindings.key_label と同じ表記]）。
+# キー配列が違って、そのキーの位置に別の文字が書いてあるときは、絵を使わず文字を重ねて描く
+const KEY_ICONS := {
+    KEY_R: [ICON_KEY_R, "R"],
+    KEY_M: [ICON_KEY_M, "M"],
+    KEY_E: [ICON_KEY_E, "E"],
+    KEY_SPACE: [ICON_KEY_SPACE, "Space"],
+    KEY_SHIFT: [ICON_KEY_SHIFT, "Shift"],
+    KEY_SLASH: [ICON_KEY_SLASH, "Slash"],
+}
+# 矢印のキー（絵に三角の矢印を描く）と、その向き（上向きの三角を回す角度 [rad]）
+const ARROW_KEYS := {
+    KEY_UP: 0.0,
+    KEY_RIGHT: PI / 2.0,
+    KEY_DOWN: PI,
+    KEY_LEFT: -PI / 2.0,
+}
+# 文字を重ねる絵の中の、キーの面（縁と影を除いた黒い部分）の位置。絵の大きさに対する割合（tools/make_blank_key_icons.py で調べた矩形）
+const KEY_FACE_SQUARE := Rect2(55.0 / 256.0, 55.0 / 256.0, 145.0 / 256.0, 141.0 / 256.0)
+const KEY_FACE_WIDE := Rect2(61.0 / 512.0, 11.0 / 112.0, 389.0 / 512.0, 83.0 / 112.0)
+# 横長のキーの絵は上下の余白を切ってあるので、キーの高さを正方形のキーとそろえるための、絵の高さの倍率
+const WIDE_KEY_HEIGHT_SCALE := 0.72
+# キーに重ねる文字の色と、大きさ（絵の高さに対する割合。横長のキーは面に収まるよう縮める）
+const KEY_TEXT_COLOR := Color("#f0f0f0")
+const KEY_TEXT_SCALE := 0.4
+# 日本語フォントの大文字の高さ（文字の大きさに対する割合）。文字の縦の中央を、キーの面の中央に合わせるために使う
+const KEY_TEXT_CAP_HEIGHT := 0.73
+# 矢印の三角の大きさ（絵の高さに対する割合）
+const KEY_ARROW_SCALE := 0.17
+# 4つのキーを並べた絵で、キーの面どうしの間（px）
+const KEY_CLUSTER_GAP := 3.0
 
 # 動けなくなっていそうなとき、アイコンに縁取りを付ける項目のラベル
 const RECOVER_LABEL := "Recover"
 # 縁取りの点滅の周期 [s]
 const RECOVER_BLINK_PERIOD := 0.8
 
-# モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
+# キーボード以外のモードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]。
+# キーボードは割り当てを変えられるので、_keyboard_items で毎回組み立てる
 const ITEMS := {
-    Mode.KEYBOARD: [
-        [ICON_KEYS_WASD, "Drive"],
-        [ICON_KEYS_ARROWS, "Camera"],
-        [ICON_KEY_SPACE, "Jump", 0.4375],  # 絵の上下の余白を切ってあるので、キーの高さが R・M のキー（倍率 0.6）とそろう倍率
-        [ICON_KEY_SLASH, "Drift", 0.6],  # 1文字のキーの絵なので R・M と同じ倍率。右手で押せるよう「/」（JIS の「・」）にした（Ctrl だと Web 版で Ctrl+W がタブを閉じる）
-        [ICON_KEY_R, RECOVER_LABEL, 0.6],
-        [ICON_KEY_M, "Map", 0.6],
-    ],
     Mode.TOUCH: [
         [ICON_SWIPE_ONE, "Drive"],
         [ICON_SWIPE_TWO, "Camera"],
@@ -172,6 +200,7 @@ func _process(_delta: float) -> void:
 func _connect_menu() -> void:
     GameMenu.pad_layout_changed.connect(_on_pad_layout_changed)
     GameMenu.swap_confirm_changed.connect(_on_swap_confirm_changed)
+    GameMenu.key_bindings_changed.connect(_on_key_bindings_changed)
     # 読み込んだ設定を反映する
     _rebuild()
 
@@ -181,6 +210,10 @@ func _on_pad_layout_changed(_layout: String) -> void:
 
 
 func _on_swap_confirm_changed(_swapped: bool) -> void:
+    _rebuild()
+
+
+func _on_key_bindings_changed() -> void:
     _rebuild()
 
 
@@ -214,6 +247,8 @@ func _set_mode(mode: Mode) -> void:
 
 # モードごとの表示項目を返す。コントローラは選択中のボタン表記で組み立てる
 func _items_for(mode: Mode) -> Array:
+    if mode == Mode.KEYBOARD:
+        return _keyboard_items()
     if mode != Mode.GAMEPAD:
         return ITEMS[mode]
     var icons: Dictionary = PAD_ICONS[_icon_family(GameMenu.pad_layout)].duplicate()
@@ -233,24 +268,195 @@ func _items_for(mode: Mode) -> Array:
     ]
 
 
-# ブーストのボタンのアイコン（ブーストのゲージの横に出す）。タッチはゲージ自体がボタンなので null
-func get_boost_icon() -> Texture2D:
+# キーボードのときの表示項目。割り当てたキーに合わせて、キーの絵（Control）を毎回作る。
+# 運転・カメラは、4つのキーがすべて初期のままなら WASD・矢印キーの絵（Texture2D）、変わっていれば4つのキーを並べた絵にする。
+# ドリフトは、右手で押せるよう「/」（JIS の「・」）にしてある（Ctrl だと Web 版で Ctrl+W がタブを閉じる）
+func _keyboard_items() -> Array:
+    var key_height := _icon_height(0.6)
+    return [
+        [_make_direction_icon(["up", "left", "down", "right"], ICON_KEYS_WASD, key_height), "Drive"],
+        [_make_direction_icon(["view_up", "view_left", "view_down", "view_right"], ICON_KEYS_ARROWS, key_height), "Camera"],
+        [make_key_icon(KeyBindings.get_key("jump"), key_height), "Jump"],
+        [make_key_icon(KeyBindings.get_key("drift"), key_height), "Drift"],
+        [make_key_icon(KeyBindings.get_key("respawn"), key_height), RECOVER_LABEL],
+        [make_key_icon(KeyBindings.get_key("map"), key_height), "Map"],
+    ]
+
+
+# 運転・カメラの絵。actions は上・左・下・右の順。すべて初期のままなら default_icon（Texture2D）、そうでなければ4つのキーを並べた Control
+func _make_direction_icon(actions: Array, default_icon: Texture2D, key_height: float) -> Variant:
+    var keys: Array[Key] = []
+    var changed := false
+    for action in actions:
+        keys.append(KeyBindings.get_key(action))
+        if KeyBindings.get_key(action) != KeyBindings.get_default_key(action):
+            changed = true
+    if not changed:
+        return default_icon
+    return _make_keys_cluster(keys, key_height)
+
+
+# ブーストのボタンのアイコン（ブーストのゲージの横に出す）を作る。height は正方形のキー・ボタンの絵の高さ。
+# キーボードは割り当てたキー、コントローラは表記に合わせたボタン。タッチはゲージ自体がボタンなので null
+func make_boost_icon(height: float) -> Control:
+    return _make_action_icon("boost", height)
+
+
+# 看板を開くボタンのアイコン（看板のヒントに出す）を作る。タッチはボタンが無いので null
+func make_interact_icon(height: float) -> Control:
+    return _make_action_icon("interact", height)
+
+
+# 操作（boost・interact）のボタンのアイコンを今の入力方式で作る。作れなければ null
+func _make_action_icon(action: String, height: float) -> Control:
     match _mode:
         Mode.KEYBOARD:
-            return ICON_KEY_SHIFT
+            return make_key_icon(KeyBindings.get_key(action), height)
         Mode.GAMEPAD:
-            return PAD_ICONS[_icon_family(GameMenu.pad_layout)]["boost"]
+            var texture: Texture2D
+            if action == "interact":
+                texture = get_confirm_icon_for(GameMenu.pad_layout)
+            else:
+                texture = PAD_ICONS[_icon_family(GameMenu.pad_layout)][action]
+            return _make_texture_icon(texture, height)
     return null
 
 
-# 看板を開くボタンのアイコン（看板のヒントに出す）。タッチはボタンが無いので null
-func get_interact_icon() -> Texture2D:
+# make_boost_icon・make_interact_icon の絵が変わったかを調べるための印。同じ印なら絵を作り直さなくてよい（絵は Control で、毎フレーム作ると重いため）。
+# 絵が出ないとき（タッチ）は空の文字列
+func get_icon_token(action: String) -> String:
     match _mode:
         Mode.KEYBOARD:
-            return ICON_KEY_E
+            return "key:%d" % KeyBindings.get_key(action)
         Mode.GAMEPAD:
-            return get_confirm_icon_for(GameMenu.pad_layout)
-    return null
+            var texture: Texture2D
+            if action == "interact":
+                texture = get_confirm_icon_for(GameMenu.pad_layout)
+            else:
+                texture = PAD_ICONS[_icon_family(GameMenu.pad_layout)][action]
+            return "pad:%s" % texture.resource_path
+    return ""
+
+
+# 絵を入れる枠（slot）の中身を icon に入れ替えて、枠の最小サイズを絵に合わせる（icon が null なら空にする）
+func set_icon_slot(slot: Control, icon: Control) -> void:
+    for child in slot.get_children():
+        slot.remove_child(child)
+        child.queue_free()
+    slot.custom_minimum_size = Vector2.ZERO
+    if icon == null:
+        return
+    icon.size = icon.custom_minimum_size
+    slot.add_child(icon)
+    slot.custom_minimum_size = icon.custom_minimum_size
+
+
+# 高さを決めて、縦横比を保つ絵（ボタン・キーの絵そのまま）
+func _make_texture_icon(texture: Texture2D, height: float) -> TextureRect:
+    var rect := TextureRect.new()
+    rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    rect.texture = texture
+    rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    var aspect := float(texture.get_width()) / float(texture.get_height())
+    rect.custom_minimum_size = Vector2(roundf(height * aspect), height)
+    rect.set_meta("texture", texture)
+    return rect
+
+
+# そのキーの絵の元になる Texture2D。専用の絵があればそれ、なければ文字の無いキー（1文字か矢印は正方形、2文字以上は横長）
+func key_icon_texture(physical: Key) -> Texture2D:
+    var label := KeyBindings.key_label(physical)
+    if KEY_ICONS.has(physical) and KEY_ICONS[physical][1] == label:
+        return KEY_ICONS[physical][0]
+    if ARROW_KEYS.has(physical) or label.length() <= 1:
+        return ICON_KEY_BLANK
+    return ICON_KEY_BLANK_WIDE
+
+
+# キーの絵を作る。height は正方形のキーの絵の高さ（横長のキーは、キーの高さがそろうよう WIDE_KEY_HEIGHT_SCALE をかける）。
+# 専用の絵が無いキーは、文字の無いキーの絵の面の中央に、文字（矢印は三角）を重ねて描く。
+# 絵の中の縦の基準（ICON_ALIGN の代わり）は絵の中央なので、align のメタデータは付けない
+func make_key_icon(physical: Key, height: float) -> Control:
+    var texture := key_icon_texture(physical)
+    var wide := texture.get_width() > texture.get_height()
+    var icon := _make_texture_icon(texture, roundf(height * WIDE_KEY_HEIGHT_SCALE) if wide else height)
+    if texture == ICON_KEY_BLANK or texture == ICON_KEY_BLANK_WIDE:
+        var overlay := Control.new()
+        overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+        overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+        overlay.draw.connect(_draw_key_overlay.bind(overlay, physical, wide))
+        icon.add_child(overlay)
+    return icon
+
+
+# キーの絵の中の、キーの面の位置（px）。絵は icon の全体に広がっているものとして計算する
+func _key_face(icon: Control) -> Rect2:
+    var texture: Texture2D = icon.get_meta("texture")
+    var fraction := KEY_FACE_WIDE if texture.get_width() > texture.get_height() else KEY_FACE_SQUARE
+    var size := icon.custom_minimum_size
+    return Rect2(fraction.position * size, fraction.size * size)
+
+
+# 文字の無いキーの絵の上に、文字（矢印のキーは三角）を面の中央に描く
+func _draw_key_overlay(overlay: Control, physical: Key, wide: bool) -> void:
+    var fraction := KEY_FACE_WIDE if wide else KEY_FACE_SQUARE
+    var face := Rect2(fraction.position * overlay.size, fraction.size * overlay.size)
+    var center := face.get_center()
+    if ARROW_KEYS.has(physical):
+        # 上向きの三角を、向きに合わせて回す。外接する矩形の中心を面の中央に合わせる
+        var radius := overlay.size.y * KEY_ARROW_SCALE
+        var points := PackedVector2Array()
+        for point in [Vector2(0.0, -radius), Vector2(radius * 0.95, radius * 0.75), Vector2(-radius * 0.95, radius * 0.75)]:
+            points.append(center + (point + Vector2(0.0, radius * 0.125)).rotated(ARROW_KEYS[physical]))
+        overlay.draw_colored_polygon(points, KEY_TEXT_COLOR)
+        return
+    var text := KeyBindings.key_label(physical)
+    var font_size := roundi(overlay.size.y * KEY_TEXT_SCALE)
+    var text_width := UiStyle.FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+    # 面に収まらないときは縮める（面の幅の 88% まで）
+    var max_width := face.size.x * 0.88
+    if text_width > max_width:
+        font_size = maxi(floori(font_size * max_width / text_width), 1)
+        text_width = UiStyle.FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+    var position := Vector2(center.x - text_width / 2.0, center.y + font_size * KEY_TEXT_CAP_HEIGHT / 2.0)
+    overlay.draw_string(UiStyle.FONT, position, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, KEY_TEXT_COLOR)
+
+
+# 4つのキー（上・左・下・右の順）を、上の段に上のキー、下の段に左・下・右のキーで並べた絵。上のキーは下の段の真ん中の真上に置く。
+# キーの面どうしを KEY_CLUSTER_GAP あけて並べるので、絵の余白は切る。縦の基準は下の段のキーの中心（align のメタデータ）
+func _make_keys_cluster(keys: Array[Key], key_height: float) -> Control:
+    var icons: Array[Control] = []
+    var faces: Array[Rect2] = []
+    var row_height := 0.0
+    for key in keys:
+        var icon := make_key_icon(key, key_height)
+        icon.size = icon.custom_minimum_size
+        icons.append(icon)
+        var face := _key_face(icon)
+        faces.append(face)
+        row_height = maxf(row_height, face.size.y)
+    var cluster := Control.new()
+    cluster.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    cluster.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    # 下の段（左・下・右 = 添字 1・2・3）は左から順に、上のキー（添字 0）は下の段の真ん中の中央に
+    var left_x := [0.0, 0.0, 0.0, 0.0]
+    var x := 0.0
+    for i in [1, 2, 3]:
+        left_x[i] = x
+        x += faces[i].size.x + KEY_CLUSTER_GAP
+    left_x[0] = left_x[2] + (faces[2].size.x - faces[0].size.x) / 2.0
+    var top_y := [0.0, row_height + KEY_CLUSTER_GAP, row_height + KEY_CLUSTER_GAP, row_height + KEY_CLUSTER_GAP]
+    for i in 4:
+        # 面が (left_x, 段の中央) に来るよう、絵を面の左上の分だけずらして置く
+        var y: float = top_y[i] + (row_height - faces[i].size.y) / 2.0
+        icons[i].position = Vector2(left_x[i], y) - faces[i].position
+        cluster.add_child(icons[i])
+    var total := Vector2(x - KEY_CLUSTER_GAP, 2.0 * row_height + KEY_CLUSTER_GAP)
+    cluster.custom_minimum_size = total
+    cluster.set_meta("align", (total.y - row_height / 2.0) / total.y)
+    return cluster
 
 
 # いまの入力方式
@@ -298,6 +504,7 @@ func _rebuild() -> void:
     for child in _hbox.get_children():
         _hbox.remove_child(child)
         child.queue_free()
+    # アイコン（item[0]）は Texture2D か、作った絵の Control（キーボード）
     var items := _items_for(_mode)
     # 基準のキーの中心から、アイコンの下端までの長さの最大値（これに合わせて他の項目に隙間を入れる）
     var max_below := 0.0
@@ -328,8 +535,11 @@ func _icon_height(icon_scale: float) -> float:
     return roundf(ICON_HEIGHT * icon_scale)
 
 
-# 基準のキーの中心から、アイコンの下端までの長さ（px）
-func _below_center(icon: Texture2D, icon_scale: float) -> float:
+# 基準のキーの中心から、アイコンの下端までの長さ（px）。
+# Control の絵は自分で高さを持ち、基準が絵の中央でなければ align のメタデータ（上端から、絵の高さに対する割合）を持つ
+func _below_center(icon: Variant, icon_scale: float) -> float:
+    if icon is Control:
+        return (1.0 - icon.get_meta("align", 0.5)) * icon.custom_minimum_size.y
     return (1.0 - ICON_ALIGN.get(icon, 0.5)) * _icon_height(icon_scale)
 
 
@@ -365,20 +575,21 @@ func draw_recover_ring(control: Control, texture: Texture2D, round_ratio: float)
 
 # アイコンとラベルを縦に並べた1項目を作る（下端を揃えてラベルを同じ高さにする）。
 # アイコンとラベルの間に spacer_height の隙間を入れて、基準のキーの中心を項目どうしでそろえる
-func _make_item(icon: Texture2D, text: String, icon_scale: float, spacer_height: float) -> VBoxContainer:
+func _make_item(icon: Variant, text: String, icon_scale: float, spacer_height: float) -> VBoxContainer:
     var box := VBoxContainer.new()
     box.mouse_filter = Control.MOUSE_FILTER_IGNORE
     box.alignment = BoxContainer.ALIGNMENT_END
     box.add_theme_constant_override("separation", 0)
 
-    var rect := TextureRect.new()
-    rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    rect.texture = icon
-    rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-    var aspect := float(icon.get_width()) / float(icon.get_height())
-    var height := _icon_height(icon_scale)
-    rect.custom_minimum_size = Vector2(roundf(height * aspect), height)
+    # Control の絵（キーボード）は大きさが決まっているのでそのまま入れる。Texture2D は高さを決めて縦横比を保つ
+    var rect: Control
+    var texture: Texture2D
+    if icon is Control:
+        rect = icon
+        texture = icon.get_meta("texture", null)
+    else:
+        texture = icon
+        rect = _make_texture_icon(texture, _icon_height(icon_scale))
     box.add_child(rect)
 
     if text == RECOVER_LABEL:
@@ -388,7 +599,7 @@ func _make_item(icon: Texture2D, text: String, icon_scale: float, spacer_height:
         _recover_ring.set_anchors_preset(Control.PRESET_FULL_RECT)
         _recover_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
         _recover_ring.visible = _stuck
-        _recover_ring.draw.connect(draw_recover_ring.bind(_recover_ring, icon, round_ratio))
+        _recover_ring.draw.connect(draw_recover_ring.bind(_recover_ring, texture, round_ratio))
         rect.add_child(_recover_ring)
 
     var spacer := Control.new()

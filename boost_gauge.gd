@@ -9,8 +9,6 @@ const RING_WIDTH := 8.0
 const MARGIN := 16.0
 # ゲージの横に出すボタンのアイコンの高さ [px]
 const HINT_HEIGHT := 44.0
-# SHIFT キーの絵は上下の余白を切ってあるので、キーの高さを他のキーとそろえるための倍率
-const SHIFT_HINT_SCALE := 0.716
 const HINT_GAP := 8.0
 const FONT_SIZE := 13
 const COLOR_BACK := Color(1, 1, 1, 0.15)
@@ -18,7 +16,10 @@ const COLOR_CHARGING := UiStyle.TEXT_COLOR
 const COLOR_FULL := UiStyle.ACCENT_COLOR
 
 var _view: Control
-var _hint: TextureRect
+# ブーストのボタンの絵を入れる枠（絵は ControlsHelp が作る Control で、入力方式やキーの割り当てが変わったときだけ入れ替える）
+var _hint: Control
+# 枠に入れている絵の印（ControlsHelp.get_icon_token）。まだ入れていなければ null
+var _hint_token: Variant = null
 var _gauge := 0.0
 var _touch_enabled := false
 # 押すボタンの倍率をかけた、リングの半径・太さと文字の大きさ
@@ -44,10 +45,8 @@ func _ready() -> void:
     _view.draw.connect(_on_view_draw)
     add_child(_view)
     # ブーストのボタンのアイコン（入力方式とコントローラの表記に合わせる）
-    _hint = TextureRect.new()
+    _hint = Control.new()
     _hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    _hint.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    _hint.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     _hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
     add_child(_hint)
     _touch_enabled = UiStyle.is_touch_device()
@@ -58,13 +57,17 @@ func _process(_delta: float) -> void:
     _view.visible = car != null
     if car:
         _gauge = car.boost_gauge
-    var icon: Texture2D = ControlsHelp.get_boost_icon() if car != null else null
-    _hint.visible = icon != null
-    if icon:
-        _hint.texture = icon
-        var height := HINT_HEIGHT * (SHIFT_HINT_SCALE if icon == ControlsHelp.ICON_KEY_SHIFT else 1.0)
+    # 絵は印が変わったときだけ作り直す（タッチは絵が無いので空の印）
+    var token := ControlsHelp.get_icon_token("boost") if car != null else ""
+    if token != _hint_token:
+        _hint_token = token
+        ControlsHelp.set_icon_slot(_hint, ControlsHelp.make_boost_icon(HINT_HEIGHT) if token != "" else null)
+    _hint.visible = token != ""
+    if token != "":
+        # 横長のキーはキーの高さをそろえるため、絵は低くなる。枠は絵の大きさに合わせる
+        var height := _hint.custom_minimum_size.y
+        var width := _hint.custom_minimum_size.x
         # リングの左に、「BOOST」の文字（リングの中心）と縦の中心をそろえて置く
-        var width := height * icon.get_width() / icon.get_height()
         var diameter := 2.0 * get_outer_radius()
         _hint.offset_right = -(MARGIN + diameter + HINT_GAP)
         _hint.offset_left = _hint.offset_right - width
