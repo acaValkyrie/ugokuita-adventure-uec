@@ -1,16 +1,15 @@
 extends CanvasLayer
 # 左上のメニューボタンと、ESC/STARTで開く一時停止メニュー。
-# メニュー内でBGM と効果音の音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体（Neo / Classic）を選べる。
+# メニュー内でBGM と効果音の音量と、操作説明に出すコントローラのボタン表記（Nintendo / Xbox / DualShock 3 / DualShock 4 / DualSense）、操作する機体（Neo / Classic）を選べる。
 # 決定とキャンセルのボタンを入れ替える設定もある。
-# PlayStation の SELECT・START のボタンの表記（PS3 以前・PS4・PS5）も選べる。
-# 画面は左に項目（音量・コントローラーの設定［下に ボタンの表示形式・決定とキャンセル・PlayStation の表記］・ロボットタイプ・セーブデータ・閉じる）、右に選んでいる項目の詳細を出す。
+# PlayStation の SELECT・START などの表記（PS3 以前・PS4・PS5）は、選んだ機種（DualShock 3・DualShock 4・DualSense）から決まる。
+# 画面は左に項目（音量・コントローラーの設定［下に ボタンの表示形式・決定とキャンセル］・ロボットタイプ・セーブデータ・閉じる）、右に選んでいる項目の詳細を出す。
 # 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（コントローラーの設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。キーボードは Esc で1つ戻る（TOP では閉じる）。
-# 中分類（ボタンの表示形式・決定とキャンセル・PlayStation の表記）の行は、コントローラーの設定に入ったときだけ開き、それ以外ではたたんでおく。
+# 中分類（ボタンの表示形式・決定とキャンセル）の行は、コントローラーの設定に入ったときだけ開き、それ以外ではたたんでおく。
 
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
 signal swap_confirm_changed(swapped: bool)
-signal ps_generation_changed(generation: String)
 
 # Master バスの既定音量（default_bus_layout.tres）
 const BASE_DB := -6.0206
@@ -28,14 +27,10 @@ const BGM_PREVIEW_SOUND := preload("res://assets/audio/bgm/これにてお開き
 # 音量バーの埋まった部分の色（EDIT のカーソルがあるときは ACCENT_COLOR）
 const VOLUME_FILL_COLOR := Color(0.88, 0.88, 0.88)
 # 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
-const PAD_LAYOUTS := ["nintendo", "playstation", "xbox"]
-const PAD_LAYOUT_NAMES := ["Nintendo", "PlayStation", "Xbox"]
-# PlayStation の SELECT・START のボタンの表記（設定ファイルに保存する値）
-const PS_GENERATIONS := ["ps3", "ps4", "ps5"]
-const PS_GENERATION_NAMES := ["PS3 以前", "PS4", "PS5"]
-# PS_GENERATIONS の順に、左右の小さいボタンの名前
-const PS_BACK_LABELS := ["SELECT", "SHARE", "CREATE"]
-const PS_START_LABELS := ["START", "OPTIONS", "OPTIONS"]
+const PAD_LAYOUTS := ["nintendo", "xbox", "ds3", "ds4", "dualsense"]
+const PAD_LAYOUT_NAMES := ["Nintendo", "Xbox", "DualShock 3", "DualShock 4", "DualSense"]
+# PlayStation の機種と、SELECT・START などの表記の世代の対応
+const PS_LAYOUT_GENERATIONS := {"ds3": "ps3", "ds4": "ps4", "dualsense": "ps5"}
 # 操作する機体（設定ファイルに保存する値）
 const ROBOT_MODELS := ["neo", "classic"]
 const ROBOT_MODEL_NAMES := ["Ugokuita Neo", "Ugokuita Classic"]
@@ -62,12 +57,13 @@ const LOGO_TEXT := preload("res://assets/ui/menu/logo_text.png")
 # PAD_LAYOUTS の順
 const PAD_TEXTURES := [
     preload("res://assets/ui/menu/controller_nintendo.png"),
-    preload("res://assets/ui/menu/controller_playstation.png"),
     preload("res://assets/ui/menu/controller_xbox.png"),
+    preload("res://assets/ui/menu/controller_ds3.png"),
+    preload("res://assets/ui/menu/controller_ds4.png"),
+    preload("res://assets/ui/menu/controller_dualsense.png"),
 ]
 const ITEM_ICONS := [
     preload("res://assets/ui/menu/icon_volume.png"),
-    preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_robot.png"),
@@ -78,7 +74,7 @@ const ITEM_ICONS := [
 const CONTROLLER_HEADING := "コントローラーの設定"
 const CONTROLLER_HEADING_ICON := preload("res://assets/ui/menu/icon_controller.png")
 # コントローラーの設定の下に字下げして並べる項目
-const CHILD_ITEMS := [1, 2, 3]
+const CHILD_ITEMS := [1, 2]
 # 子の行の字下げ（px）
 const CHILD_INDENT := 30
 # ROBOT_MODELS の順
@@ -86,26 +82,24 @@ const ROBOT_SCENES := [
     preload("res://assets/ugokuita-neo.glb"),
     preload("res://assets/ugokuita-classic.fbx"),
 ]
-# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: PlayStation の表記、4: ロボットタイプ、5: コントローラーの設定、6: セーブデータ）
-const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "PlayStation の表記", "ロボットタイプ", CONTROLLER_HEADING, "セーブデータ"]
+# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: ロボットタイプ、4: コントローラーの設定、5: セーブデータ）
+const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "ロボットタイプ", CONTROLLER_HEADING, "セーブデータ"]
 const ITEM_DESCRIPTIONS := [
     "BGM と効果音の音量を調整します。決定ボタンで試聴できます",
-    "使っているコントローラーのメーカーに合わせて変更してください",
+    "使っているコントローラーに合わせて変更してください",
     "慣れてる方に変更してください",
-    "SELECT・START のボタンの表記を選びます",
     "操作する機体を切り替えます",
-    "ボタンの表示形式、決定とキャンセル、PlayStation の表記を設定します",
+    "ボタンの表示形式と、決定とキャンセルを設定します",
     "集めたアイテムとヒントの記録をリセットします",
 ]
 const ITEM_VOLUME := 0
 const ITEM_PAD := 1
 const ITEM_CONFIRM := 2
-const ITEM_PS := 3
-const ITEM_ROBOT := 4
-const ITEM_CONTROLLER := 5
-const ITEM_DATA := 6
+const ITEM_ROBOT := 3
+const ITEM_CONTROLLER := 4
+const ITEM_DATA := 5
 # 左の列に並べる順（項目の番号）
-const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_PS, ITEM_ROBOT, ITEM_DATA]
+const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_ROBOT, ITEM_DATA]
 # カーソルが「閉じる」にあるときの番号
 const CURSOR_CLOSE := -1
 # TOP でカーソルが動く順
@@ -139,8 +133,6 @@ var pad_layout: String = "nintendo"
 var robot_model: String = "neo"
 # true なら決定とキャンセルのボタンを標準から入れ替える
 var swap_confirm: bool = false
-# PlayStation の SELECT・START のボタンの表記（PS_GENERATIONS のどれか）
-var ps_generation: String = "ps5"
 # BGM と効果音の音量（0〜100）
 var _bgm_volume: int = 100
 var _se_volume: int = 100
@@ -233,12 +225,6 @@ var _confirm_name_label: Label
 var _confirm_dots: Array[ColorRect] = []
 var _confirm_icon: TextureRect
 var _confirm_cancel_icon: TextureRect
-var _ps_name_label: Label
-var _ps_dots: Array[ColorRect] = []
-var _ps_back_icon: TextureRect
-var _ps_start_icon: TextureRect
-var _ps_back_label: Label
-var _ps_start_label: Label
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
 # セーブデータの項目（持っているアイテムの切り替え、リセットのボタンと中の文字）。リセットは2回押して確定する
@@ -285,7 +271,6 @@ func _ready() -> void:
     _refresh_volume_labels()
     _refresh_pad()
     _refresh_confirm()
-    _refresh_ps()
     _refresh_robot_names()
     _set_cursor(Level.TOP, ITEM_VOLUME)
 
@@ -300,6 +285,16 @@ func _process(delta: float) -> void:
     # ロボットタイプを見ているときだけ機体を回す（一時停止中も動く）
     if _current_item == ITEM_ROBOT and _robot_pivot != null:
         _robot_pivot.rotate_y(deg_to_rad(ROBOT_ROT_SPEED) * delta)
+
+
+# その機種が PlayStation か（DualShock 3・DualShock 4・DualSense）
+func is_playstation_layout(layout: String) -> bool:
+    return PS_LAYOUT_GENERATIONS.has(layout)
+
+
+# 今の機種での PlayStation の表記の世代（ps3・ps4・ps5）。PlayStation の機種でなければ ps5
+func get_ps_generation() -> String:
+    return PS_LAYOUT_GENERATIONS.get(pad_layout, "ps5")
 
 
 func get_button_rect() -> Rect2:
@@ -994,7 +989,7 @@ func _build_right_column() -> Control:
     _edit_controls.resize(ITEM_NAMES.size())
     for i in _edit_controls.size():
         _edit_controls[i] = []
-    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_ps_content(), _build_robot_content(), _build_controller_content(), _build_data_content()]
+    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_robot_content(), _build_controller_content(), _build_data_content()]
     for content in contents:
         content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         content.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1321,27 +1316,6 @@ func _make_confirm_icon_rect() -> TextureRect:
     return icon
 
 
-# PlayStation の表記。中央に、左の小さいボタン（SELECT など）と右の小さいボタン（START など）のアイコンと名前を横に並べる
-func _build_ps_content() -> Control:
-    var center := HBoxContainer.new()
-    center.alignment = BoxContainer.ALIGNMENT_CENTER
-    center.add_theme_constant_override("separation", 40)
-    center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    center.custom_minimum_size = Vector2(0, 250)
-    _ps_back_icon = _make_confirm_icon_rect()
-    var back_column := _make_confirm_column(_ps_back_icon, "")
-    _ps_back_label = back_column.get_child(1) as Label
-    center.add_child(back_column)
-    _ps_start_icon = _make_confirm_icon_rect()
-    var start_column := _make_confirm_column(_ps_start_icon, "")
-    _ps_start_label = start_column.get_child(1) as Label
-    center.add_child(start_column)
-    var parts := _build_selector(center, PS_GENERATIONS.size(), _step_ps, ITEM_PS)
-    _ps_name_label = parts.name_label
-    _ps_dots = parts.dots
-    return parts.box
-
-
 func _build_robot_content() -> Control:
     var container := SubViewportContainer.new()
     container.stretch = true
@@ -1598,7 +1572,7 @@ func _set_current_item(index: int, force: bool) -> void:
         _refresh_data()
 
 
-# 項目の行が属する階層（子の3項目なら SUB、それ以外は TOP）
+# 項目の行が属する階層（子の2項目なら SUB、それ以外は TOP）
 func _level_of_item(index: int) -> Level:
     return Level.SUB if index in CHILD_ITEMS else Level.TOP
 
@@ -1778,15 +1752,6 @@ func _step_confirm(_direction: int) -> void:
     _refresh_pad()
 
 
-func _step_ps(direction: int) -> void:
-    var count := PS_GENERATIONS.size()
-    var next := (PS_GENERATIONS.find(ps_generation) + direction + count) % count
-    ps_generation = PS_GENERATIONS[next]
-    _save_settings()
-    ps_generation_changed.emit(ps_generation)
-    _refresh_ps()
-
-
 func _step_robot(direction: int) -> void:
     var count := ROBOT_MODELS.size()
     var next := (ROBOT_MODELS.find(robot_model) + direction + count) % count
@@ -1827,16 +1792,6 @@ func _refresh_confirm() -> void:
     _set_dots(_confirm_dots, index)
     _confirm_icon.texture = ControlsHelp.get_confirm_icon_for(pad_layout)
     _confirm_cancel_icon.texture = ControlsHelp.get_cancel_icon_for(pad_layout)
-
-
-func _refresh_ps() -> void:
-    var index := PS_GENERATIONS.find(ps_generation)
-    _ps_name_label.text = PS_GENERATION_NAMES[index]
-    _set_dots(_ps_dots, index)
-    _ps_back_icon.texture = ControlsHelp.get_ps_back_icon(ps_generation)
-    _ps_start_icon.texture = ControlsHelp.get_ps_start_icon(ps_generation)
-    _ps_back_label.text = PS_BACK_LABELS[index]
-    _ps_start_label.text = PS_START_LABELS[index]
 
 
 func _refresh_robot_names() -> void:
@@ -2009,10 +1964,17 @@ func _load_settings() -> void:
     var layout := str(config.get_value("controls", "pad_layout", "nintendo"))
     if layout in PAD_LAYOUTS:
         pad_layout = layout
+    elif layout == "playstation":
+        # 古い設定からの引き継ぎ。PlayStation は世代を別に保存していたので、その世代の機種にする
+        var generation := str(config.get_value("controls", "ps_generation", "ps5"))
+        match generation:
+            "ps3":
+                pad_layout = "ds3"
+            "ps4":
+                pad_layout = "ds4"
+            _:
+                pad_layout = "dualsense"
     swap_confirm = bool(config.get_value("controls", "swap_confirm", false))
-    var generation := str(config.get_value("controls", "ps_generation", "ps5"))
-    if generation in PS_GENERATIONS:
-        ps_generation = generation
     var model := str(config.get_value("robot", "model", "neo"))
     if model in ROBOT_MODELS:
         robot_model = model
@@ -2024,6 +1986,5 @@ func _save_settings() -> void:
     config.set_value("audio", "se_volume", _se_volume)
     config.set_value("controls", "pad_layout", pad_layout)
     config.set_value("controls", "swap_confirm", swap_confirm)
-    config.set_value("controls", "ps_generation", ps_generation)
     config.set_value("robot", "model", robot_model)
     config.save(SETTINGS_PATH)

@@ -97,7 +97,7 @@ const PAD_ICONS := {
     },
 }
 
-# PlayStation の世代（GameMenu.ps_generation）ごとの、左側の小さいボタン（SELECT・SHARE・CREATE）と右側の小さいボタン（START・OPTIONS）のアイコン。
+# PlayStation の世代（選んだ機種から決まる。GameMenu.get_ps_generation）ごとの、左側の小さいボタン（SELECT・SHARE・CREATE）と右側の小さいボタン（START・OPTIONS）のアイコン。
 # リセットは左側のボタンに割り当てている
 const PS_BACK_ICONS := {
     "ps3": ICON_BUTTON_SELECT,
@@ -172,16 +172,11 @@ func _process(_delta: float) -> void:
 func _connect_menu() -> void:
     GameMenu.pad_layout_changed.connect(_on_pad_layout_changed)
     GameMenu.swap_confirm_changed.connect(_on_swap_confirm_changed)
-    GameMenu.ps_generation_changed.connect(_on_ps_generation_changed)
     # 読み込んだ設定を反映する
     _rebuild()
 
 
 func _on_pad_layout_changed(_layout: String) -> void:
-    _rebuild()
-
-
-func _on_ps_generation_changed(_generation: String) -> void:
     _rebuild()
 
 
@@ -221,10 +216,10 @@ func _set_mode(mode: Mode) -> void:
 func _items_for(mode: Mode) -> Array:
     if mode != Mode.GAMEPAD:
         return ITEMS[mode]
-    var icons: Dictionary = PAD_ICONS[GameMenu.pad_layout].duplicate()
-    # PlayStation のリセットは、選んだ世代の左側の小さいボタンにする
-    if GameMenu.pad_layout == "playstation":
-        icons["reset"] = get_ps_back_icon(GameMenu.ps_generation)
+    var icons: Dictionary = PAD_ICONS[_icon_family(GameMenu.pad_layout)].duplicate()
+    # PlayStation のリセットは、選んだ機種の世代の左側の小さいボタンにする
+    if GameMenu.is_playstation_layout(GameMenu.pad_layout):
+        icons["reset"] = get_ps_back_icon(GameMenu.get_ps_generation())
     return [
         [ICON_STICK_LEFT, "Steer"],
         # コントローラの実際の左右の位置に合わせて、LT（左）を RT（右）より先に並べる
@@ -244,7 +239,7 @@ func get_boost_icon() -> Texture2D:
         Mode.KEYBOARD:
             return ICON_KEY_SHIFT
         Mode.GAMEPAD:
-            return PAD_ICONS[GameMenu.pad_layout]["boost"]
+            return PAD_ICONS[_icon_family(GameMenu.pad_layout)]["boost"]
     return null
 
 
@@ -272,12 +267,19 @@ func get_cancel_icon() -> Texture2D:
 
 # 指定した表記での決定のボタンのアイコン。入れ替えの設定が有効ならキャンセルのボタンのアイコンを返す
 func get_confirm_icon_for(layout: String) -> Texture2D:
-    return PAD_ICONS[layout]["cancel" if GameMenu.swap_confirm else "interact"]
+    return PAD_ICONS[_icon_family(layout)]["cancel" if GameMenu.swap_confirm else "interact"]
 
 
 # 指定した表記でのキャンセルのボタンのアイコン。入れ替えの設定が有効なら決定のボタンのアイコンを返す
 func get_cancel_icon_for(layout: String) -> Texture2D:
-    return PAD_ICONS[layout]["interact" if GameMenu.swap_confirm else "cancel"]
+    return PAD_ICONS[_icon_family(layout)]["interact" if GameMenu.swap_confirm else "cancel"]
+
+
+# アイコンの表を引くための機種の分類。PlayStation の3機種（DualShock 3・4・DualSense）は "playstation" にまとめる
+func _icon_family(layout: String) -> String:
+    if GameMenu.is_playstation_layout(layout):
+        return "playstation"
+    return layout
 
 
 # PlayStation の指定した世代での、左の小さいボタン（SELECT・SHARE・CREATE）のアイコン
