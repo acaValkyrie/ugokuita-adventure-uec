@@ -97,7 +97,7 @@ const ITEM_DESCRIPTIONS := [
     "ボタンの表示形式、決定とキャンセル、カメラの操作、キーの割り当てを設定します",
     "集めたアイテムとヒントの記録をリセットします",
     "カメラを動かす向きを、左右・上下それぞれで反転できます",
-    "キーボードのキーの割り当てを変えます。決定で選び、使いたいキーを押してください",
+    "決定で選んで、使いたいキーを押してください",
 ]
 const ITEM_VOLUME := 0
 const ITEM_PAD := 1
@@ -1962,7 +1962,7 @@ func _refresh_keys() -> void:
     for i in KeyBindings.ACTIONS.size():
         var action: String = KeyBindings.ACTIONS[i]
         var listening := action == _listening_action
-        ControlsHelp.set_icon_slot(_key_icon_slots[i], ControlsHelp.make_key_icon(KeyBindings.get_key(action), 40.0))
+        ControlsHelp.set_icon_slot(_key_icon_slots[i], ControlsHelp.make_key_icon(KeyBindings.get_key(action), 56.0))
         _key_icon_slots[i].modulate.a = 0.0 if listening else 1.0
         _key_status_labels[i].text = _listening_message if listening else ""
 
