@@ -179,7 +179,10 @@ var _se_preview_mark: Control
 var _preview_player: AudioStreamPlayer
 # 左の項目の行（Button）、背景、白い縦帯、項目名（いずれも項目の番号で引く）、右端の山形
 var _rows: Array[Button] = []
-var _row_backgrounds: Array[Control] = []
+var _row_backgrounds: Array[TextureRect] = []
+# 行の背景の絵（TOP・SUB は赤、EDIT は灰色のグラデーション）
+var _row_red_texture: GradientTexture2D
+var _row_gray_texture: GradientTexture2D
 var _row_stripes: Array[Control] = []
 var _row_name_labels: Array[Label] = []
 var _row_chevrons: Array[Control] = []
@@ -188,7 +191,7 @@ var _arrow_marks: Array[Control] = []
 var _close_button: Button
 var _close_label: Label
 # 閉じるにカーソルがあるときの赤い背景と白い縦帯
-var _close_background: Control
+var _close_background: TextureRect
 var _close_stripe: Control
 var _close_hint_box: HBoxContainer
 var _close_hint_mark: Control
@@ -620,6 +623,9 @@ func _set_stacked(stacked: bool) -> void:
 # ---- 左の列 ----
 
 func _build_left_column() -> Control:
+    # 行の背景の絵は2つだけ作り、全部の行（と閉じる）で共有する
+    _row_red_texture = _make_gradient_texture(Color("#c8102e"), Color("#4a0b12"))
+    _row_gray_texture = _make_gradient_texture(Color(1, 1, 1, 0.16), Color(1, 1, 1, 0.04))
     var margin := _make_margin(28, 24, 20, 16)
     margin.custom_minimum_size = Vector2(LEFT_COLUMN_WIDTH, 0)
     var vbox := VBoxContainer.new()
@@ -663,10 +669,10 @@ func _build_left_column() -> Control:
     return margin
 
 
-# 行の背景（左から右へ赤いグラデーションを全面に出す）。項目の行と「閉じる」で同じものを使う
-func _make_row_background() -> TextureRect:
+# 左から右へ色が変わる横長のグラデーションの絵
+func _make_gradient_texture(from: Color, to: Color) -> GradientTexture2D:
     var gradient := Gradient.new()
-    gradient.colors = PackedColorArray([Color("#c8102e"), Color("#4a0b12")])
+    gradient.colors = PackedColorArray([from, to])
     gradient.offsets = PackedFloat32Array([0.0, 1.0])
     var gradient_texture := GradientTexture2D.new()
     gradient_texture.gradient = gradient
@@ -674,8 +680,13 @@ func _make_row_background() -> TextureRect:
     gradient_texture.fill_to = Vector2(1, 0)
     gradient_texture.width = 256
     gradient_texture.height = 8
+    return gradient_texture
+
+
+# 行の背景（左から右へ赤いグラデーションを全面に出す）。項目の行と「閉じる」で同じものを使う
+func _make_row_background() -> TextureRect:
     var background := TextureRect.new()
-    background.texture = gradient_texture
+    background.texture = _row_red_texture
     background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     background.stretch_mode = TextureRect.STRETCH_SCALE
     background.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1420,10 +1431,11 @@ func _set_cursor(level: Level, index: int) -> void:
 
 # カーソルと階層に合わせて、左の列・右の矢印・音量バーの見た目を更新する
 func _update_cursor_visuals() -> void:
-    var background_alpha := 0.45 if _level == Level.EDIT else 1.0
+    # 右の列を操作している間は、選んでいる行の赤を灰色のグラデーションに替える
+    var background_texture := _row_gray_texture if _level == Level.EDIT else _row_red_texture
     for i in _rows.size():
         _row_backgrounds[i].visible = i == _cursor
-        _row_backgrounds[i].modulate = Color(1, 1, 1, background_alpha)
+        _row_backgrounds[i].texture = background_texture
         _row_stripes[i].visible = i == _cursor
     # 項目名の色は、今選べる行は白、選べない行は灰
     for i in ROW_ORDER:
