@@ -60,6 +60,14 @@ func behind_vehicle_theta() -> float:
         return theta - theta_offset
     return atan2(-flat.y, -flat.x)
 
+# 瞬間移動したあと、カメラをすぐ機体の真後ろへ置く
+func snap_behind_vehicle() -> void:
+    theta_offset = 0.0
+    theta = behind_vehicle_theta()
+    obstructed_distance = radius
+    global_transform.origin = vehicle.global_transform.origin + to_camera_position()
+    look_at(vehicle.global_transform.origin, Vector3.UP)
+
 # カメラを引く向き。機体の進む向きと逆の水平方向（ほぼ止まっているときは機体の後ろ）。
 # 後ろ向きのブーストなどでカメラのほうへ進んでいるときは、カメラを機体の向こうへ押し出さないよう引かない
 func _kick_direction(camera_offset: Vector3) -> Vector3:

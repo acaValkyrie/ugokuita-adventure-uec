@@ -14,6 +14,7 @@
 [ext_resource type="Shader" uid="uid://bn6eij41x21wr" path="res://assets/shaders/space_sky.gdshader" id="11_spacesky"]
 [ext_resource type="Script" uid="uid://7rg4gk6wkpao" path="res://space_sky.gd" id="12_spacesky"]
 [ext_resource type="Script" uid="uid://bjs58wl1ufmm3" path="res://fountain_jet.gd" id="13_fountainjet"]
+[ext_resource type="Script" uid="uid://7d2y3ueymqkw" path="res://gym_portal.gd" id="99_gymportal"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_spacesky"]
 shader = ExtResource("11_spacesky")
@@ -49,6 +50,9 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 0.85
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_gymtrig"]
+size = Vector3(18, 2, 1.2)
+
 [node name="MainScene" type="Node3D" unique_id=1717794103]
 
 [node name="UEC" parent="." unique_id=309456911 instance=ExtResource("2_2c62f")]
@@ -59,6 +63,7 @@ light_color = Color(1, 0.86, 0.68, 1)
 light_energy = 1.3
 shadow_enabled = true
 shadow_opacity = 0.85
+light_cull_mask = 4294966271
 
 [node name="RobotSun" type="DirectionalLight3D" parent="." unique_id=1425039023]
 light_bake_mode = 0
@@ -133,3 +138,17 @@ jet_spread = 10.28
 jet_size_max = 0.195
 drop_rim_color = Color(0.9864089, 0.9920189, 0.9980778, 1)
 sound_volume_db = 13.0
+
+[node name="GymEntrance" type="Node3D" parent="." unique_id=1500000001]
+transform = Transform3D(-0.25628927, 0, -0.9666001, 0, 1, 0, 0.9666001, 0, -0.25628927, -79.04, 0, -118.5)
+script = ExtResource("99_gymportal")
+
+[node name="Trigger" type="Area3D" parent="GymEntrance" unique_id=1500000002]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0.6)
+collision_layer = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GymEntrance/Trigger" unique_id=1500000003]
+shape = SubResource("BoxShape3D_gymtrig")
+
+[node name="ExitPoint" type="Marker3D" parent="GymEntrance" unique_id=1500000004]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 3.5)
