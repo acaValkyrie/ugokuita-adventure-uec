@@ -123,8 +123,6 @@ const TEXT_BODY := Color(0.95, 0.95, 0.95)
 const TEXT_DIM := Color(0.62, 0.62, 0.62)
 const ACCENT_COLOR := Color("#e0182d")
 const DOT_OFF_COLOR := Color(0.35, 0.35, 0.35)
-# カーソルがいない側の列の文字にかける色（self_modulate）
-const INACTIVE_TEXT_MODULATE := Color(1, 1, 1, 0.4)
 # 寸法
 const PANEL_MAX_WIDTH := 1000.0
 const PANEL_BOTTOM := 24.0
@@ -189,6 +187,9 @@ var _close_button: Button
 var _close_label: Label
 var _close_hint_box: HBoxContainer
 var _close_hint_mark: Control
+# キーボードのときの Esc の箱の枠と中の文字（色を _update_close_color で変える）
+var _close_hint_frame: StyleBoxFlat
+var _close_hint_text: Label
 # 閉じるの印を作ったときの入力方式とボタン表記
 var _close_hint_mode: int = -1
 var _close_hint_layout: String = ""
@@ -235,6 +236,7 @@ var _data_item_icon: TextureRect
 var _data_item_name: Label
 var _data_item_desc: Label
 var _data_empty_label: Label
+var _data_note_label: Label
 var _data_item_index: int = 0
 var _data_reset_button: Button
 var _data_reset_label: Label
@@ -752,7 +754,7 @@ func _make_volume_slider(fill: StyleBoxFlat, on_changed: Callable) -> HSlider:
 
 
 func _on_chevron_draw(chevron: Control, index: int) -> void:
-    var color := TEXT_BODY if index == _cursor else TEXT_DIM
+    var color := _row_text_color(index)
     if index == ITEM_CONTROLLER:
         # 下向きの「∨」（幅 14・高さ 8 を 9×16 の枠の中央に置く）
         chevron.draw_polyline(PackedVector2Array([Vector2(-2.5, 4), Vector2(4.5, 12), Vector2(11.5, 4)]), color, 2.5, true)
@@ -781,8 +783,14 @@ func _build_close_row() -> Control:
     return _close_button
 
 
+# 「閉じる」の文字と Esc の箱の色。TOP か、カーソルが閉じるにあるときは白、それ以外は灰
 func _update_close_color() -> void:
-    _close_label.add_theme_color_override("font_color", TEXT_BODY if _cursor == CURSOR_CLOSE else TEXT_DIM)
+    var color := TEXT_BODY if _level == Level.TOP or _cursor == CURSOR_CLOSE else TEXT_DIM
+    _close_label.add_theme_color_override("font_color", color)
+    if _close_hint_frame != null:
+        _close_hint_frame.border_color = color
+    if _close_hint_text != null:
+        _close_hint_text.add_theme_color_override("font_color", color)
 
 
 # 入力方式の印（キーボードは Esc の箱、コントローラはキャンセルのボタン、タッチは無し）を作り直す
@@ -791,6 +799,8 @@ func _rebuild_close_hint() -> void:
         _close_hint_box.remove_child(_close_hint_mark)
         _close_hint_mark.queue_free()
         _close_hint_mark = null
+    _close_hint_frame = null
+    _close_hint_text = null
     _close_hint_mode = ControlsHelp.get_mode()
     _close_hint_layout = pad_layout
     _close_hint_swap = swap_confirm
@@ -809,7 +819,9 @@ func _rebuild_close_hint() -> void:
             frame.content_margin_top = 1
             frame.content_margin_bottom = 1
             box.add_theme_stylebox_override("panel", frame)
-            box.add_child(_make_label("Esc", 15, TEXT_BODY))
+            _close_hint_text = _make_label("Esc", 15, TEXT_BODY)
+            box.add_child(_close_hint_text)
+            _close_hint_frame = frame
             _close_hint_mark = box
         ControlsHelp.Mode.GAMEPAD:
             var icon := ControlsHelp.get_cancel_icon()
@@ -820,8 +832,8 @@ func _rebuild_close_hint() -> void:
     if _close_hint_mark != null:
         _close_hint_box.add_child(_close_hint_mark)
         _close_hint_box.move_child(_close_hint_mark, 0)
-    # 作り直した Esc の文字も、いる側の列に合わせて薄さをそろえる
-    _dim_labels(_close_hint_box, _level == Level.EDIT)
+    # 作り直した Esc の箱も、今の階層に合わせた色にする
+    _update_close_color()
 
 
 # デバッグ用の欄（左の列の項目の下）
@@ -1079,9 +1091,9 @@ func _build_data_content() -> Control:
     box.add_child(_data_reset_button)
     _add_edit_control(ITEM_DATA, _data_reset_button, Callable(), _press_data_reset)
 
-    var note := _make_label("リセットすると、スタート地点からやり直します", 15, TEXT_DIM)
-    note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    box.add_child(note)
+    _data_note_label = _make_label("リセットすると、スタート地点からやり直します", 15, TEXT_DIM)
+    _data_note_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    box.add_child(_data_note_label)
     return box
 
 
@@ -1125,7 +1137,8 @@ func _refresh_data() -> void:
         _data_dots.pop_back().queue_free()
     _set_dots(_data_dots, _data_item_index)
     _data_reset_label.text = "もう一度押すとリセットします" if _data_reset_armed else "アイテムの取得状態をリセット"
-    _data_reset_label.add_theme_color_override("font_color", ACCENT_COLOR if _data_reset_armed else TEXT_BODY)
+    # 確認中は背景を赤みにする（文字の色は _apply_right_text_color が決める）
+    _data_reset_style.bg_color = Color(ACCENT_COLOR, 0.25) if _data_reset_armed else Color(1, 1, 1, 0.08)
     var active := _has_edit_cursor(_data_reset_button) or _data_reset_button.is_hovered()
     _data_reset_style.border_color = ACCENT_COLOR if active else LINE_COLOR
 
@@ -1309,8 +1322,6 @@ func _build_selector(center: Control, count: int, step: Callable, item: int) -> 
     var name_label := _make_label("", 22, TEXT_BODY)
     name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     box.add_child(name_label)
-    # 名前のラベルは部品の外にあるので、一緒に赤くする文字として足す
-    _edit_controls[item].back()["labels"] = [name_label]
 
     var dots_row := HBoxContainer.new()
     dots_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1381,9 +1392,9 @@ func _update_cursor_visuals() -> void:
         _row_backgrounds[i].visible = i == _cursor
         _row_backgrounds[i].modulate = Color(1, 1, 1, background_alpha)
         _row_stripes[i].visible = i == _cursor
-    # TOP のあいだ、子の行の項目名は暗くする
-    for i in CHILD_ITEMS:
-        _row_name_labels[i].add_theme_color_override("font_color", TEXT_DIM if _level == Level.TOP else TEXT_BODY)
+    # 項目名の色は、今選べる行は白、選べない行は灰
+    for i in ROW_ORDER:
+        _row_name_labels[i].add_theme_color_override("font_color", _row_text_color(i))
     for chevron in _row_chevrons:
         chevron.queue_redraw()
     for mark in _arrow_marks:
@@ -1395,35 +1406,33 @@ func _update_cursor_visuals() -> void:
         _stop_bgm_preview()
     _refresh_preview_marks()
     _update_close_color()
-    # カーソルがいない側の列の文字を薄くする（左にいる間は右の列、右にいる間は左の列）
-    if _left_column != null and _right_column != null:
-        var in_right := _level == Level.EDIT
-        _dim_labels(_left_column, in_right)
-        _dim_labels(_right_column, not in_right)
-        # 右の列で操作している部品の文字だけ赤くする
-        if _level == Level.EDIT:
-            var control := _current_edit_control()
-            if not control.is_empty():
-                _tint_labels(control["node"], ACCENT_COLOR)
-                for label in control.get("labels", []):
-                    _tint_labels(label, ACCENT_COLOR)
+    _apply_right_text_color()
     _refresh_data()
 
 
-# node の子孫の Label の文字を薄く（dimmed）または元に戻す。Label 以外の見た目には触らない
-func _dim_labels(node: Node, dimmed: bool) -> void:
+# 左の列の行の文字（項目名と山形）の色。今選べる階層の行は白、そうでなければ灰。
+# TOP・SUB でカーソルのある行は背景が赤なので白、EDIT ではカーソルのある行も灰
+func _row_text_color(index: int) -> Color:
+    if _level != Level.EDIT and index == _cursor:
+        return TEXT_BODY
+    var selectable := Level.SUB if index in CHILD_ITEMS else Level.TOP
+    return TEXT_BODY if _level == selectable else TEXT_DIM
+
+
+# 右の列の文字の色。EDIT のあいだは白、それ以外は灰。説明・セーブデータの注意書き・「持っていません」はいつも灰
+func _apply_right_text_color() -> void:
+    if _right_column == null:
+        return
+    var color := TEXT_BODY if _level == Level.EDIT else TEXT_DIM
+    _set_label_colors(_right_column, color)
+
+
+func _set_label_colors(node: Node, color: Color) -> void:
     for child in node.get_children():
         if child is Label:
-            child.self_modulate = INACTIVE_TEXT_MODULATE if dimmed else Color.WHITE
-        _dim_labels(child, dimmed)
-
-
-# node 自身と子孫の Label の文字に color を掛ける（self_modulate なので元の色との積になる）
-func _tint_labels(node: Node, color: Color) -> void:
-    if node is Label:
-        node.self_modulate = color
-    for child in node.get_children():
-        _tint_labels(child, color)
+            var always_dim: bool = child == _header_desc or child == _data_note_label or child == _data_empty_label
+            child.add_theme_color_override("font_color", TEXT_DIM if always_dim else color)
+        _set_label_colors(child, color)
 
 
 # 今の EDIT で、この部品がカーソルを持っているか
