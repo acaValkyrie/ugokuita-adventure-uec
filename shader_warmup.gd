@@ -59,6 +59,11 @@ func _ready() -> void:
     _render_term()
 
 
+# 起動時の先読み（読み込み画面）の途中か。この間はメニューとマップを開かせない
+func is_loading() -> bool:
+    return not _done
+
+
 func _process(_delta: float) -> void:
     if _done:
         set_process(false)

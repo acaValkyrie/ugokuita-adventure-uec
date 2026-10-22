@@ -269,7 +269,8 @@ func get_button_rect() -> Rect2:
 
 
 func open() -> void:
-    if is_open:
+    # 起動時の読み込み中は開かない（終わったときの pause 解除で開いたまま動いてしまうため）
+    if is_open or ShaderWarmup.is_loading():
         return
     is_open = true
     # デバッグ欄のトグルを、いま取っている状態に合わせる（シグナルは出さない）
