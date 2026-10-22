@@ -1,6 +1,6 @@
 [gd_resource type="StandardMaterial3D" load_steps=2 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/textures/wooden_floor_01/wooden_floor_01_diff_256.jpg" id="1_diff"]
+[ext_resource type="Texture2D" path="res://assets/textures/wooden_floor_01/wooden_floor_01_diff_128.jpg" id="1_diff"]
 
 [resource]
 resource_name = "WoodenFloor01"
