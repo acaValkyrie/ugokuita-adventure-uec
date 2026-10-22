@@ -150,6 +150,8 @@ var _dimmer: ColorRect
 var _panel: PanelContainer
 # 左右（狭いときは上下）に並べる列と、その中身
 var _columns: BoxContainer
+# 列をまとめて縦にスクロールさせる枠（画面の高さが低くても全項目に届くように）
+var _scroll: ScrollContainer
 var _left_column: Control
 var _right_column: Control
 var _divider_margin: MarginContainer
@@ -290,6 +292,7 @@ func open() -> void:
     _dimmer.visible = true
     get_tree().paused = true
     _data_reset_armed = false
+    _scroll.scroll_vertical = 0
     _layout_panel()
     _rebuild_close_hint()
     # 階層とカーソルを最初（TOP の音量）に戻す
@@ -461,6 +464,8 @@ func _make_flat_button(height: float, focus: Control.FocusMode) -> Button:
     button.flat = true
     button.focus_mode = focus
     button.custom_minimum_size = Vector2(0, height)
+    # ボタンの上でもホイールやタッチのドラッグがスクロールに届くようにする
+    button.mouse_filter = Control.MOUSE_FILTER_PASS
     var empty := StyleBoxEmpty.new()
     for state in ["normal", "hover", "pressed", "focus", "disabled", "hover_pressed"]:
         button.add_theme_stylebox_override(state, empty)
@@ -488,9 +493,17 @@ func _build_menu() -> void:
     _panel.theme = theme
     _dimmer.add_child(_panel)
 
+    # 高さが足りないときは縦にスクロールする。中身が短いときは今までどおりパネルいっぱいに広がる
+    _scroll = ScrollContainer.new()
+    _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    _scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+    _panel.add_child(_scroll)
+
     _columns = BoxContainer.new()
     _columns.add_theme_constant_override("separation", 0)
-    _panel.add_child(_columns)
+    _columns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    _columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    _scroll.add_child(_columns)
 
     _left_column = _build_left_column()
     _columns.add_child(_left_column)
@@ -1282,6 +1295,10 @@ func _set_cursor(level: Level, index: int) -> void:
     if index != CURSOR_CLOSE:
         _set_current_item(index, true)
     _update_cursor_visuals()
+    # カーソルのある行が見える位置までスクロールする（レイアウトが確定してから効かせる）
+    if _scroll != null and is_open:
+        var target: Control = _close_button if index == CURSOR_CLOSE else _rows[index]
+        _scroll.ensure_control_visible.call_deferred(target)
 
 
 # カーソルと階層に合わせて、左の列・右の矢印・音量バーの見た目を更新する
