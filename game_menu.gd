@@ -11,6 +11,7 @@ extends CanvasLayer
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
 signal swap_confirm_changed(swapped: bool)
+signal key_bindings_changed
 
 # Master バスの既定音量（default_bus_layout.tres）
 const BASE_DB := -6.0206
@@ -2041,6 +2042,7 @@ func _load_settings() -> void:
     var model := str(config.get_value("robot", "model", "neo"))
     if model in ROBOT_MODELS:
         robot_model = model
+    KeyBindings.load_from(config)
 
 
 func _save_settings() -> void:
@@ -2052,4 +2054,5 @@ func _save_settings() -> void:
     config.set_value("camera", "invert_x", invert_camera_x)
     config.set_value("camera", "invert_y", invert_camera_y)
     config.set_value("robot", "model", robot_model)
+    KeyBindings.save_to(config)
     config.save(SETTINGS_PATH)
