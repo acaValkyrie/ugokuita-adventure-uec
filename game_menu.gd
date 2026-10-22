@@ -5,6 +5,7 @@ extends CanvasLayer
 # PlayStation の SELECT・START のボタンの表記（PS3 以前・PS4・PS5）も選べる。
 # 画面は左に項目（音量・コントローラーの設定［下に ボタンの表示形式・決定とキャンセル・PlayStation の表記］・ロボットタイプ・セーブデータ・閉じる）、右に選んでいる項目の詳細を出す。
 # 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（コントローラーの設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。キーボードは Esc で1つ戻る（TOP では閉じる）。
+# 中分類（ボタンの表示形式・決定とキャンセル・PlayStation の表記）の行は、コントローラーの設定に入ったときだけ開き、それ以外ではたたんでおく。
 
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
@@ -212,6 +213,8 @@ var _level: Level = Level.TOP
 var _cursor: int = ITEM_VOLUME
 # EDIT に入る前の階層
 var _edit_return: Level = Level.TOP
+# コントローラーの設定の中分類（CHILD_ITEMS の行）を開いているか
+var _children_expanded := false
 # 右の列の操作部品（項目の番号 → 部品の配列）。部品は {"node": 印を付ける Control, "step": 左右の処理（Callable か null）, "accept": 決定の処理（Callable か null）}
 var _edit_controls: Array = []
 # EDIT で今指している部品（_edit_controls[_cursor] の中の位置）
@@ -317,6 +320,7 @@ func open() -> void:
     get_tree().paused = true
     _data_reset_armed = false
     _data_item_index = 0
+    _children_expanded = false
     _scroll.scroll_vertical = 0
     _left_scroll.scroll_vertical = 0
     _right_scroll.scroll_vertical = 0
@@ -821,8 +825,12 @@ func _make_volume_slider(fill: StyleBoxFlat, on_changed: Callable) -> HSlider:
 func _on_chevron_draw(chevron: Control, index: int) -> void:
     var color := _row_text_color(index)
     if index == ITEM_CONTROLLER:
-        # 下向きの「∨」（幅 14・高さ 8 を 9×16 の枠の中央に置く）
-        chevron.draw_polyline(PackedVector2Array([Vector2(-2.5, 4), Vector2(4.5, 12), Vector2(11.5, 4)]), color, 2.5, true)
+        # 「∨」「∧」（幅 14・高さ 8 を 9×16 の枠の中央に置く）
+        # たたんでいるときは下向き「∨」、開いているときは上向き「∧」
+        var points := PackedVector2Array([Vector2(-2.5, 4), Vector2(4.5, 12), Vector2(11.5, 4)])
+        if _children_expanded:
+            points = PackedVector2Array([Vector2(-2.5, 12), Vector2(4.5, 4), Vector2(11.5, 12)])
+        chevron.draw_polyline(points, color, 2.5, true)
     else:
         chevron.draw_polyline(PackedVector2Array([Vector2(1, 1), Vector2(8, 8), Vector2(1, 15)]), color, 2.5, true)
 
@@ -1469,6 +1477,9 @@ func _update_cursor_visuals() -> void:
     # 項目名の色は、今選べる行は白、選べない行は灰
     for i in ROW_ORDER:
         _row_name_labels[i].add_theme_color_override("font_color", _row_text_color(i))
+    # 中分類の行は、コントローラーの設定に入っているあいだだけ出す
+    for i in CHILD_ITEMS:
+        _rows[i].visible = _children_expanded
     for chevron in _row_chevrons:
         chevron.queue_redraw()
     for mark in _arrow_marks:
@@ -1592,6 +1603,9 @@ func _on_row_mouse_entered(index: int) -> void:
 
 # クリック・タップ。その行にカーソルを移して、決定と同じ動きをする
 func _on_row_pressed(index: int) -> void:
+    # 親の行（コントローラーの設定以外）を押したら中分類はたたむ。コントローラーの設定は _activate で開く
+    if index != ITEM_CONTROLLER and index not in CHILD_ITEMS:
+        _children_expanded = false
     _set_cursor(_level_of_item(index), index)
     _activate()
 
@@ -1601,6 +1615,7 @@ func _on_close_mouse_entered() -> void:
 
 
 func _on_close_pressed() -> void:
+    _children_expanded = false
     _set_cursor(Level.TOP, CURSOR_CLOSE)
     _activate()
 
@@ -1619,6 +1634,9 @@ func _move_cursor(direction: int) -> void:
     var position := cursors.find(_cursor)
     var next := clampi(position + direction, 0, cursors.size() - 1)
     if next != position:
+        # TOP で上下に動かしたら中分類はたたむ（マウスが乗っただけでは変えない。行がずれてカーソルが飛ぶため）
+        if _level == Level.TOP:
+            _children_expanded = false
         _set_cursor(_level, cursors[next])
 
 
@@ -1655,6 +1673,7 @@ func _activate() -> void:
             if _cursor == CURSOR_CLOSE:
                 close()
             elif _cursor == ITEM_CONTROLLER:
+                _children_expanded = true
                 _set_cursor(Level.SUB, ITEM_PAD)
             else:
                 _enter_edit()
@@ -1673,6 +1692,7 @@ func _cancel() -> void:
         Level.TOP:
             close()
         Level.SUB:
+            _children_expanded = false
             _set_cursor(Level.TOP, ITEM_CONTROLLER)
         Level.EDIT:
             _exit_edit()
