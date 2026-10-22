@@ -982,8 +982,12 @@ func _build_right_column() -> Control:
     desc_margin.add_child(_header_desc)
     vbox.add_child(desc_margin)
 
-    # 中身（項目ごとに作っておき、今の項目のものだけ出す）
-    var holder := Control.new()
+    # 中身（項目ごとに作っておき、今の項目のものだけ出す）。MarginContainer にして、出している中身の高さを右の列に伝える（上下に並べたときにスクロールで届くように）
+    var holder := MarginContainer.new()
+    holder.add_theme_constant_override("margin_left", 0)
+    holder.add_theme_constant_override("margin_top", 0)
+    holder.add_theme_constant_override("margin_right", 0)
+    holder.add_theme_constant_override("margin_bottom", 0)
     holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
     holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
     vbox.add_child(holder)
@@ -992,7 +996,8 @@ func _build_right_column() -> Control:
         _edit_controls[i] = []
     var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_ps_content(), _build_robot_content(), _build_controller_content(), _build_data_content()]
     for content in contents:
-        content.set_anchors_preset(Control.PRESET_FULL_RECT)
+        content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        content.size_flags_vertical = Control.SIZE_EXPAND_FILL
         content.visible = false
         holder.add_child(content)
         _contents.append(content)
