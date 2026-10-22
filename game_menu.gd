@@ -3,7 +3,7 @@ extends CanvasLayer
 # メニュー内でBGM と効果音の音量と、操作説明に出すコントローラのボタン表記（Nintendo / PlayStation / Xbox）、操作する機体（Neo / Classic）を選べる。
 # 決定とキャンセルのボタンを入れ替える設定もある。
 # PlayStation の SELECT・START のボタンの表記（PS3 以前・PS4・PS5）も選べる。
-# 画面は左に項目（音量・コントローラーの設定［下に ボタンの表示形式・決定とキャンセル・PlayStation の表記］・ロボットタイプ・閉じる）、右に選んでいる項目の詳細を出す。
+# 画面は左に項目（音量・コントローラーの設定［下に ボタンの表示形式・決定とキャンセル・PlayStation の表記］・ロボットタイプ・セーブデータ・閉じる）、右に選んでいる項目の詳細を出す。
 # 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（コントローラーの設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。キーボードは Esc で1つ戻る（TOP では閉じる）。
 
 signal pad_layout_changed(layout: String)
@@ -71,6 +71,7 @@ const ITEM_ICONS := [
     preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_robot.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
+    preload("res://assets/ui/menu/icon_save.png"),
 ]
 # 左の列の「コントローラーの設定」の行
 const CONTROLLER_HEADING := "コントローラーの設定"
@@ -84,8 +85,8 @@ const ROBOT_SCENES := [
     preload("res://assets/ugokuita-neo.glb"),
     preload("res://assets/ugokuita-classic.fbx"),
 ]
-# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: PlayStation の表記、4: ロボットタイプ、5: コントローラーの設定）
-const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "PlayStation の表記", "ロボットタイプ", CONTROLLER_HEADING]
+# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: PlayStation の表記、4: ロボットタイプ、5: コントローラーの設定、6: セーブデータ）
+const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "PlayStation の表記", "ロボットタイプ", CONTROLLER_HEADING, "セーブデータ"]
 const ITEM_DESCRIPTIONS := [
     "BGM と効果音の音量を調整します。決定ボタンで試聴できます",
     "使っているコントローラーのメーカーに合わせて変更してください",
@@ -93,6 +94,7 @@ const ITEM_DESCRIPTIONS := [
     "SELECT・START のボタンの表記を選びます",
     "操作する機体を切り替えます",
     "ボタンの表示形式、決定とキャンセル、PlayStation の表記を設定します",
+    "集めたアイテムとヒントの記録をリセットします",
 ]
 const ITEM_VOLUME := 0
 const ITEM_PAD := 1
@@ -100,12 +102,13 @@ const ITEM_CONFIRM := 2
 const ITEM_PS := 3
 const ITEM_ROBOT := 4
 const ITEM_CONTROLLER := 5
+const ITEM_DATA := 6
 # 左の列に並べる順（項目の番号）
-const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_PS, ITEM_ROBOT]
+const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_PS, ITEM_ROBOT, ITEM_DATA]
 # カーソルが「閉じる」にあるときの番号
 const CURSOR_CLOSE := -1
 # TOP でカーソルが動く順
-const TOP_CURSORS := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_ROBOT, CURSOR_CLOSE]
+const TOP_CURSORS := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_ROBOT, ITEM_DATA, CURSOR_CLOSE]
 # 階層。TOP: 親の項目を選ぶ、SUB: コントローラーの設定の中の項目を選ぶ、EDIT: 右の列を左右で切り替える
 enum Level { TOP, SUB, EDIT }
 # 決定とキャンセルの選択肢の名前（SWAP_CONFIRM_VALUES の順）
@@ -219,6 +222,12 @@ var _ps_back_label: Label
 var _ps_start_label: Label
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
+# セーブデータの項目（集めた数、リセットのボタンと中の文字）。リセットは2回押して確定する
+var _data_count_label: Label
+var _data_reset_button: Button
+var _data_reset_label: Label
+var _data_reset_style: StyleBoxFlat
+var _data_reset_armed: bool = false
 # 機体の3D表示
 var _robot_pivot: Node3D
 var _robot_camera: Camera3D
@@ -280,6 +289,7 @@ func open() -> void:
         _debug_hint_buttons[id].set_pressed_no_signal(PowerUps.is_hint_used(id))
     _dimmer.visible = true
     get_tree().paused = true
+    _data_reset_armed = false
     _layout_panel()
     _rebuild_close_hint()
     # 階層とカーソルを最初（TOP の音量）に戻す
@@ -861,7 +871,7 @@ func _build_right_column() -> Control:
     _edit_controls.resize(ITEM_NAMES.size())
     for i in _edit_controls.size():
         _edit_controls[i] = []
-    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_ps_content(), _build_robot_content(), _build_controller_content()]
+    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_ps_content(), _build_robot_content(), _build_controller_content(), _build_data_content()]
     for content in contents:
         content.set_anchors_preset(Control.PRESET_FULL_RECT)
         content.visible = false
@@ -969,6 +979,71 @@ func _build_controller_content() -> Control:
     icon.modulate = Color(1, 1, 1, 0.35)
     box.add_child(icon)
     return box
+
+
+# セーブデータ。コントローラーの設定と同じ作りで、アイコン・集めた数・リセットのボタン・注意書きを縦に並べる
+func _build_data_content() -> Control:
+    var box := VBoxContainer.new()
+    box.alignment = BoxContainer.ALIGNMENT_CENTER
+    box.add_theme_constant_override("separation", 18)
+    box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    var icon := _make_icon(ITEM_ICONS[ITEM_DATA], 72)
+    icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    icon.modulate = Color(1, 1, 1, 0.35)
+    box.add_child(icon)
+
+    _data_count_label = _make_label("", 20, TEXT_BODY)
+    _data_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    box.add_child(_data_count_label)
+
+    # リセットのボタン（枠線の色は _refresh_data で、カーソルかマウスが乗っているときに変える）
+    _data_reset_button = _make_flat_button(52, Control.FOCUS_NONE)
+    _data_reset_button.custom_minimum_size = Vector2(320, 52)
+    _data_reset_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    _data_reset_style = _make_style(Color(1, 1, 1, 0.08), 10)
+    _data_reset_style.border_color = LINE_COLOR
+    _data_reset_style.set_border_width_all(2)
+    var background := Panel.new()
+    background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    background.set_anchors_preset(Control.PRESET_FULL_RECT)
+    background.add_theme_stylebox_override("panel", _data_reset_style)
+    _data_reset_button.add_child(background)
+    _data_reset_label = _make_label("", 19, TEXT_BODY)
+    _data_reset_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    _data_reset_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+    _data_reset_button.add_child(_data_reset_label)
+    _data_reset_button.pressed.connect(_press_data_reset)
+    _data_reset_button.mouse_entered.connect(_refresh_data)
+    _data_reset_button.mouse_exited.connect(_refresh_data)
+    box.add_child(_data_reset_button)
+    _add_edit_control(ITEM_DATA, _data_reset_button, Callable(), _press_data_reset)
+
+    var note := _make_label("リセットすると、スタート地点からやり直します", 15, TEXT_DIM)
+    note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    box.add_child(note)
+    return box
+
+
+# リセットのボタン。1回目は確認に切り替えるだけで、2回目で取得状態を消してシーンを読み込み直す
+func _press_data_reset() -> void:
+    if not _data_reset_armed:
+        _data_reset_armed = true
+        _refresh_data()
+        return
+    _data_reset_armed = false
+    PowerUps.reset_progress()
+    close()
+    get_tree().reload_current_scene()
+
+
+func _refresh_data() -> void:
+    if _data_reset_button == null:
+        return
+    _data_count_label.text = "集めたアイテム  %d / %d" % [PowerUps.acquired_count(), PowerUps.ITEMS.size()]
+    _data_reset_label.text = "もう一度押すとリセットします" if _data_reset_armed else "アイテムの取得状態をリセット"
+    _data_reset_label.add_theme_color_override("font_color", ACCENT_COLOR if _data_reset_armed else TEXT_BODY)
+    var active := _has_edit_cursor(_data_reset_button) or _data_reset_button.is_hovered()
+    _data_reset_style.border_color = ACCENT_COLOR if active else LINE_COLOR
 
 
 func _build_pad_content() -> Control:
@@ -1230,6 +1305,7 @@ func _update_cursor_visuals() -> void:
         _stop_bgm_preview()
     _refresh_preview_marks()
     _update_close_color()
+    _refresh_data()
 
 
 # 今の EDIT で、この部品がカーソルを持っているか
@@ -1251,8 +1327,13 @@ func _set_current_item(index: int, force: bool) -> void:
     _header_line.custom_minimum_size = Vector2(_header_name.get_minimum_size().x + 40.0, 1)
     for i in _contents.size():
         _contents[i].visible = i == index
+    # セーブデータ以外の項目に移ったら、リセットの確認は取り消す
+    if index != ITEM_DATA:
+        _data_reset_armed = false
     if index == ITEM_ROBOT:
         _refresh_robot()
+    elif index == ITEM_DATA:
+        _refresh_data()
 
 
 # 項目の行が属する階層（子の3項目なら SUB、それ以外は TOP）
@@ -1364,6 +1445,7 @@ func _enter_edit() -> void:
 
 # 入る前の階層に戻る（カーソルは同じ項目のまま）
 func _exit_edit() -> void:
+    _data_reset_armed = false
     _set_cursor(_edit_return, _cursor)
 
 
