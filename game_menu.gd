@@ -1309,6 +1309,8 @@ func _build_selector(center: Control, count: int, step: Callable, item: int) -> 
     var name_label := _make_label("", 22, TEXT_BODY)
     name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     box.add_child(name_label)
+    # 名前のラベルは部品の外にあるので、一緒に赤くする文字として足す
+    _edit_controls[item].back()["labels"] = [name_label]
 
     var dots_row := HBoxContainer.new()
     dots_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1398,6 +1400,13 @@ func _update_cursor_visuals() -> void:
         var in_right := _level == Level.EDIT
         _dim_labels(_left_column, in_right)
         _dim_labels(_right_column, not in_right)
+        # 右の列で操作している部品の文字だけ赤くする
+        if _level == Level.EDIT:
+            var control := _current_edit_control()
+            if not control.is_empty():
+                _tint_labels(control["node"], ACCENT_COLOR)
+                for label in control.get("labels", []):
+                    _tint_labels(label, ACCENT_COLOR)
     _refresh_data()
 
 
@@ -1407,6 +1416,14 @@ func _dim_labels(node: Node, dimmed: bool) -> void:
         if child is Label:
             child.self_modulate = INACTIVE_TEXT_MODULATE if dimmed else Color.WHITE
         _dim_labels(child, dimmed)
+
+
+# node 自身と子孫の Label の文字に color を掛ける（self_modulate なので元の色との積になる）
+func _tint_labels(node: Node, color: Color) -> void:
+    if node is Label:
+        node.self_modulate = color
+    for child in node.get_children():
+        _tint_labels(child, color)
 
 
 # 今の EDIT で、この部品がカーソルを持っているか
