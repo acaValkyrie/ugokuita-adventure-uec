@@ -123,6 +123,8 @@ const TEXT_BODY := Color(0.95, 0.95, 0.95)
 const TEXT_DIM := Color(0.62, 0.62, 0.62)
 const ACCENT_COLOR := Color("#e0182d")
 const DOT_OFF_COLOR := Color(0.35, 0.35, 0.35)
+# カーソルがいない側の列の文字にかける色（self_modulate）
+const INACTIVE_TEXT_MODULATE := Color(1, 1, 1, 0.4)
 # 寸法
 const PANEL_MAX_WIDTH := 1000.0
 const PANEL_BOTTOM := 24.0
@@ -818,6 +820,8 @@ func _rebuild_close_hint() -> void:
     if _close_hint_mark != null:
         _close_hint_box.add_child(_close_hint_mark)
         _close_hint_box.move_child(_close_hint_mark, 0)
+    # 作り直した Esc の文字も、いる側の列に合わせて薄さをそろえる
+    _dim_labels(_close_hint_box, _level == Level.EDIT)
 
 
 # デバッグ用の欄（左の列の項目の下）
@@ -1389,7 +1393,20 @@ func _update_cursor_visuals() -> void:
         _stop_bgm_preview()
     _refresh_preview_marks()
     _update_close_color()
+    # カーソルがいない側の列の文字を薄くする（左にいる間は右の列、右にいる間は左の列）
+    if _left_column != null and _right_column != null:
+        var in_right := _level == Level.EDIT
+        _dim_labels(_left_column, in_right)
+        _dim_labels(_right_column, not in_right)
     _refresh_data()
+
+
+# node の子孫の Label の文字を薄く（dimmed）または元に戻す。Label 以外の見た目には触らない
+func _dim_labels(node: Node, dimmed: bool) -> void:
+    for child in node.get_children():
+        if child is Label:
+            child.self_modulate = INACTIVE_TEXT_MODULATE if dimmed else Color.WHITE
+        _dim_labels(child, dimmed)
 
 
 # 今の EDIT で、この部品がカーソルを持っているか
