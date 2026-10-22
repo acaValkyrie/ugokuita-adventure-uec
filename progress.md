@@ -1044,7 +1044,10 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - 注意: `PowerUps._move_player_to` は置いた場所を Recover の戻り先にもするので、逆さまに置いて試すと、Recover でまた逆さまの場所に戻る。
 - メニューのスクロールを左の列と右の列で別々にした（`_left_scroll`・`_right_scroll`）。上下に並べる狭い画面では、列ごとのスクロールを止めて、外側の `_scroll` で全体を1つでスクロールする。右の列で部品を移ったときも、見える位置までスクロールする。
   - 右の列の中身を入れる `holder` を MarginContainer にした（素の Control だと中身の高さが伝わらず、上下に並べたときに中身がはみ出してスクロールで届かなかった）。
-- 中分類（ボタンの表示形式・決定とキャンセル・PlayStation の表記）は、コントローラーの設定で決定を押して入ったときだけ開く。キャンセル・TOP での上下移動・親の行のクリック・メニューを開き直したときにたたむ。マウスが乗っただけではたたまない（下の行がずれてカーソルが飛ぶため）。開いているときは山形が「∧」。
+- メニューのボタンの表示形式を Nintendo / Xbox / DualShock 3 / DualShock 4 / DualSense の5機種にし、「PlayStation の表記」の項目をなくした。SELECT・START などのアイコンの世代は機種から決める（DS3 → PS3、DS4 → PS4、DualSense → PS5）。古い設定の "playstation" は、保存していた ps_generation で DS3 / DS4 / DualSense に引き継ぐ。
+  - 絵（`assets/ui/menu/controller_ds3.png`・`controller_ds4.png`・`controller_dualsense.png`）は Codex の画像生成で作った。フリー素材は5機種が同じ絵柄でそろうものが無かった（CC0 の gidedin の線画は DS3 が無い。Controllercons は利用条件の書き方が食い違う）。
+  - 最初は今までの共通の本体の形で部品だけ描き分けたが、ユーザーの指摘で、DS3・DS4・DualSense はユーザーの貼った実物の写真を形の見本、前の絵を描き方の見本として渡して描き直した（ロゴ・文字は描かせない）。Nintendo と Xbox は共通の本体の形のまま。
+- 中分類（ボタンの表示形式・決定とキャンセル）は、コントローラーの設定で決定を押して入ったときだけ開く。キャンセル・TOP での上下移動・親の行のクリック・メニューを開き直したときにたたむ。マウスが乗っただけではたたまない（下の行がずれてカーソルが飛ぶため）。開いているときは山形が「∧」。
 
 ## まだやっていないこと
 
