@@ -147,6 +147,8 @@ var _menu_button: Button
 # メニューボタンの一辺（px。タッチ端末では倍率をかけた値）。マップのボタンも同じ大きさにする
 var button_size: float = BUTTON_SIZE * UiStyle.button_scale()
 var _dimmer: ColorRect
+# EDIT で操作している部品の左に出す赤い縦帯
+var _edit_bar: ColorRect
 var _panel: PanelContainer
 # 左右（狭いときは上下）に並べる列と、その中身
 var _columns: BoxContainer
@@ -285,6 +287,7 @@ func _process(delta: float) -> void:
     # 入力方式かボタン表記、決定とキャンセルの入れ替えが変わったときだけ、閉じるの印を作り直す
     if ControlsHelp.get_mode() != _close_hint_mode or pad_layout != _close_hint_layout or swap_confirm != _close_hint_swap:
         _rebuild_close_hint()
+    _update_edit_bar()
     # ロボットタイプを見ているときだけ機体を回す（一時停止中も動く）
     if _current_item == ITEM_ROBOT and _robot_pivot != null:
         _robot_pivot.rotate_y(deg_to_rad(ROBOT_ROT_SPEED) * delta)
@@ -321,6 +324,7 @@ func close() -> void:
     is_open = false
     _stop_bgm_preview()
     _dimmer.visible = false
+    _edit_bar.visible = false
     get_tree().paused = false
     _closed_physics_frame = Engine.get_physics_frames()
 
@@ -508,6 +512,13 @@ func _build_menu() -> void:
     theme.default_font = MENU_FONT
     _panel.theme = theme
     _dimmer.add_child(_panel)
+
+    # 右の列で操作している部品の左に出す赤い縦帯（パネルより前に描くため、後から足す。位置は _update_edit_bar で決める）
+    _edit_bar = ColorRect.new()
+    _edit_bar.color = ACCENT_COLOR
+    _edit_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _edit_bar.visible = false
+    _dimmer.add_child(_edit_bar)
 
     # 高さが足りないときは縦にスクロールする。中身が短いときは今までどおりパネルいっぱいに広がる
     _scroll = ScrollContainer.new()
@@ -1457,6 +1468,40 @@ func _set_label_colors(node: Node, color: Color) -> void:
             var always_dim: bool = child == _header_desc or child == _data_note_label or child == _data_empty_label
             child.add_theme_color_override("font_color", TEXT_DIM if always_dim else color)
         _set_label_colors(child, color)
+
+
+# EDIT で操作している部品の左に赤い縦帯を出す。スクロールで動くので毎フレーム合わせる。
+# 音量の行は中身が中央に寄っているので、行全体ではなく表示されている中身の左端に付ける
+func _update_edit_bar() -> void:
+    _edit_bar.visible = false
+    if _level != Level.EDIT:
+        return
+    var control := _current_edit_control()
+    if control.is_empty():
+        return
+    var node: Control = control["node"]
+    if not node.is_visible_in_tree():
+        return
+    var rect := node.get_global_rect()
+    if node is BoxContainer:
+        var found := false
+        for child in node.get_children():
+            if child is Control and child.is_visible_in_tree():
+                var child_rect: Rect2 = child.get_global_rect()
+                rect = child_rect if not found else rect.merge(child_rect)
+                found = true
+    # 部品の左 12px の余白の中に、幅 4 の縦帯を置く。上下には 6px ずつはみ出させる
+    var top := rect.position.y - 6.0
+    var bottom := rect.end.y + 6.0
+    # スクロールの見える範囲からはみ出すところは切り詰める（完全に外れたら隠す）
+    var view := _scroll.get_global_rect()
+    top = maxf(top, view.position.y)
+    bottom = minf(bottom, view.end.y)
+    if bottom <= top:
+        return
+    _edit_bar.global_position = Vector2(rect.position.x - 12.0 - 4.0, top)
+    _edit_bar.size = Vector2(4.0, bottom - top)
+    _edit_bar.visible = true
 
 
 # 今の EDIT で、この部品がカーソルを持っているか
