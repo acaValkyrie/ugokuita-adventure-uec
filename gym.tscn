@@ -1,0 +1,110 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/Gym.fbx" id="1_gym"]
+[ext_resource type="PackedScene" path="res://assets/Nadegg.fbx" id="2_nadegg"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_doorway"]
+size = Vector3(1, 1.6, 1.9)
+
+[node name="Gym" type="Node3D"]
+
+[node name="Gym" parent="." instance=ExtResource("1_gym")]
+
+[node name="Light1" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 5, -6)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 0.75
+omni_range = 14.0
+
+[node name="Light2" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 5, -6)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 0.75
+omni_range = 14.0
+
+[node name="Light3" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 5, -17.5)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 0.75
+omni_range = 14.0
+
+[node name="Light4" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 5, -17.5)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 0.75
+omni_range = 14.0
+
+[node name="Light5" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 5, -29)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 0.75
+omni_range = 14.0
+
+[node name="Light6" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 5, -29)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 0.75
+omni_range = 14.0
+
+[node name="ReflectionProbe" type="ReflectionProbe" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5, 3.85, -19.5)
+update_mode = 0
+size = Vector3(23.4, 7.7, 39.4)
+interior = true
+box_projection = true
+
+[node name="Spawn" type="Marker3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 2.5, 0.5, -4.45)
+
+[node name="Exits" type="Node3D" parent="."]
+
+[node name="Exit1" type="Area3D" parent="Exits"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 1, -4.45)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Exits/Exit1"]
+shape = SubResource("BoxShape3D_doorway")
+
+[node name="Exit2" type="Area3D" parent="Exits"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 1, -17.5)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Exits/Exit2"]
+shape = SubResource("BoxShape3D_doorway")
+
+[node name="Exit3" type="Area3D" parent="Exits"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 1, -30.55)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Exits/Exit3"]
+shape = SubResource("BoxShape3D_doorway")
+
+[node name="Exit4" type="Area3D" parent="Exits"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.3, 1, -4.45)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Exits/Exit4"]
+shape = SubResource("BoxShape3D_doorway")
+
+[node name="Exit5" type="Area3D" parent="Exits"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.3, 1, -17.5)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Exits/Exit5"]
+shape = SubResource("BoxShape3D_doorway")
+
+[node name="Exit6" type="Area3D" parent="Exits"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.3, 1, -30.55)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Exits/Exit6"]
+shape = SubResource("BoxShape3D_doorway")
+
+[node name="Nadegg" parent="." instance=ExtResource("2_nadegg")]
+transform = Transform3D(2, 0, 0, 0, 0, 2, 0, -2, 0, 11.5, 0.32, -17.5)
