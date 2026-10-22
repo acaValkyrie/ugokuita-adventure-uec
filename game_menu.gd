@@ -185,6 +185,9 @@ var _row_chevrons: Array[Control] = []
 var _arrow_marks: Array[Control] = []
 var _close_button: Button
 var _close_label: Label
+# 閉じるにカーソルがあるときの赤い背景と白い縦帯
+var _close_background: Control
+var _close_stripe: Control
 var _close_hint_box: HBoxContainer
 var _close_hint_mark: Control
 # キーボードのときの Esc の箱の枠と中の文字（色を _update_close_color で変える）
@@ -649,15 +652,8 @@ func _build_left_column() -> Control:
     return margin
 
 
-# 項目の行。文字は持たせず、中に背景・縦帯・アイコン・項目名・右側の部品を置く
-func _build_item_row(index: int) -> Button:
-    # 子の行は高さ 48・字下げ・アイコン無し・文字 18px
-    var is_child := index in CHILD_ITEMS
-    var indent := CHILD_INDENT if is_child else 0
-    var row := _make_flat_button(48 if is_child else 58, Control.FOCUS_NONE)
-    _rows[index] = row
-
-    # 選んでいる行の背景（左から右へ赤いグラデーション）
+# 行の背景（左から右へ赤いグラデーションを全面に出す）。項目の行と「閉じる」で同じものを使う
+func _make_row_background() -> TextureRect:
     var gradient := Gradient.new()
     gradient.colors = PackedColorArray([Color("#c8102e"), Color("#4a0b12")])
     gradient.offsets = PackedFloat32Array([0.0, 1.0])
@@ -673,15 +669,35 @@ func _build_item_row(index: int) -> Button:
     background.stretch_mode = TextureRect.STRETCH_SCALE
     background.mouse_filter = Control.MOUSE_FILTER_IGNORE
     background.set_anchors_preset(Control.PRESET_FULL_RECT)
+    return background
+
+
+# 行の左端の白い縦帯（幅 5。offset_left を決めて使う）
+func _make_row_stripe() -> ColorRect:
+    var stripe := ColorRect.new()
+    stripe.color = TEXT_BODY
+    stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    stripe.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+    stripe.offset_right = 5
+    return stripe
+
+
+# 項目の行。文字は持たせず、中に背景・縦帯・アイコン・項目名・右側の部品を置く
+func _build_item_row(index: int) -> Button:
+    # 子の行は高さ 48・字下げ・アイコン無し・文字 18px
+    var is_child := index in CHILD_ITEMS
+    var indent := CHILD_INDENT if is_child else 0
+    var row := _make_flat_button(48 if is_child else 58, Control.FOCUS_NONE)
+    _rows[index] = row
+
+    # 選んでいる行の背景（左から右へ赤いグラデーション）
+    var background := _make_row_background()
     background.offset_left = indent
     row.add_child(background)
     _row_backgrounds[index] = background
 
     # 左端の白い縦帯
-    var stripe := ColorRect.new()
-    stripe.color = TEXT_BODY
-    stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    stripe.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+    var stripe := _make_row_stripe()
     stripe.offset_left = indent
     stripe.offset_right = indent + 5
     row.add_child(stripe)
@@ -767,6 +783,12 @@ func _build_close_row() -> Control:
     _close_button = _make_flat_button(44, Control.FOCUS_NONE)
     _close_button.pressed.connect(_on_close_pressed)
     _close_button.mouse_entered.connect(_on_close_mouse_entered)
+
+    # 文字の後ろに描くため、背景と縦帯は余白より先に足す（カーソルが閉じるにあるときだけ出す）
+    _close_background = _make_row_background()
+    _close_button.add_child(_close_background)
+    _close_stripe = _make_row_stripe()
+    _close_button.add_child(_close_stripe)
 
     var margin := _make_margin(22, 0, 18, 0)
     margin.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1405,6 +1427,8 @@ func _update_cursor_visuals() -> void:
     if _level != Level.EDIT or _cursor != ITEM_VOLUME:
         _stop_bgm_preview()
     _refresh_preview_marks()
+    _close_background.visible = _cursor == CURSOR_CLOSE
+    _close_stripe.visible = _cursor == CURSOR_CLOSE
     _update_close_color()
     _apply_right_text_color()
     _refresh_data()
