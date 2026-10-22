@@ -207,10 +207,6 @@ func reset_progress() -> void:
     _save_progress()
 
 
-func acquired_count() -> int:
-    return _acquired.size()
-
-
 func has(key: String) -> bool:
     return _acquired.has(key)
 

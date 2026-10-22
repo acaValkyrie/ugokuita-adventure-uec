@@ -225,7 +225,15 @@ var _ps_start_label: Label
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
 # セーブデータの項目（集めた数、リセットのボタンと中の文字）。リセットは2回押して確定する
-var _data_count_label: Label
+var _data_selector_box: Control
+var _data_arrow_row: HBoxContainer
+var _data_dots_row: HBoxContainer
+var _data_dots: Array[ColorRect] = []
+var _data_item_icon: TextureRect
+var _data_item_name: Label
+var _data_item_desc: Label
+var _data_empty_label: Label
+var _data_item_index: int = 0
 var _data_reset_button: Button
 var _data_reset_label: Label
 var _data_reset_style: StyleBoxFlat
@@ -292,6 +300,7 @@ func open() -> void:
     _dimmer.visible = true
     get_tree().paused = true
     _data_reset_armed = false
+    _data_item_index = 0
     _scroll.scroll_vertical = 0
     _layout_panel()
     _rebuild_close_hint()
@@ -994,20 +1003,53 @@ func _build_controller_content() -> Control:
     return box
 
 
-# セーブデータ。コントローラーの設定と同じ作りで、アイコン・集めた数・リセットのボタン・注意書きを縦に並べる
+# 持っているアイテムを PowerUps.ITEMS の順に並べる（取った順ではない）
+func _owned_items() -> Array:
+    var owned := []
+    for key in PowerUps.ITEMS:
+        if PowerUps.has(key):
+            owned.append(key)
+    return owned
+
+
+# セーブデータ。持っているアイテムを切り替えて見せる部品・リセットのボタン・注意書きを縦に並べる
+# （何も持っていないときは切り替え部品の代わりに文を出す）
 func _build_data_content() -> Control:
     var box := VBoxContainer.new()
     box.alignment = BoxContainer.ALIGNMENT_CENTER
     box.add_theme_constant_override("separation", 18)
     box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    var icon := _make_icon(ITEM_ICONS[ITEM_DATA], 72)
-    icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-    icon.modulate = Color(1, 1, 1, 0.35)
-    box.add_child(icon)
 
-    _data_count_label = _make_label("", 20, TEXT_BODY)
-    _data_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    box.add_child(_data_count_label)
+    var center := VBoxContainer.new()
+    center.alignment = BoxContainer.ALIGNMENT_CENTER
+    center.add_theme_constant_override("separation", 10)
+    center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    center.custom_minimum_size.y = 170
+    _data_item_icon = TextureRect.new()
+    _data_item_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    _data_item_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    _data_item_icon.custom_minimum_size = Vector2(96, 96)
+    _data_item_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    _data_item_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    center.add_child(_data_item_icon)
+    _data_item_name = _make_label("", 26, TEXT_BODY)
+    _data_item_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    center.add_child(_data_item_name)
+    _data_item_desc = _make_label("", 17, TEXT_BODY)
+    _data_item_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    center.add_child(_data_item_desc)
+
+    # 点の数は持っている数で変わるので、count = 0 で作って _refresh_data で合わせる。名前は中央に出すので使わない
+    var parts := _build_selector(center, 0, _step_data_item, ITEM_DATA)
+    parts.name_label.visible = false
+    _data_selector_box = parts.box
+    _data_arrow_row = parts.box.get_child(0)
+    _data_dots_row = parts.box.get_child(2)
+    box.add_child(_data_selector_box)
+
+    _data_empty_label = _make_label("まだアイテムを持っていません", 20, TEXT_DIM)
+    _data_empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    box.add_child(_data_empty_label)
 
     # リセットのボタン（枠線の色は _refresh_data で、カーソルかマウスが乗っているときに変える）
     _data_reset_button = _make_flat_button(52, Control.FOCUS_NONE)
@@ -1052,7 +1094,30 @@ func _press_data_reset() -> void:
 func _refresh_data() -> void:
     if _data_reset_button == null:
         return
-    _data_count_label.text = "集めたアイテム  %d / %d" % [PowerUps.acquired_count(), PowerUps.ITEMS.size()]
+    # 持っているアイテムの数に合わせて、切り替え部品と点の数を整える
+    var owned := _owned_items()
+    var count := owned.size()
+    _data_item_index = clampi(_data_item_index, 0, maxi(count - 1, 0))
+    _data_selector_box.visible = count > 0
+    _data_empty_label.visible = count == 0
+    if count > 0:
+        var item: Dictionary = PowerUps.ITEMS[owned[_data_item_index]]
+        _data_item_icon.texture = item["icon"]
+        _data_item_name.text = item["name"]
+        _data_item_desc.text = item["description"]
+    var several := count >= 2
+    _data_arrow_row.get_child(0).visible = several
+    _data_arrow_row.get_child(_data_arrow_row.get_child_count() - 1).visible = several
+    _data_dots_row.visible = several
+    while _data_dots.size() < count:
+        var dot := ColorRect.new()
+        dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+        dot.custom_minimum_size = Vector2(26, 5)
+        _data_dots_row.add_child(dot)
+        _data_dots.append(dot)
+    while _data_dots.size() > count:
+        _data_dots.pop_back().queue_free()
+    _set_dots(_data_dots, _data_item_index)
     _data_reset_label.text = "もう一度押すとリセットします" if _data_reset_armed else "アイテムの取得状態をリセット"
     _data_reset_label.add_theme_color_override("font_color", ACCENT_COLOR if _data_reset_armed else TEXT_BODY)
     var active := _has_edit_cursor(_data_reset_button) or _data_reset_button.is_hovered()
@@ -1538,6 +1603,14 @@ func _step_robot(direction: int) -> void:
     var next := (ROBOT_MODELS.find(robot_model) + direction + count) % count
     _on_robot_model_pressed(ROBOT_MODELS[next])
     _refresh_robot()
+
+
+func _step_data_item(direction: int) -> void:
+    var count := _owned_items().size()
+    if count < 2:
+        return
+    _data_item_index = (_data_item_index + direction + count) % count
+    _refresh_data()
 
 
 func _set_dots(dots: Array[ColorRect], active: int) -> void:
