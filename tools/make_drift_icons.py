@@ -1,11 +1,13 @@
 # ドリフトの操作説明用に、CTRL キーのアイコンと、右のショルダーボタン（バンパー）のアイコン3種を作る。
 # 入力: assets/ui/controls/ の key_shift.png（CTRL キーの見本）・trigger_lt.png（バンパーの色・縁・文字の高さの見本）、
 #       assets/fonts/noto_sans_cjk_jp_bold_ui.otf（文字のフォント）。
-# 出力: assets/ui/controls/ の key_ctrl.png（key_shift.png と同じ 512x112）と、
+# 出力: assets/ui/controls/ の key_ctrl.png（key_shift.png と同じ 512x112）、
+#       key_slash.png（key_r.png と同じ 256x256 の、「R」を「/」に替えたキー）と、
 #       shoulder_rb.png・shoulder_r.png・shoulder_r1.png（右のバンパー1個だけ、四方に 4px の透明な余白を付けた 178x93 RGBA）
 # 実行: uv run --with pillow --with numpy python tools/make_drift_icons.py
 # key_ctrl は key_shift の「SHIFT」の文字を make_glyph_swap_icons.py と同じ方法で消し、
 # 同じ高さ・同じ中心に「CTRL」を (242,242,242) で描く。
+# key_slash は key_r の「R」の文字を同じ方法で消し、同じ高さ・同じ中心に「/」を (242,242,242) で描く。
 # バンパーは trigger_lt から測った本体の色・縁の色と太さ・外形の幅・文字の高さに合わせ、
 # 幅広の角丸の長方形（外形の幅は LT と同じ、高さはその 0.5 倍、角の半径は高さの 0.45 倍）に、
 # 高さが LT の文字の 0.8 倍の白い文字を載せる。どちらも4倍で描いて LANCZOS で縮め、輪郭をなめらかにする。
@@ -77,6 +79,30 @@ def make_key_ctrl() -> None:
           f"shift_center=({cx},{cy}) ctrl_letter_h={my1 - my0} ctrl_center=({(mx0 + mx1) / 2},{(my0 + my1) / 2})")
 
 
+def make_key_slash() -> None:
+    k = load(CTRL / "key_r.png")
+    k_in = inner_region(k)
+    k_lum = k[..., :3].max(axis=2)
+    k_dark = np.median(k[k_in & (k_lum < DARK_LEVEL)][:, :3], axis=0)
+    k_white = k_in & (k_lum > WHITE_LEVEL)
+    x0, y0, x1, y1 = bbox(k_white)
+    t_h = y1 - y0
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    erase = np.asarray(Image.fromarray((k_white * 255).astype(np.uint8))
+                       .filter(ImageFilter.MaxFilter(ERASE_MARGIN))) > 0
+    k[erase & k_in, :3] = np.round(k_dark).astype(np.uint8)
+    base = Image.fromarray(k, "RGBA")
+    mask = text_mask("/", t_h, base.size, (cx, cy))
+    result = white_over(base, mask)
+    out = np.asarray(result)
+    corners = [out[0, 0, 3], out[0, -1, 3], out[-1, 0, 3], out[-1, -1, 3]]
+    assert all(c == 0 for c in corners), corners
+    mx0, my0, mx1, my1 = bbox(np.asarray(mask) > 127)
+    result.save(CTRL / "key_slash.png")
+    print(f"key_slash: size={result.size} corner_alpha={corners} r_letter_h={t_h} "
+          f"r_center=({cx},{cy}) slash_letter_h={my1 - my0} slash_center=({(mx0 + mx1) / 2},{(my0 + my1) / 2})")
+
+
 def measure_trigger() -> dict:
     t = load(CTRL / "trigger_lt.png")
     t_in = inner_region(t)
@@ -142,6 +168,7 @@ def make_bumpers() -> None:
 
 def main() -> None:
     make_key_ctrl()
+    make_key_slash()
     make_bumpers()
 
 

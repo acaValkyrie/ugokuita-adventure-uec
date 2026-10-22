@@ -37,7 +37,7 @@ const ICON_BUTTON_SHARE := preload("res://assets/ui/controls/button_share.png")
 const ICON_BUTTON_START := preload("res://assets/ui/controls/button_start.png")
 const ICON_BUTTON_OPTIONS := preload("res://assets/ui/controls/button_options.png")
 const ICON_BUTTON_OPTIONS_PS4 := preload("res://assets/ui/controls/button_options_ps4.png")
-const ICON_KEY_CTRL := preload("res://assets/ui/controls/key_ctrl.png")
+const ICON_KEY_SLASH := preload("res://assets/ui/controls/key_slash.png")
 const ICON_SHOULDER_RB := preload("res://assets/ui/controls/shoulder_rb.png")
 const ICON_SHOULDER_R := preload("res://assets/ui/controls/shoulder_r.png")
 const ICON_SHOULDER_R1 := preload("res://assets/ui/controls/shoulder_r1.png")
@@ -48,7 +48,7 @@ const ITEMS := {
         [ICON_KEYS_WASD, "Drive"],
         [ICON_KEYS_ARROWS, "Camera"],
         [ICON_KEY_SPACE, "Jump", 0.4375],  # 絵の上下の余白を切ってあるので、キーの高さが R・M のキー（倍率 0.6）とそろう倍率
-        [ICON_KEY_CTRL, "Drift", 0.4375],  # SHIFT・SPACE と同じく上下の余白を切った絵なので、SPACE と同じ倍率
+        [ICON_KEY_SLASH, "Drift", 0.6],  # 1文字のキーの絵なので R・M と同じ倍率。右手で押せるよう「/」（JIS の「・」）にした（Ctrl だと Web 版で Ctrl+W がタブを閉じる）
         [ICON_KEY_R, "Reset", 0.6],
         [ICON_KEY_M, "Map", 0.6],
     ],
