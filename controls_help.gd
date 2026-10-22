@@ -49,7 +49,7 @@ const ITEMS := {
         [ICON_KEYS_ARROWS, "Camera"],
         [ICON_KEY_SPACE, "Jump", 0.4375],  # 絵の上下の余白を切ってあるので、キーの高さが R・M のキー（倍率 0.6）とそろう倍率
         [ICON_KEY_SLASH, "Drift", 0.6],  # 1文字のキーの絵なので R・M と同じ倍率。右手で押せるよう「/」（JIS の「・」）にした（Ctrl だと Web 版で Ctrl+W がタブを閉じる）
-        [ICON_KEY_R, "Reset", 0.6],
+        [ICON_KEY_R, "Recover", 0.6],
         [ICON_KEY_M, "Map", 0.6],
     ],
     Mode.TOUCH: [
@@ -207,7 +207,7 @@ func _items_for(mode: Mode) -> Array:
         [ICON_STICK_RIGHT, "Camera"],
         [icons.jump, "Jump", 0.8],
         [icons.drift, "Drift", 0.45],  # 余白を切った絵なので、ショルダーボタンの高さがほかのボタンとそろう倍率
-        [icons.reset, "Reset", 0.8],
+        [icons.reset, "Recover", 0.8],
         [icons.map, "Map", 0.8],
     ]
 
