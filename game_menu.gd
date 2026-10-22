@@ -565,6 +565,8 @@ func _build_menu() -> void:
     _right_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
     _right_scroll.add_child(_right_column)
     _columns.add_child(_right_scroll)
+    # 並びの値（左の列の最小幅など）は _set_stacked で決めるので、最初の並び（左右）でも一度当てておく
+    _set_stacked(_stacked)
 
     # 一時停止中も鳴らすため、このノードの PROCESS_MODE_ALWAYS を継承させる
     _player = AudioStreamPlayer.new()
