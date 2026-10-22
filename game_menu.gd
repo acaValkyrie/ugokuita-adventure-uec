@@ -133,6 +133,9 @@ var pad_layout: String = "nintendo"
 var robot_model: String = "neo"
 # true なら決定とキャンセルのボタンを標準から入れ替える
 var swap_confirm: bool = false
+# カメラ操作の左右・上下を反転するか。キーボード・ゲームパッド・タッチのどれにも効く
+var invert_camera_x: bool = false
+var invert_camera_y: bool = false
 # BGM と効果音の音量（0〜100）
 var _bgm_volume: int = 100
 var _se_volume: int = 100
@@ -1975,6 +1978,8 @@ func _load_settings() -> void:
             _:
                 pad_layout = "dualsense"
     swap_confirm = bool(config.get_value("controls", "swap_confirm", false))
+    invert_camera_x = bool(config.get_value("camera", "invert_x", false))
+    invert_camera_y = bool(config.get_value("camera", "invert_y", false))
     var model := str(config.get_value("robot", "model", "neo"))
     if model in ROBOT_MODELS:
         robot_model = model
@@ -1986,5 +1991,7 @@ func _save_settings() -> void:
     config.set_value("audio", "se_volume", _se_volume)
     config.set_value("controls", "pad_layout", pad_layout)
     config.set_value("controls", "swap_confirm", swap_confirm)
+    config.set_value("camera", "invert_x", invert_camera_x)
+    config.set_value("camera", "invert_y", invert_camera_y)
     config.set_value("robot", "model", robot_model)
     config.save(SETTINGS_PATH)
