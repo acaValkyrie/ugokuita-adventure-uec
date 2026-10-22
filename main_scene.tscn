@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://bjf3i0q7yh614" path="res://assets/boards/ugokuita_project_poster.png" id="9_poster_ugokuita"]
 [ext_resource type="Texture2D" uid="uid://b85fb4kew3npi" path="res://assets/boards/giving_campaign_poster.png" id="10_poster_giving"]
 [ext_resource type="Texture2D" uid="uid://b23pg71mv75ek" path="res://assets/img/homecloud-ad-1500x600.png" id="11_poster_homecloud"]
+[ext_resource type="Texture2D" path="res://assets/boards/ugokuita_museum_poster.png" id="12_poster_museum"]
 [ext_resource type="Shader" uid="uid://bn6eij41x21wr" path="res://assets/shaders/space_sky.gdshader" id="11_spacesky"]
 [ext_resource type="Script" uid="uid://7rg4gk6wkpao" path="res://space_sky.gd" id="12_spacesky"]
 [ext_resource type="Script" uid="uid://bjs58wl1ufmm3" path="res://fountain_jet.gd" id="13_fountainjet"]
@@ -114,6 +115,12 @@ transform = Transform3D(0.9703, 0, -0.2419, 0, 1, 0, 0.2419, 0, 0.9703, 131.435,
 script = ExtResource("7_linkboard")
 url = "https://homecloud.k1h.dev"
 poster = ExtResource("11_poster_homecloud")
+
+[node name="LinkBoardMuseum" type="Node3D" parent="." unique_id=1928374651]
+transform = Transform3D(0.9703, 0, -0.2419, 0, 1, 0, 0.2419, 0, 0.9703, 137.2568, 1.5, -104.9497)
+script = ExtResource("7_linkboard")
+url = "https://yae.wiki/2025/12/10/ugokuita_museum_hardware/"
+poster = ExtResource("12_poster_museum")
 
 [node name="PoolRipples" type="Node" parent="." unique_id=275545926]
 script = ExtResource("7_poolrip")
