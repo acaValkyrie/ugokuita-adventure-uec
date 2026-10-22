@@ -206,8 +206,8 @@ func _physics_process(delta: float) -> void:
     # 入力がないときはブレーキをかけて坂でずり落ちないようにする
     brake = BRAKE_FORCE if is_zero_approx(throttle) else 0.0
 
-    # 接地して走った水平距離でゲージを貯める（ブースト中は貯めない）
-    if _boost_time <= 0.0 and _is_on_ground():
+    # 接地して走った水平距離と、ジェットで飛んだ水平距離でゲージを貯める（ブースト中は貯めない）
+    if _boost_time <= 0.0 and (_is_on_ground() or _is_jet_thrusting_input()):
         var horizontal := Vector3(linear_velocity.x, 0.0, linear_velocity.z)
         var charge: float = horizontal.length() * delta / BOOST_CHARGE_DISTANCE
         if PowerUps.has("boost_charge"):
@@ -407,12 +407,18 @@ func _end_drift(release: bool) -> void:
     drift_stage = 0
 
 
+# ジェットで吹かしているか（ジェットを持っていて、ジャンプを押している。無重力やメニューを閉じた直後は除く）
+func _is_jet_thrusting_input() -> bool:
+    return PowerUps.has("jet") and Input.is_action_pressed("jump") \
+            and not GameMenu.is_just_closed() and not PowerUps.is_just_closed() \
+            and not Map.is_just_closed() and not get_gravity().is_zero_approx()
+
+
 # ジェット。ジャンプを押している間は上へ押し上げ、空中ではアクセルとハンドルで水平に動かす
+# （吹かして飛んだ水平距離も、BOOST のゲージに貯まる）
 func _apply_jet(delta: float, throttle: float, on_ground: bool) -> void:
     var gravity := get_gravity()
-    if Input.is_action_pressed("jump") and not GameMenu.is_just_closed() \
-            and not PowerUps.is_just_closed() and not Map.is_just_closed() \
-            and not gravity.is_zero_approx():
+    if _is_jet_thrusting_input():
         # 上がる速さが上限に達したら、重力を打ち消すだけにする
         var lift := 0.0 if linear_velocity.y >= JET_MAX_RISE_SPEED else JET_LIFT_ACCEL
         apply_central_force(-gravity * mass + Vector3.UP * mass * lift)
