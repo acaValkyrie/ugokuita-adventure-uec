@@ -37,6 +37,8 @@ var _origin: Vector2 = Vector2.ZERO
 var _pair: Array = []
 var _overlay: Control
 var _reset_button: TextureButton
+# リセットボタンに付ける金色の縁取り（動けなくなっていそうなとき）
+var _recover_ring: Control
 # ボタンの上で始まった指のindex（運転に使わない）
 var _button_touches: Dictionary = {}
 # JUMP / DRIFT ボタンを押している指: index -> アクション名
@@ -62,6 +64,9 @@ func _process(_delta: float) -> void:
     _overlay.queue_redraw()
     # メニューとエンディングの間はリセットを使わないので隠す（パネルを上から始められるように）
     _update_reset_visible()
+    # 縁取りは点滅させる（出ている間だけ更新する）
+    if _recover_ring and _recover_ring.visible:
+        _recover_ring.modulate.a = ControlsHelp.recover_ring_alpha()
 
 
 # リセットボタンの見え方を決める（一時停止中は _process が動かないので、通知からも呼ぶ）
@@ -150,6 +155,19 @@ func _setup_reset_button() -> void:
     _reset_button.visible = false
     _reset_button.pressed.connect(_on_reset_pressed)
     add_child(_reset_button)
+    # 丸いボタンなので、見えている範囲の短い辺 × 0.5 の角の丸みで円になる
+    _recover_ring = Control.new()
+    _recover_ring.set_anchors_preset(Control.PRESET_FULL_RECT)
+    _recover_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _recover_ring.visible = false
+    _recover_ring.draw.connect(ControlsHelp.draw_recover_ring.bind(_recover_ring, RESET_ICON, 0.5))
+    _reset_button.add_child(_recover_ring)
+
+
+# 動けなくなっていそうなとき、リセットボタンに金色の縁取りを付ける
+func set_recover_highlight(on: bool) -> void:
+    if _recover_ring:
+        _recover_ring.visible = on
 
 
 func _on_reset_pressed() -> void:

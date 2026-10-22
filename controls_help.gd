@@ -42,6 +42,11 @@ const ICON_SHOULDER_RB := preload("res://assets/ui/controls/shoulder_rb.png")
 const ICON_SHOULDER_R := preload("res://assets/ui/controls/shoulder_r.png")
 const ICON_SHOULDER_R1 := preload("res://assets/ui/controls/shoulder_r1.png")
 
+# 動けなくなっていそうなとき、アイコンに縁取りを付ける項目のラベル
+const RECOVER_LABEL := "Recover"
+# 縁取りの点滅の周期 [s]
+const RECOVER_BLINK_PERIOD := 0.8
+
 # モードごとの表示項目 [アイコン, ラベル, アイコンの拡大率（省略時1.0）]
 const ITEMS := {
     Mode.KEYBOARD: [
@@ -49,7 +54,7 @@ const ITEMS := {
         [ICON_KEYS_ARROWS, "Camera"],
         [ICON_KEY_SPACE, "Jump", 0.4375],  # 絵の上下の余白を切ってあるので、キーの高さが R・M のキー（倍率 0.6）とそろう倍率
         [ICON_KEY_SLASH, "Drift", 0.6],  # 1文字のキーの絵なので R・M と同じ倍率。右手で押せるよう「/」（JIS の「・」）にした（Ctrl だと Web 版で Ctrl+W がタブを閉じる）
-        [ICON_KEY_R, "Recover", 0.6],
+        [ICON_KEY_R, RECOVER_LABEL, 0.6],
         [ICON_KEY_M, "Map", 0.6],
     ],
     Mode.TOUCH: [
@@ -120,6 +125,9 @@ const RIGHT_RESERVE := 240.0
 
 var _mode: Mode = Mode.KEYBOARD
 var _hbox: HBoxContainer
+# Recover のアイコンに付ける金色の縁取り（_rebuild のたびに作り直す）と、動けなくなっていそうか
+var _recover_ring: Control
+var _stuck := false
 
 
 func _ready() -> void:
@@ -141,6 +149,24 @@ func _ready() -> void:
     _rebuild()
     # GameMenu はこのノードより後に追加される Autoload なので、全 Autoload の準備後に接続する
     _connect_menu.call_deferred()
+
+
+# 動けなくなっていそうかを見て、変わったときだけ Recover の縁取りを出し入れする（一時停止中は判定も止まる）
+func _process(_delta: float) -> void:
+    var stuck := false
+    var player := get_tree().get_first_node_in_group("player")
+    if player != null:
+        var respawn := player.get_node_or_null("Respawn")
+        if respawn != null:
+            stuck = respawn.is_stuck()
+    if stuck != _stuck:
+        _stuck = stuck
+        if _recover_ring != null:
+            _recover_ring.visible = stuck
+        TouchControls.set_recover_highlight(stuck)
+    # 縁取りは点滅させる（出ている間だけ更新する）
+    if _recover_ring != null and _recover_ring.visible:
+        _recover_ring.modulate.a = recover_ring_alpha()
 
 
 func _connect_menu() -> void:
@@ -207,7 +233,7 @@ func _items_for(mode: Mode) -> Array:
         [ICON_STICK_RIGHT, "Camera"],
         [icons.jump, "Jump", 0.8],
         [icons.drift, "Drift", 0.45],  # 余白を切った絵なので、ショルダーボタンの高さがほかのボタンとそろう倍率
-        [icons.reset, "Recover", 0.8],
+        [icons.reset, RECOVER_LABEL, 0.8],
         [icons.map, "Map", 0.8],
     ]
 
@@ -266,6 +292,7 @@ func get_ps_start_icon(generation: String) -> Texture2D:
 
 # 現在のモードの項目で HBox の中身を作り直す
 func _rebuild() -> void:
+    _recover_ring = null
     for child in _hbox.get_children():
         _hbox.remove_child(child)
         child.queue_free()
@@ -304,6 +331,36 @@ func _below_center(icon: Texture2D, icon_scale: float) -> float:
     return (1.0 - ICON_ALIGN.get(icon, 0.5)) * _icon_height(icon_scale)
 
 
+# 縁取りの点滅の不透明度。周期 RECOVER_BLINK_PERIOD で 1.0〜0.2 の間をなめらかに行き来する
+static func recover_ring_alpha() -> float:
+    var t := Time.get_ticks_msec() / 1000.0
+    return 0.6 + 0.4 * cos(TAU * t / RECOVER_BLINK_PERIOD)
+
+
+# Recover のアイコンに金色の縁取りを描く（マップボタンのヒントの縁取りと同じ見た目）。
+# 絵には透明な余白があるので、control（絵を表示している範囲）の中で絵の見えている部分に沿わせる。
+# 角の丸みは見えている範囲の短い辺 × round_ratio（縁取りの張り出しを足す）
+func draw_recover_ring(control: Control, texture: Texture2D, round_ratio: float) -> void:
+    var area := Rect2(Vector2.ZERO, control.size)
+    var tex_size := texture.get_size()
+    var image := texture.get_image()
+    if image != null and tex_size.x > 0.0 and tex_size.y > 0.0:
+        var used := image.get_used_rect()
+        if used.size.x > 0 and used.size.y > 0:
+            # TextureRect は縦横比を保って中央に置くので、その倍率と位置で絵の画素の座標を表示の座標に直す
+            var k := minf(control.size.x / tex_size.x, control.size.y / tex_size.y)
+            var origin := (control.size - tex_size * k) * 0.5
+            area = Rect2(origin + Vector2(used.position) * k, Vector2(used.size) * k)
+    var outset := Map.BUTTON_HINT_RING_OUTSET
+    var ring := StyleBoxFlat.new()
+    ring.draw_center = false
+    ring.border_color = Map.HINT_MARK_COLOR
+    ring.set_border_width_all(Map.BUTTON_HINT_RING_WIDTH)
+    ring.set_corner_radius_all(roundi(minf(area.size.x, area.size.y) * round_ratio + outset))
+    ring.anti_aliasing = true
+    control.draw_style_box(ring, area.grow(outset))
+
+
 # アイコンとラベルを縦に並べた1項目を作る（下端を揃えてラベルを同じ高さにする）。
 # アイコンとラベルの間に spacer_height の隙間を入れて、基準のキーの中心を項目どうしでそろえる
 func _make_item(icon: Texture2D, text: String, icon_scale: float, spacer_height: float) -> VBoxContainer:
@@ -321,6 +378,16 @@ func _make_item(icon: Texture2D, text: String, icon_scale: float, spacer_height:
     var height := _icon_height(icon_scale)
     rect.custom_minimum_size = Vector2(roundf(height * aspect), height)
     box.add_child(rect)
+
+    if text == RECOVER_LABEL:
+        # キーボードは角の丸いキー、コントローラは丸いボタンに沿わせる
+        var round_ratio := 0.2 if _mode == Mode.KEYBOARD else 0.5
+        _recover_ring = Control.new()
+        _recover_ring.set_anchors_preset(Control.PRESET_FULL_RECT)
+        _recover_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+        _recover_ring.visible = _stuck
+        _recover_ring.draw.connect(draw_recover_ring.bind(_recover_ring, icon, round_ratio))
+        rect.add_child(_recover_ring)
 
     var spacer := Control.new()
     spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
