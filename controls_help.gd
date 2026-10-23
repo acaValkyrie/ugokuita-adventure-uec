@@ -44,7 +44,7 @@ const ICON_SHOULDER_R1 := preload("res://assets/ui/controls/shoulder_r1.png")
 # 文字の無いキーの絵（tools/make_blank_key_icons.py で作ったもの）。割り当てを変えたキーは、この上に文字を重ねて描く
 const ICON_KEY_BLANK := preload("res://assets/ui/controls/key_blank.png")
 const ICON_KEY_BLANK_WIDE := preload("res://assets/ui/controls/key_blank_wide.png")
-# 文字の無いボタンの絵（同じスクリプトで作ったもの）。割り当てたスティックの押し込み・十字キー・左の肩のボタンは、この上に文字（十字キーは三角）を重ねて描く
+# 文字の無いボタンの絵（同じスクリプトで作ったもの）。割り当てたスティックの押し込み・左の肩のボタンは、この上に文字を重ねて描く
 const ICON_BUTTON_BLANK := preload("res://assets/ui/controls/button_blank.png")
 const ICON_SHOULDER_BLANK_L := preload("res://assets/ui/controls/shoulder_blank_l.png")
 
@@ -85,6 +85,17 @@ const KEY_TEXT_SCALE := 0.4
 const KEY_TEXT_CAP_HEIGHT := 0.73
 # 矢印の三角の大きさ（絵の高さに対する割合）
 const KEY_ARROW_SCALE := 0.17
+# 十字キーの絵の形（絵の高さに対する割合）。腕の太さ、十字全体の長さ、縁の太さ。角の丸みは腕の太さに対する割合
+const DPAD_ARM_SCALE := 0.30
+const DPAD_LENGTH_SCALE := 0.80
+const DPAD_EDGE_SCALE := 0.03
+const DPAD_CORNER_SCALE := 0.15
+# 角の丸みを折れ線にするときの分割数
+const DPAD_CORNER_STEPS := 4
+# 十字キーの色。面は文字の無いキーの絵の面の色、縁は明るい灰色、押す向きの腕の面は文字と同じ明るい色
+const DPAD_FACE_COLOR := Color("#1b1b1e")
+const DPAD_EDGE_COLOR := Color("#d8d8d8")
+const DPAD_PRESSED_COLOR := KEY_TEXT_COLOR
 # 4つのキーを並べた絵で、キーの面どうしの間（px）
 const KEY_CLUSTER_GAP := 3.0
 
@@ -419,7 +430,7 @@ func make_key_icon(physical: Key, height: float) -> Control:
 # ゲームパッドのボタンの絵を作る。ボタン番号と、今のボタン表記（機種）で絵が決まる。height は丸いボタンの絵の高さ
 # （肩のボタンは余白を切った絵なので、SHOULDER_HEIGHT_SCALE をかけて、丸いボタンと高さをそろえる）。
 # 0〜3 は位置で決まる絵、4 は左側の小さいボタン（PlayStation は世代ごと）、10 は右の肩のボタン。
-# 専用の絵が無い 9（左の肩）・7・8（スティックの押し込み）・11〜14（十字キー）は、文字の無いボタンの絵の面に、文字（十字キーは三角）を重ねて描く。
+# 専用の絵が無い 9（左の肩）・7・8（スティックの押し込み）は、文字の無いボタンの絵の面に文字を重ねて描く。11〜14（十字キー）は _make_dpad_icon で十字の形を描く。
 # 絵の中の縦の基準は絵の中央なので、align のメタデータは付けない
 func make_button_icon(button: JoyButton, height: float) -> Control:
     var family := _icon_family(GameMenu.pad_layout)
@@ -428,7 +439,6 @@ func make_button_icon(button: JoyButton, height: float) -> Control:
     var icon_height := height
     var face := BUTTON_FACE_ROUND
     var text := ""
-    var arrow := NAN
     var text_scale := KEY_TEXT_SCALE
     match button:
         JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_X, JOY_BUTTON_Y:
@@ -447,7 +457,8 @@ func make_button_icon(button: JoyButton, height: float) -> Control:
         JOY_BUTTON_LEFT_STICK, JOY_BUTTON_RIGHT_STICK:
             text = PAD_STICK_LABELS[family][button]
         JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT:
-            arrow = PAD_ARROWS[button]
+            # 十字キーは丸いボタンではなく、十字の形を描く絵にする
+            return _make_dpad_icon(PAD_ARROWS[button], height)
         _:
             # 割り当てられない番号（設定ファイルが壊れていたとき用）は、番号をそのまま出す
             text = str(int(button))
@@ -456,9 +467,73 @@ func make_button_icon(button: JoyButton, height: float) -> Control:
         var overlay := Control.new()
         overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
         overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-        overlay.draw.connect(_draw_face_overlay.bind(overlay, face, text, arrow, text_scale))
+        overlay.draw.connect(_draw_face_overlay.bind(overlay, face, text, NAN, text_scale))
         icon.add_child(overlay)
     return icon
+
+
+# 十字キーの絵を作る。大きさは丸いボタンの絵と同じ（height 四方）。押す向き（angle は上向きを回す角度 [rad]）の腕だけ面を明るくした十字を、その場で描く。
+# texture のメタデータは付けない（Recover の縁取りは、texture が無いと絵の範囲全体を囲む）。絵の中の縦の基準は絵の中央なので、align も付けない
+func _make_dpad_icon(angle: float, height: float) -> Control:
+    var icon := Control.new()
+    icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    icon.custom_minimum_size = Vector2(height, height)
+    icon.draw.connect(_draw_dpad.bind(icon, angle))
+    return icon
+
+
+# 十字キーの形を描く。面は暗い色、縁は明るい灰色で、押す向きの腕の面だけ明るい色で塗る
+func _draw_dpad(icon: Control, angle: float) -> void:
+    var center := icon.size / 2.0
+    var thickness := icon.size.y * DPAD_ARM_SCALE
+    var half_length := icon.size.y * DPAD_LENGTH_SCALE / 2.0
+    var half := thickness / 2.0
+    var radius := thickness * DPAD_CORNER_SCALE
+    # 上の腕を先頭にして、時計回りに並べた十字の輪郭（中心が原点）
+    var outline := [
+        Vector2(-half, -half_length), Vector2(half, -half_length), Vector2(half, -half),
+        Vector2(half_length, -half), Vector2(half_length, half), Vector2(half, half),
+        Vector2(half, half_length), Vector2(-half, half_length), Vector2(-half, half),
+        Vector2(-half_length, half), Vector2(-half_length, -half), Vector2(-half, -half),
+    ]
+    var outline_radii := []
+    outline_radii.resize(outline.size())
+    outline_radii.fill(radius)
+    # 押す向きの腕（上向きの腕の、中央の正方形を除いた部分。先の2つの角だけ丸める）
+    var arm := [Vector2(-half, -half_length), Vector2(half, -half_length), Vector2(half, -half), Vector2(-half, -half)]
+    var arm_radii := [radius, radius, 0.0, 0.0]
+    var body := _rounded_polygon(outline, outline_radii)
+    var arm_body := _rounded_polygon(arm, arm_radii)
+    for i in body.size():
+        body[i] = center + body[i]
+    for i in arm_body.size():
+        arm_body[i] = center + arm_body[i].rotated(angle)
+    icon.draw_colored_polygon(body, DPAD_FACE_COLOR)
+    icon.draw_colored_polygon(arm_body, DPAD_PRESSED_COLOR)
+    body.append(body[0])
+    icon.draw_polyline(body, DPAD_EDGE_COLOR, icon.size.y * DPAD_EDGE_SCALE, true)
+
+
+# 多角形の各頂点を、半径 radii[i] で丸める（頂点の手前から奥へ、頂点を制御点にした曲線でつなぐ）
+func _rounded_polygon(points: Array, radii: Array) -> PackedVector2Array:
+    var result := PackedVector2Array()
+    var count := points.size()
+    for i in count:
+        var point: Vector2 = points[i]
+        var previous: Vector2 = points[(i - 1 + count) % count]
+        var next: Vector2 = points[(i + 1) % count]
+        var r: float = radii[i]
+        if r <= 0.0:
+            result.append(point)
+            continue
+        # 隣の頂点との中間より先へは食い込まない
+        var start := point + (previous - point).normalized() * minf(r, point.distance_to(previous) / 2.0)
+        var end := point + (next - point).normalized() * minf(r, point.distance_to(next) / 2.0)
+        for step in DPAD_CORNER_STEPS + 1:
+            var t := float(step) / DPAD_CORNER_STEPS
+            result.append(start.lerp(point, t).lerp(point.lerp(end, t), t))
+    return result
 
 
 # キーの絵の中の、キーの面の位置（px）。絵は icon の全体に広がっているものとして計算する
@@ -630,8 +705,9 @@ static func recover_ring_alpha() -> float:
 # 角の丸みは見えている範囲の短い辺 × round_ratio（縁取りの張り出しを足す）
 func draw_recover_ring(control: Control, texture: Texture2D, round_ratio: float) -> void:
     var area := Rect2(Vector2.ZERO, control.size)
-    var tex_size := texture.get_size()
-    var image := texture.get_image()
+    # texture が無い絵（十字キー）は、絵の範囲全体を囲む
+    var tex_size := texture.get_size() if texture != null else Vector2.ZERO
+    var image := texture.get_image() if texture != null else null
     if image != null and tex_size.x > 0.0 and tex_size.y > 0.0:
         var used := image.get_used_rect()
         if used.size.x > 0 and used.size.y > 0:
