@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://assets/shaders/campus_triplanar.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/textures/campus/paving_brick.png" id="2_brick"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/top_texture = ExtResource("2_brick")
+shader_parameter/side_texture = ExtResource("2_brick")
+shader_parameter/top_tile_size = 1.0
+shader_parameter/side_tile_size = Vector2(1, 1)
