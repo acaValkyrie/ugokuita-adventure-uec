@@ -1,9 +1,12 @@
 [gd_scene format=3 uid="uid://mnii85ru8onp"]
 
-[ext_resource type="ArrayMesh" uid="uid://rkole7oyrjrm" path="res://assets/models/GOMI.obj" id="1_gomi"]
+[ext_resource type="ArrayMesh" path="res://assets/models/gomi_station_without_long_stairs.res" id="1_gomi"]
 [ext_resource type="Shape3D" path="res://assets/models/GOMI_collision.res" id="2_gomi_collision"]
 [ext_resource type="Material" path="res://assets/models/gomi_station_ground_brick.tres" id="3_ground_brick"]
 [ext_resource type="Script" uid="uid://bxcnunf3jakjj" path="res://gomi_station.gd" id="4_gomi_station"]
+
+[ext_resource type="ArrayMesh" path="res://assets/models/gomi_inside_stairs.res" id="5_inside_stairs"]
+[ext_resource type="ArrayMesh" path="res://assets/models/gomi_outside_stairs.res" id="6_outside_stairs"]
 
 [node name="GomiStation" type="StaticBody3D" unique_id=1597494071]
 script = ExtResource("4_gomi_station")
@@ -13,6 +16,17 @@ transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 0, 0)
 layers = 5
 mesh = ExtResource("1_gomi")
 surface_material_override/138 = ExtResource("3_ground_brick")
+
+[node name="InsideStairs" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 0, 0)
+cast_shadow = 0
+mesh = ExtResource("5_inside_stairs")
+
+[node name="OutsideStairs" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.1, 0, 0, 0, 0.1, 0, 0, 0, 0.1, 0, 0, 0)
+visible = false
+cast_shadow = 0
+mesh = ExtResource("6_outside_stairs")
 
 [node name="Collision" type="CollisionShape3D" parent="." unique_id=1523891973]
 shape = ExtResource("2_gomi_collision")
