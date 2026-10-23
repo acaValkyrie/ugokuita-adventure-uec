@@ -5,9 +5,10 @@ extends CanvasLayer
 # PlayStation の SELECT・START などの表記（PS3 以前・PS4・PS5）は、選んだ機種（DualShock 3・DualShock 4・DualSense）から決まる。
 # カメラ操作の左右・上下の反転も選べる。
 # キーボードのキーの割り当ても変えられる（KeyBindings。操作の行を選んで、使いたいキーを押す）。
-# 画面は左に項目（音量・操作の設定［下に ボタンの表示形式・決定とキャンセル・カメラの操作・キーの割り当て］・ロボットタイプ・セーブデータ・閉じる）、右に選んでいる項目の詳細を出す。
+# ゲームパッドのボタンの割り当ても同じやり方で変えられる（操作の行を選んで、使いたいボタンを押す。START は取り消し）。
+# 画面は左に項目（音量・操作の設定［下に ボタンの表示形式・決定とキャンセル・カメラの操作・キーの割り当て・ボタンの割り当て］・ロボットタイプ・セーブデータ・閉じる）、右に選んでいる項目の詳細を出す。
 # 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（操作の設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。キーボードは Esc で1つ戻る（TOP では閉じる）。
-# 中分類（ボタンの表示形式・決定とキャンセル・カメラの操作・キーの割り当て）の行は、操作の設定に入ったときだけ開き、それ以外ではたたんでおく。
+# 中分類（ボタンの表示形式・決定とキャンセル・カメラの操作・キーの割り当て・ボタンの割り当て）の行は、操作の設定に入ったときだけ開き、それ以外ではたたんでおく。
 
 signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
@@ -75,12 +76,13 @@ const ITEM_ICONS := [
     preload("res://assets/ui/menu/icon_save.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
     preload("res://assets/ui/menu/icon_controller.png"),
+    preload("res://assets/ui/menu/icon_controller.png"),
 ]
 # 左の列の「操作の設定」の行
 const CONTROLLER_HEADING := "操作の設定"
 const CONTROLLER_HEADING_ICON := preload("res://assets/ui/menu/icon_controller.png")
 # 操作の設定の下に字下げして並べる項目
-const CHILD_ITEMS := [1, 2, 6, 7]
+const CHILD_ITEMS := [1, 2, 6, 7, 8]
 # 子の行の字下げ（px）
 const CHILD_INDENT := 30
 # ROBOT_MODELS の順
@@ -88,17 +90,18 @@ const ROBOT_SCENES := [
     preload("res://assets/ugokuita-neo.glb"),
     preload("res://assets/ugokuita-classic.fbx"),
 ]
-# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: ロボットタイプ、4: 操作の設定、5: セーブデータ、6: カメラの操作、7: キーの割り当て）
-const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "ロボットタイプ", CONTROLLER_HEADING, "セーブデータ", "カメラの操作", "キーの割り当て"]
+# 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: ロボットタイプ、4: 操作の設定、5: セーブデータ、6: カメラの操作、7: キーの割り当て、8: ボタンの割り当て）
+const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "ロボットタイプ", CONTROLLER_HEADING, "セーブデータ", "カメラの操作", "キーの割り当て", "ボタンの割り当て"]
 const ITEM_DESCRIPTIONS := [
     "BGM と効果音の音量を調整します。決定ボタンで試聴できます",
     "使っているコントローラーに合わせて変更してください",
     "慣れてる方に変更してください",
     "操作する機体を切り替えます",
-    "ボタンの表示形式、決定とキャンセル、カメラの操作、キーの割り当てを設定します",
+    "ボタンの表示形式、決定とキャンセル、カメラの操作、キーとボタンの割り当てを設定します",
     "集めたアイテムとヒントの記録をリセットします",
     "カメラを動かす向きを、左右・上下それぞれで反転できます",
     "決定で選んで、使いたいキーを押してください",
+    "決定で選んで、使いたいボタンを押してください",
 ]
 const ITEM_VOLUME := 0
 const ITEM_PAD := 1
@@ -108,11 +111,15 @@ const ITEM_CONTROLLER := 4
 const ITEM_DATA := 5
 const ITEM_CAMERA := 6
 const ITEM_KEYS := 7
+const ITEM_PAD_BUTTONS := 8
 # 左の列に並べる順（項目の番号）
-const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_CAMERA, ITEM_KEYS, ITEM_ROBOT, ITEM_DATA]
+const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_CAMERA, ITEM_KEYS, ITEM_PAD_BUTTONS, ITEM_ROBOT, ITEM_DATA]
 # キーの割り当ての待ち受け中に、行の状態として出す文
 const LISTENING_PROMPT := "キーを押してください"
 const LISTENING_REJECT := "このキーは使えません"
+# ボタンの割り当ての待ち受け中に、行の状態として出す文
+const BUTTON_LISTENING_PROMPT := "ボタンを押してください（START で取り消し）"
+const BUTTON_LISTENING_REJECT := "このボタンは使えません"
 # カーソルが「閉じる」にあるときの番号
 const CURSOR_CLOSE := -1
 # TOP でカーソルが動く順
@@ -252,6 +259,15 @@ var _keys_reset_style: StyleBoxFlat
 # いま割り当てるキーを待っている操作（待っていなければ空）と、その行の状態に出す文
 var _listening_action := ""
 var _listening_message := ""
+# ボタンの割り当ての項目（KeyBindings.PAD_ACTIONS の順の、行のボタン・ボタンの絵を入れる枠・状態の文字。初期設定に戻すボタンと、その枠線のスタイル）
+var _button_rows: Array[Button] = []
+var _button_icon_slots: Array[Control] = []
+var _button_status_labels: Array[Label] = []
+var _buttons_reset_button: Button
+var _buttons_reset_style: StyleBoxFlat
+# いま割り当てるボタンを待っている操作（待っていなければ空）と、その行の状態に出す文。キーの待ち受けとは同時にならない
+var _listening_button_action := ""
+var _listening_button_message := ""
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
 # セーブデータの項目（持っているアイテムの切り替え、リセットのボタンと中の文字）。リセットは2回押して確定する
@@ -293,6 +309,9 @@ func _ready() -> void:
     _build_button()
     _build_menu()
     key_bindings_changed.connect(_refresh_keys)
+    # ボタンの行の絵は、ボタンの割り当てのほか、機種（PlayStation の世代も機種で決まる）が変わったときにも作り直す
+    pad_bindings_changed.connect(_refresh_buttons)
+    pad_layout_changed.connect(_refresh_buttons.unbind(1))
     # 起動時の初期表示では保存や音を走らせない
     _bgm_slider.set_value_no_signal(_bgm_volume)
     _se_slider.set_value_no_signal(_se_volume)
@@ -360,6 +379,7 @@ func close() -> void:
     is_open = false
     _stop_bgm_preview()
     _stop_listening()
+    _stop_button_listening()
     _dimmer.visible = false
     _edit_bar.visible = false
     get_tree().paused = false
@@ -381,6 +401,10 @@ func is_just_closed() -> bool:
 func _input(event: InputEvent) -> void:
     # キーの割り当ての待ち受け中は、メニューの他の操作（上下移動・閉じる）を動かさず、押されたキーだけを見る
     if is_open and _listening_action != "" and _input_while_listening(event):
+        get_viewport().set_input_as_handled()
+        return
+    # ボタンの割り当ての待ち受け中も同じ（押されたゲームパッドのボタンだけを見る）
+    if is_open and _listening_button_action != "" and _input_while_button_listening(event):
         get_viewport().set_input_as_handled()
         return
     # キーボードの Esc は、menu より先に見て1つ前の階層に戻る（TOP では _cancel() が閉じる）
@@ -1023,7 +1047,7 @@ func _build_right_column() -> Control:
     _edit_controls.resize(ITEM_NAMES.size())
     for i in _edit_controls.size():
         _edit_controls[i] = []
-    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_robot_content(), _build_controller_content(), _build_data_content(), _build_camera_content(), _build_keys_content()]
+    var contents: Array[Control] = [_build_volume_content(), _build_pad_content(), _build_confirm_content(), _build_robot_content(), _build_controller_content(), _build_data_content(), _build_camera_content(), _build_keys_content(), _build_buttons_content()]
     for content in contents:
         content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         content.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1391,39 +1415,77 @@ func _build_keys_content() -> Control:
     box.add_theme_constant_override("separation", 6)
     box.mouse_filter = Control.MOUSE_FILTER_IGNORE
     for action in KeyBindings.ACTIONS:
-        box.add_child(_build_key_row(action))
+        var parts := _make_binding_row(KeyBindings.ACTION_NAMES[action], _on_key_row_pressed.bind(action))
+        box.add_child(parts.row)
+        _key_rows.append(parts.row)
+        _key_icon_slots.append(parts.slot)
+        _key_status_labels.append(parts.status)
+        _add_edit_control(ITEM_KEYS, parts.row, Callable(), _start_listening.bind(action))
 
-    # 初期設定に戻すボタン（見た目はセーブデータのリセットのボタンと同じ。1回で戻す）
-    _keys_reset_button = _make_flat_button(52, Control.FOCUS_NONE)
-    _keys_reset_button.custom_minimum_size = Vector2(320, 52)
-    _keys_reset_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-    _keys_reset_style = _make_style(Color(1, 1, 1, 0.08), 10)
-    _keys_reset_style.border_color = LINE_COLOR
-    _keys_reset_style.set_border_width_all(2)
-    var background := Panel.new()
-    background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    background.set_anchors_preset(Control.PRESET_FULL_RECT)
-    background.add_theme_stylebox_override("panel", _keys_reset_style)
-    _keys_reset_button.add_child(background)
-    var reset_label := _make_label("初期設定に戻す", 19, TEXT_BODY)
-    reset_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    reset_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-    _keys_reset_button.add_child(reset_label)
-    _keys_reset_button.pressed.connect(_on_keys_reset_pressed)
-    _keys_reset_button.mouse_entered.connect(_refresh_keys_reset_style)
-    _keys_reset_button.mouse_exited.connect(_refresh_keys_reset_style)
-    # 行との間にあける（縦の並びの間 6 に足して 18）
-    var reset_margin := _make_margin(0, 12, 0, 0)
-    reset_margin.add_child(_keys_reset_button)
-    box.add_child(reset_margin)
+    var reset := _make_reset_button(_on_keys_reset_pressed, _refresh_keys_reset_style)
+    _keys_reset_button = reset.button
+    _keys_reset_style = reset.style
+    box.add_child(reset.margin)
     _add_edit_control(ITEM_KEYS, _keys_reset_button, Callable(), _reset_keys)
     return box
 
 
-# キーの割り当ての1行（操作の名前・今のキーの絵を入れる枠・状態の文字を左から並べる）。行全体がボタン
-func _build_key_row(action: String) -> Button:
+# ボタンの割り当て。キーの割り当てと同じ作りで、操作ごとに「名前・今のボタンの絵・状態」の行を並べ、最後に初期設定に戻すボタンを置く。
+# 行を決定（かクリック）で選ぶと、押したボタンを割り当てる待ち受けになる
+func _build_buttons_content() -> Control:
+    var box := VBoxContainer.new()
+    box.alignment = BoxContainer.ALIGNMENT_BEGIN
+    box.add_theme_constant_override("separation", 6)
+    box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    for action in KeyBindings.PAD_ACTIONS:
+        var parts := _make_binding_row(KeyBindings.ACTION_NAMES[action], _on_button_row_pressed.bind(action))
+        box.add_child(parts.row)
+        _button_rows.append(parts.row)
+        _button_icon_slots.append(parts.slot)
+        _button_status_labels.append(parts.status)
+        _add_edit_control(ITEM_PAD_BUTTONS, parts.row, Callable(), _start_button_listening.bind(action))
+
+    var reset := _make_reset_button(_on_buttons_reset_pressed, _refresh_buttons_reset_style)
+    _buttons_reset_button = reset.button
+    _buttons_reset_style = reset.style
+    box.add_child(reset.margin)
+    _add_edit_control(ITEM_PAD_BUTTONS, _buttons_reset_button, Callable(), _reset_buttons)
+    return box
+
+
+# 初期設定に戻すボタン（見た目はセーブデータのリセットのボタンと同じ。1回で戻す）。
+# {button, style（枠線のスタイル）, margin（行との間をあけて包んだもの。これを並べに足す）} を返す。
+# refresh_style はカーソル・マウスで枠線の色を変える処理
+func _make_reset_button(on_pressed: Callable, refresh_style: Callable) -> Dictionary:
+    var button := _make_flat_button(52, Control.FOCUS_NONE)
+    button.custom_minimum_size = Vector2(320, 52)
+    button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    var style := _make_style(Color(1, 1, 1, 0.08), 10)
+    style.border_color = LINE_COLOR
+    style.set_border_width_all(2)
+    var background := Panel.new()
+    background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    background.set_anchors_preset(Control.PRESET_FULL_RECT)
+    background.add_theme_stylebox_override("panel", style)
+    button.add_child(background)
+    var reset_label := _make_label("初期設定に戻す", 19, TEXT_BODY)
+    reset_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    reset_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+    button.add_child(reset_label)
+    button.pressed.connect(on_pressed)
+    button.mouse_entered.connect(refresh_style)
+    button.mouse_exited.connect(refresh_style)
+    # 行との間にあける（縦の並びの間 6 に足して 18）
+    var margin := _make_margin(0, 12, 0, 0)
+    margin.add_child(button)
+    return {"button": button, "style": style, "margin": margin}
+
+
+# 割り当ての1行（操作の名前・今のキーかボタンの絵を入れる枠・状態の文字を左から並べる）。行全体がボタン。
+# {row, slot, status} を返す。絵は _refresh_keys・_refresh_buttons で入れる。待ち受け中は絵を隠す（枠の大きさは変えない）
+func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     var row := _make_flat_button(44, Control.FOCUS_NONE)
-    row.pressed.connect(_on_key_row_pressed.bind(action))
+    row.pressed.connect(on_pressed)
     var margin := _make_margin(8, 0, 8, 0)
     margin.set_anchors_preset(Control.PRESET_FULL_RECT)
     row.add_child(margin)
@@ -1433,12 +1495,11 @@ func _build_key_row(action: String) -> Button:
     hbox.add_theme_constant_override("separation", 16)
     margin.add_child(hbox)
 
-    var name_label := _make_label(KeyBindings.ACTION_NAMES[action], 18, TEXT_BODY)
+    var name_label := _make_label(title, 18, TEXT_BODY)
     name_label.custom_minimum_size = Vector2(200, 0)
     name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
     hbox.add_child(name_label)
 
-    # キーの絵は _refresh_keys で入れる。待ち受け中は隠す（枠の大きさは変えない）
     var slot := Control.new()
     slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
     slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -1448,12 +1509,7 @@ func _build_key_row(action: String) -> Button:
     status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
     hbox.add_child(status_label)
-
-    _key_rows.append(row)
-    _key_icon_slots.append(slot)
-    _key_status_labels.append(status_label)
-    _add_edit_control(ITEM_KEYS, row, Callable(), _start_listening.bind(action))
-    return row
+    return {"row": row, "slot": slot, "status": status_label}
 
 
 func _build_robot_content() -> Control:
@@ -1592,6 +1648,9 @@ func _update_cursor_visuals() -> void:
     # キーの割り当ての EDIT から出たら、待ち受けは取り消す
     if _listening_action != "" and (_level != Level.EDIT or _cursor != ITEM_KEYS):
         _stop_listening()
+    # ボタンの割り当ても同じ
+    if _listening_button_action != "" and (_level != Level.EDIT or _cursor != ITEM_PAD_BUTTONS):
+        _stop_button_listening()
     # 右の列を操作している間は、選んでいる行の赤を灰色のグラデーションに替える
     var background_texture := _row_gray_texture if _level == Level.EDIT else _row_red_texture
     for i in _rows.size():
@@ -1620,6 +1679,7 @@ func _update_cursor_visuals() -> void:
     _apply_right_text_color()
     _refresh_data()
     _refresh_keys_reset_style()
+    _refresh_buttons_reset_style()
     # EDIT で操作している部品が見える位置までスクロールする（右の列と全体の両方。動かない方は何もしない）
     if is_open and _level == Level.EDIT:
         var control := _current_edit_control()
@@ -1716,6 +1776,8 @@ func _set_current_item(index: int, force: bool) -> void:
         _refresh_data()
     elif index == ITEM_KEYS:
         _refresh_keys()
+    elif index == ITEM_PAD_BUTTONS:
+        _refresh_buttons()
 
 
 # 項目の行が属する階層（子の項目なら SUB、それ以外は TOP）
@@ -1990,6 +2052,7 @@ func _on_key_row_pressed(action: String) -> void:
 
 # その操作に割り当てるキーの待ち受けを始める
 func _start_listening(action: String) -> void:
+    _stop_button_listening()
     _listening_action = action
     _listening_message = LISTENING_PROMPT
     _refresh_keys()
@@ -2050,6 +2113,100 @@ func _reset_keys() -> void:
     KeyBindings.reset_keys()
     _save_settings()
     key_bindings_changed.emit()
+
+
+# ボタンの割り当ての行の表示を作り直す（今のボタンの絵を入れ直し、待ち受け中の行は絵を隠して状態の文を出す）
+func _refresh_buttons() -> void:
+    for i in KeyBindings.PAD_ACTIONS.size():
+        var action: String = KeyBindings.PAD_ACTIONS[i]
+        var listening := action == _listening_button_action
+        ControlsHelp.set_icon_slot(_button_icon_slots[i], ControlsHelp.make_button_icon(KeyBindings.get_button(action), 56.0))
+        _button_icon_slots[i].modulate.a = 0.0 if listening else 1.0
+        _button_status_labels[i].text = _listening_button_message if listening else ""
+
+
+# 初期設定に戻すボタンの枠線の色（カーソルかマウスが乗っているときだけ赤）
+func _refresh_buttons_reset_style() -> void:
+    if _buttons_reset_button == null:
+        return
+    var active := _has_edit_cursor(_buttons_reset_button) or _buttons_reset_button.is_hovered()
+    _buttons_reset_style.border_color = ACCENT_COLOR if active else LINE_COLOR
+
+
+# 行をクリックしたとき。カーソルをボタンの割り当ての EDIT のその行に移して、待ち受けを始める
+func _on_button_row_pressed(action: String) -> void:
+    if _cursor != ITEM_PAD_BUTTONS or _level == Level.TOP:
+        _children_expanded = true
+        _set_cursor(Level.SUB, ITEM_PAD_BUTTONS)
+    if _level != Level.EDIT:
+        _enter_edit()
+    _edit_index = KeyBindings.PAD_ACTIONS.find(action)
+    _update_cursor_visuals()
+    _start_button_listening(action)
+
+
+# その操作に割り当てるボタンの待ち受けを始める（キーの待ち受けは止める）
+func _start_button_listening(action: String) -> void:
+    _stop_listening()
+    _listening_button_action = action
+    _listening_button_message = BUTTON_LISTENING_PROMPT
+    _refresh_buttons()
+
+
+# ボタンの待ち受けを取り消す（待っていなければ何もしない）
+func _stop_button_listening() -> void:
+    if _listening_button_action == "":
+        return
+    _listening_button_action = ""
+    _listening_button_message = ""
+    _refresh_buttons()
+
+
+# ボタンの待ち受け中の入力。押されたゲームパッドのボタンを割り当てる（START は取り消し、使えないボタンは待ち続ける）。キーボードの Esc でも取り消す。
+# マウス・タッチは通常どおり行のクリックなどに任せるので false を返す。それ以外（キー・軸など）は他の操作に流さないよう捨てて true を返す
+func _input_while_button_listening(event: InputEvent) -> bool:
+    if event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag:
+        return false
+    if event is InputEventJoypadButton:
+        if not event.pressed:
+            return true
+        var button: JoyButton = event.button_index
+        if button == JOY_BUTTON_START:
+            _stop_button_listening()
+        elif not KeyBindings.is_button_allowed(button):
+            _listening_button_message = BUTTON_LISTENING_REJECT
+            _refresh_buttons()
+        else:
+            var action := _listening_button_action
+            _listening_button_action = ""
+            _listening_button_message = ""
+            KeyBindings.set_button(action, button)
+            _save_settings()
+            pad_bindings_changed.emit()
+        return true
+    if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
+        _stop_button_listening()
+    return true
+
+
+func _on_buttons_reset_pressed() -> void:
+    # クリックのときも、カーソルをこのボタンに移してから戻す
+    if _cursor != ITEM_PAD_BUTTONS or _level == Level.TOP:
+        _children_expanded = true
+        _set_cursor(Level.SUB, ITEM_PAD_BUTTONS)
+    if _level != Level.EDIT:
+        _enter_edit()
+    _edit_index = _edit_controls[ITEM_PAD_BUTTONS].size() - 1
+    _update_cursor_visuals()
+    _reset_buttons()
+
+
+# すべてのボタンを初期の割り当てに戻す（1回で戻す）
+func _reset_buttons() -> void:
+    _stop_button_listening()
+    KeyBindings.reset_buttons()
+    _save_settings()
+    pad_bindings_changed.emit()
 
 
 func _refresh_robot_names() -> void:
