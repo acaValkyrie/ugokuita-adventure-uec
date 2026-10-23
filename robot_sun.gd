@@ -9,11 +9,12 @@ extends DirectionalLight3D
 # 機体だけを置く表示レイヤー
 @export_flags_3d_render var robot_layer: int = 2
 # 機体の影を描く範囲 [m]
-@export var shadow_distance: float = 6.0
+@export var shadow_distance: float = 150.0
 # 日なた・日陰の切り替えの速さ [1/s]
 @export var fade_speed: float = 4.0
 
 const RAY_LENGTH := 200.0
+const GOMI_STATION_LAYER := 4
 const SAMPLE_OFFSETS := [
     Vector3(0.0, 0.15, 0.0),
     Vector3(0.2, 0.15, 0.25),
@@ -47,7 +48,7 @@ func _ready() -> void:
 
     # エディタ上では変えない。ベイク時は静止物も影を落とす必要があるため
     _sun.light_cull_mask &= ~robot_layer
-    _sun.shadow_caster_mask = robot_layer
+    _sun.shadow_caster_mask = robot_layer | GOMI_STATION_LAYER
     _sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
     _sun.directional_shadow_max_distance = shadow_distance
 
