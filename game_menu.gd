@@ -2046,7 +2046,7 @@ func _on_keys_reset_pressed() -> void:
 # すべてのキーを初期の割り当てに戻す（1回で戻す）
 func _reset_keys() -> void:
     _stop_listening()
-    KeyBindings.reset_all()
+    KeyBindings.reset_keys()
     _save_settings()
     key_bindings_changed.emit()
 
