@@ -1052,7 +1052,8 @@ func _build_right_column() -> Control:
     line_margin.add_child(_header_line)
     header_text.add_child(line_margin)
 
-    var desc_margin := _make_margin(0, 10, 0, 0)
+    # 下に 12px 空けて、スクロールで上に送られた中身が説明の文字にくっついて見えないようにする
+    var desc_margin := _make_margin(0, 10, 0, 12)
     _header_desc = _make_label("", 15, TEXT_DIM)
     desc_margin.add_child(_header_desc)
     vbox.add_child(desc_margin)
