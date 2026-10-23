@@ -637,12 +637,9 @@ func _build_menu() -> void:
     _divider_margin.add_child(_divider)
     _columns.add_child(_divider_margin)
 
-    _right_scroll = _make_column_scroll()
+    # 右の列は見出しと説明をスクロールさせず、その下の中身だけを _right_scroll（_build_right_column の中で作る）でスクロールさせる
     _right_column = _build_right_column()
-    _right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    _right_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    _right_scroll.add_child(_right_column)
-    _columns.add_child(_right_scroll)
+    _columns.add_child(_right_column)
     # 並びの値（左の列の最小幅など）は _set_stacked で決めるので、最初の並び（左右）でも一度当てておく
     _set_stacked(_stacked)
 
@@ -715,8 +712,8 @@ func _set_stacked(stacked: bool) -> void:
         _divider_margin.add_theme_constant_override("margin_right", 28)
         _divider_margin.add_theme_constant_override("margin_top", 0)
         _divider_margin.add_theme_constant_override("margin_bottom", 0)
-        _right_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-        _right_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        _right_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+        _right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     else:
         # 左右に並べるときは、それぞれの列だけがスクロールする（最小の高さは 0 になり、外側の _scroll は動かない）
         _left_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
@@ -728,8 +725,8 @@ func _set_stacked(stacked: bool) -> void:
         _divider_margin.add_theme_constant_override("margin_right", 0)
         _divider_margin.add_theme_constant_override("margin_top", 28)
         _divider_margin.add_theme_constant_override("margin_bottom", 28)
-        _right_scroll.size_flags_vertical = Control.SIZE_FILL
-        _right_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        _right_column.size_flags_vertical = Control.SIZE_FILL
+        _right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 # ---- 左の列 ----
@@ -1060,6 +1057,12 @@ func _build_right_column() -> Control:
     desc_margin.add_child(_header_desc)
     vbox.add_child(desc_margin)
 
+    # 中身だけをスクロールさせる枠（見出しと説明はこの上に固定される。縦のモードは _set_stacked で並びに合わせて切り替える）
+    _right_scroll = _make_column_scroll()
+    _right_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    _right_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    vbox.add_child(_right_scroll)
+
     # 中身（項目ごとに作っておき、今の項目のものだけ出す）。MarginContainer にして、出している中身の高さを右の列に伝える（上下に並べたときにスクロールで届くように）
     var holder := MarginContainer.new()
     holder.add_theme_constant_override("margin_left", 0)
@@ -1067,8 +1070,9 @@ func _build_right_column() -> Control:
     holder.add_theme_constant_override("margin_right", 0)
     holder.add_theme_constant_override("margin_bottom", 0)
     holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    vbox.add_child(holder)
+    _right_scroll.add_child(holder)
     _edit_controls.resize(ITEM_NAMES.size())
     for i in _edit_controls.size():
         _edit_controls[i] = []
