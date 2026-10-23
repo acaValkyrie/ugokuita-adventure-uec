@@ -1042,6 +1042,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - 確認: test_stage で、止めた機体にアクセルを入れ続けたとき・逆さまにして落としたときに縁取りが出ること、アクセルを離す・Recover を押すと消えること、普通に走っている間は一度も判定しないことを確かめた。実際の建物のすき間や段差でのハマりでは試していない。
   - 注意: `PowerUps._move_player_to` は置いた場所を Recover の戻り先にもするので、逆さまに置いて試すと、Recover でまた逆さまの場所に戻る。
 - メニューのスクロールを左の列と右の列で別々にした（`_left_scroll`・`_right_scroll`）。上下に並べる狭い画面では、列ごとのスクロールを止めて、外側の `_scroll` で全体を1つでスクロールする。右の列で部品を移ったときも、見える位置までスクロールする。
+  - 左右に並べるとき、右の列の見出し（項目名・説明）はスクロールさせず、その下の中身だけを `_right_scroll` でスクロールする（見出しごとスクロールしていたので、長い項目で下まで送ると見出しが隠れ、一番上の行に戻っても見えなかった。ユーザーの指摘）。説明の下に 12px 空ける。上下に並べるときは今までどおり全体を1つでスクロールする。
   - 右の列の中身を入れる `holder` を MarginContainer にした（素の Control だと中身の高さが伝わらず、上下に並べたときに中身がはみ出してスクロールで届かなかった）。
 - メニューのボタンの表示形式を Nintendo / Xbox / DualShock 3 / DualShock 4 / DualSense の5機種にし、「PlayStation の表記」の項目をなくした。SELECT・START などのアイコンの世代は機種から決める（DS3 → PS3、DS4 → PS4、DualSense → PS5）。古い設定の "playstation" は、保存していた ps_generation で DS3 / DS4 / DualSense に引き継ぐ。
   - 絵（`assets/ui/menu/controller_ds3.png`・`controller_ds4.png`・`controller_dualsense.png`）は Codex の画像生成で作った。フリー素材は5機種が同じ絵柄でそろうものが無かった（CC0 の gidedin の線画は DS3 が無い。Controllercons は利用条件の書き方が食い違う）。
