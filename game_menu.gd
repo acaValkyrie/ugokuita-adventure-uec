@@ -4,8 +4,8 @@ extends CanvasLayer
 # 決定とキャンセルのボタンを入れ替える設定もある。
 # PlayStation の SELECT・START などの表記（PS3 以前・PS4・PS5）は、選んだ機種（DualShock 3・DualShock 4・DualSense）から決まる。
 # カメラ操作の左右・上下の反転も選べる。
-# キーボードのキーの割り当ても変えられる（KeyBindings。操作の行を選んで、使いたいキーを押す）。
-# ゲームパッドのボタンの割り当ても同じやり方で変えられる（操作の行を選んで、使いたいボタンを押す。START は取り消し）。
+# キーボードのキーの割り当ても変えられる（KeyBindings。操作の行にカーソルを合わせて、使いたいキーを長押しする）。
+# ゲームパッドのボタンの割り当ても同じやり方で変えられる（操作の行にカーソルを合わせて、使いたいボタンを長押しする）。
 # 画面は左に項目（音量・操作の設定［下に ボタンの表示形式・決定とキャンセル・カメラの操作・キーの割り当て・ボタンの割り当て］・ロボットタイプ・セーブデータ・閉じる）、右に選んでいる項目の詳細を出す。
 # 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（操作の設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。キーボードは Esc で1つ戻る（TOP では閉じる）。
 # 中分類（ボタンの表示形式・決定とキャンセル・カメラの操作・キーの割り当て・ボタンの割り当て）の行は、操作の設定に入ったときだけ開き、それ以外ではたたんでおく。
@@ -100,8 +100,8 @@ const ITEM_DESCRIPTIONS := [
     "ボタンの表示形式、決定とキャンセル、カメラの操作、キーとボタンの割り当てを設定します",
     "集めたアイテムとヒントの記録をリセットします",
     "カメラを動かす向きを、左右・上下それぞれで反転できます",
-    "決定で選んで、使いたいキーを押してください",
-    "決定で選んで、使いたいボタンを押してください",
+    "カーソルを合わせて、使いたいキーを長押ししてください",
+    "カーソルを合わせて、使いたいボタンを長押ししてください",
 ]
 const ITEM_VOLUME := 0
 const ITEM_PAD := 1
@@ -114,16 +114,17 @@ const ITEM_KEYS := 7
 const ITEM_PAD_BUTTONS := 8
 # 左の列に並べる順（項目の番号）
 const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_CAMERA, ITEM_KEYS, ITEM_PAD_BUTTONS, ITEM_ROBOT, ITEM_DATA]
-# キーの割り当ての待ち受け中に、行の状態として出す文
-const LISTENING_PROMPT := "キーを長押ししてください"
-const LISTENING_REJECT := "このキーは使えません"
-# ボタンの割り当ての待ち受け中に、行の状態として出す文
-const BUTTON_LISTENING_PROMPT := "ボタンを長押ししてください（START で取り消し）"
-const BUTTON_LISTENING_REJECT := "このボタンは使えません"
+# 使えないキー・ボタンを押したときに、行の状態として出す文
+const KEY_REJECT_MESSAGE := "このキーは使えません"
+const BUTTON_REJECT_MESSAGE := "このボタンは使えません"
+# 使えないキー・ボタンの文を出しておく時間 [s]
+const REJECT_SHOW_TIME := 1.5
 # 長押し中（キー・ボタン共通）に、行の状態として出す文
 const HOLD_MESSAGE := "そのまま押し続けてください"
 # 割り当てるキー・ボタンを押し続ける時間 [s]。うっかり押したキーで変わらないように
 const BIND_HOLD_TIME := 0.6
+# 長押しの対象のキー・ボタンでも、使えないものが押されたときはメニューの操作として通す入力
+const MENU_ACTIONS := ["ui_up", "ui_down", "ui_left", "ui_right", "ui_accept", "ui_cancel", "menu"]
 # カーソルが「閉じる」にあるときの番号
 const CURSOR_CLOSE := -1
 # TOP でカーソルが動く順
@@ -260,12 +261,15 @@ var _key_icon_slots: Array[Control] = []
 var _key_status_labels: Array[Label] = []
 var _keys_reset_button: Button
 var _keys_reset_style: StyleBoxFlat
-# いま割り当てるキーを待っている操作（待っていなければ空）と、その行の状態に出す文
-var _listening_action := ""
-var _listening_message := ""
-# 長押し中のキー（長押ししていなければ KEY_NONE）と押し始めの時刻 [ms]。各行の状態の文の下に、進み具合のバーを置く
+# 状態の部分を出している行の位置（出していなければ -1）と、そこに出す文。長押し中か、使えないキーを押した直後に出す
+var _key_status_index: int = -1
+var _key_status_message := ""
+# 使えないキーの文を消す時刻 [ms]（出していなければ 0）
+var _key_reject_until_msec: int = 0
+# 長押し中のキー（長押ししていなければ KEY_NONE）と、押し始めの時刻 [ms]、押したときのイベント（短く離したらメニューの操作として戻す）。各行の状態の文の下に、進み具合のバーを置く
 var _hold_key: Key = KEY_NONE
 var _hold_key_start_msec: int = 0
+var _hold_key_event: InputEvent = null
 var _key_hold_bars: Array[ColorRect] = []
 # 各行の名前の部分（右に初期設定のキーを添える）
 var _key_name_boxes: Array[HBoxContainer] = []
@@ -275,12 +279,14 @@ var _button_icon_slots: Array[Control] = []
 var _button_status_labels: Array[Label] = []
 var _buttons_reset_button: Button
 var _buttons_reset_style: StyleBoxFlat
-# いま割り当てるボタンを待っている操作（待っていなければ空）と、その行の状態に出す文。キーの待ち受けとは同時にならない
-var _listening_button_action := ""
-var _listening_button_message := ""
-# 長押し中のボタン（長押ししていなければ JOY_BUTTON_INVALID）と押し始めの時刻 [ms]、各行の進み具合のバー
+# ボタンの割り当ての状態の部分（キーと同じ作り。キーの割り当てとは同時にならない）
+var _button_status_index: int = -1
+var _button_status_message := ""
+var _button_reject_until_msec: int = 0
+# 長押し中のボタン（長押ししていなければ JOY_BUTTON_INVALID）と、押し始めの時刻 [ms]、押したときのイベント、各行の進み具合のバー
 var _hold_button: JoyButton = JOY_BUTTON_INVALID
 var _hold_button_start_msec: int = 0
+var _hold_button_event: InputEvent = null
 var _button_hold_bars: Array[ColorRect] = []
 # 各行の名前の部分（右に初期設定のボタンを添える）
 var _button_name_boxes: Array[HBoxContainer] = []
@@ -397,8 +403,8 @@ func close() -> void:
         return
     is_open = false
     _stop_bgm_preview()
-    _stop_listening()
-    _stop_button_listening()
+    _stop_key_hold()
+    _stop_button_hold()
     _dimmer.visible = false
     _edit_bar.visible = false
     get_tree().paused = false
@@ -418,27 +424,27 @@ func is_just_closed() -> bool:
 
 
 func _input(event: InputEvent) -> void:
-    # キーの割り当ての待ち受け中は、メニューの他の操作（上下移動・閉じる）を動かさず、押されたキーだけを見る
-    if is_open and _listening_action != "" and _input_while_listening(event):
-        get_viewport().set_input_as_handled()
+    if not is_open:
+        if event.is_action_pressed("menu") and not event.is_echo():
+            toggle()
+            get_viewport().set_input_as_handled()
         return
-    # ボタンの割り当ての待ち受け中も同じ（押されたゲームパッドのボタンだけを見る）
-    if is_open and _listening_button_action != "" and _input_while_button_listening(event):
+    # 割り当ての行にカーソルがあるときは、キー・ボタンの長押しを先に見る（短く離したときだけメニューの操作になる）
+    if _input_bind_hold(event) or _handle_menu_input(event):
         get_viewport().set_input_as_handled()
-        return
+
+
+# 開いているあいだのキーボード・ゲームパッドの操作をここでまとめて処理する（Godot のフォーカスは使わない）。
+# 処理したら true を返す。割り当ての長押しが短く離されたときは、覚えておいた押下のイベントをここに渡す
+func _handle_menu_input(event: InputEvent) -> bool:
     # キーボードの Esc は、menu より先に見て1つ前の階層に戻る（TOP では _cancel() が閉じる）
-    if is_open and event is InputEventKey and event.is_action_pressed("ui_cancel") and not event.is_echo():
+    if event is InputEventKey and event.is_action_pressed("ui_cancel") and not event.is_echo():
         _cancel()
-        get_viewport().set_input_as_handled()
-        return
+        return true
     if event.is_action_pressed("menu") and not event.is_echo():
         toggle()
-        get_viewport().set_input_as_handled()
-        return
-    if not is_open:
-        return
-    # 開いているあいだのキーボード・ゲームパッドの操作はここでまとめて処理する（Godot のフォーカスは使わない）。
-    # キーボードの Esc は上で処理済み。コントローラのキャンセルのボタンは表記ごとに違う
+        return true
+    # コントローラのキャンセルのボタンは表記ごとに違う
     if event.is_action_pressed("ui_up", true):
         _move_cursor(-1)
     elif event.is_action_pressed("ui_down", true):
@@ -452,8 +458,8 @@ func _input(event: InputEvent) -> void:
     elif event.is_action_pressed("ui_cancel"):
         _cancel()
     else:
-        return
-    get_viewport().set_input_as_handled()
+        return false
+    return true
 
 
 # 左上のメニューボタン（三本線アイコン）
@@ -1427,7 +1433,7 @@ func _add_camera_row(box: VBoxContainer, title: String, step: Callable) -> Label
 
 
 # キーの割り当て。操作ごとに「名前・今のキーの絵・状態」の行を並べ、最後に初期設定に戻すボタンを置く。
-# 行を決定（かクリック）で選ぶと、押したキーを割り当てる待ち受けになる
+# 行にカーソルを合わせて使いたいキーを長押しすると、その行の操作に割り当てる（決定を押しても何も起きない）
 func _build_keys_content() -> Control:
     var box := VBoxContainer.new()
     box.alignment = BoxContainer.ALIGNMENT_BEGIN
@@ -1441,7 +1447,7 @@ func _build_keys_content() -> Control:
         _key_status_labels.append(parts.status)
         _key_hold_bars.append(parts.bar)
         _key_name_boxes.append(parts.name_box)
-        _add_edit_control(ITEM_KEYS, parts.row, Callable(), _start_listening.bind(action))
+        _add_edit_control(ITEM_KEYS, parts.row, Callable(), Callable())
 
     var reset := _make_reset_button(_on_keys_reset_pressed, _refresh_keys_reset_style)
     _keys_reset_button = reset.button
@@ -1452,7 +1458,7 @@ func _build_keys_content() -> Control:
 
 
 # ボタンの割り当て。キーの割り当てと同じ作りで、操作ごとに「名前・今のボタンの絵・状態」の行を並べ、最後に初期設定に戻すボタンを置く。
-# 行を決定（かクリック）で選ぶと、押したボタンを割り当てる待ち受けになる
+# 行にカーソルを合わせて使いたいボタンを長押しすると、その行の操作に割り当てる（決定を押しても何も起きない）
 func _build_buttons_content() -> Control:
     var box := VBoxContainer.new()
     box.alignment = BoxContainer.ALIGNMENT_BEGIN
@@ -1466,7 +1472,7 @@ func _build_buttons_content() -> Control:
         _button_status_labels.append(parts.status)
         _button_hold_bars.append(parts.bar)
         _button_name_boxes.append(parts.name_box)
-        _add_edit_control(ITEM_PAD_BUTTONS, parts.row, Callable(), _start_button_listening.bind(action))
+        _add_edit_control(ITEM_PAD_BUTTONS, parts.row, Callable(), Callable())
 
     var reset := _make_reset_button(_on_buttons_reset_pressed, _refresh_buttons_reset_style)
     _buttons_reset_button = reset.button
@@ -1505,7 +1511,7 @@ func _make_reset_button(on_pressed: Callable, refresh_style: Callable) -> Dictio
 
 
 # 割り当ての1行（操作の名前、そのあとに、今のキーかボタンの絵を入れる枠か、状態の部分のどちらかを並べる）。行全体がボタン。
-# {row, slot, status, bar, name_box} を返す。絵は _refresh_keys・_refresh_buttons で入れる。待ち受け中・長押し中は絵の枠を隠し、同じ場所に状態の部分を出す。
+# {row, slot, status, bar, name_box} を返す。絵は _refresh_keys・_refresh_buttons で入れる。長押し中・使えないキーを押した直後は絵の枠を隠し、同じ場所に状態の部分を出す。
 # status は状態の文、bar はその下の長押しの進み具合のバー（幅は状態の文の幅 × 進み具合）。status の親が状態の部分（VBoxContainer）
 func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     var row := _make_flat_button(44, Control.FOCUS_NONE)
@@ -1535,7 +1541,7 @@ func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     hbox.add_child(slot)
 
-    # 状態の部分。今の割り当ての絵と同じ場所に、待ち受け中・長押し中だけ絵の代わりに出す（上に状態の文、下に長押しのバー）
+    # 状態の部分。今の割り当ての絵と同じ場所に、長押し中・使えないキーを押した直後だけ絵の代わりに出す（上に状態の文、下に長押しのバー）
     var status_box := VBoxContainer.new()
     status_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
     status_box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1693,12 +1699,12 @@ func _set_cursor(level: Level, index: int) -> void:
 
 # カーソルと階層に合わせて、左の列・右の矢印・音量バーの見た目を更新する
 func _update_cursor_visuals() -> void:
-    # キーの割り当ての EDIT から出たら、待ち受けは取り消す
-    if _listening_action != "" and (_level != Level.EDIT or _cursor != ITEM_KEYS):
-        _stop_listening()
+    # キーの割り当ての EDIT から出たり、カーソルが別の行に動いたりしたら、長押しや「使えません」の表示は取り消す
+    if _key_status_index != -1 and (_level != Level.EDIT or _cursor != ITEM_KEYS or _edit_index != _key_status_index):
+        _stop_key_hold()
     # ボタンの割り当ても同じ
-    if _listening_button_action != "" and (_level != Level.EDIT or _cursor != ITEM_PAD_BUTTONS):
-        _stop_button_listening()
+    if _button_status_index != -1 and (_level != Level.EDIT or _cursor != ITEM_PAD_BUTTONS or _edit_index != _button_status_index):
+        _stop_button_hold()
     # 右の列を操作している間は、選んでいる行の赤を灰色のグラデーションに替える
     var background_texture := _row_gray_texture if _level == Level.EDIT else _row_red_texture
     for i in _rows.size():
@@ -2068,15 +2074,15 @@ func _refresh_camera() -> void:
     _camera_y_value.text = "反転" if invert_camera_y else "通常"
 
 
-# キーの割り当ての行の表示を作り直す（今のキーの絵を入れ直し、待ち受け中の行は絵を隠して状態の文を出す）
+# キーの割り当ての行の表示を作り直す（今のキーの絵を入れ直し、状態を出す行は絵を隠して状態の文を出す）
 func _refresh_keys() -> void:
     for i in KeyBindings.ACTIONS.size():
         var action: String = KeyBindings.ACTIONS[i]
-        var listening := action == _listening_action
+        var showing_status := i == _key_status_index
         ControlsHelp.set_icon_slot(_key_icon_slots[i], ControlsHelp.make_key_icon(KeyBindings.get_key(action), 56.0))
-        _key_icon_slots[i].visible = not listening
-        _key_status_labels[i].get_parent().visible = listening
-        _key_status_labels[i].text = _listening_message if listening else ""
+        _key_icon_slots[i].visible = not showing_status
+        _key_status_labels[i].get_parent().visible = showing_status
+        _key_status_labels[i].text = _key_status_message if showing_status else ""
         _set_hold_bar(_key_hold_bars[i], _key_status_labels[i], 0.0)
         _refresh_default_hint(_key_name_boxes[i], KeyBindings.get_key(action) != KeyBindings.get_default_key(action), ControlsHelp.make_key_icon.bind(KeyBindings.get_default_key(action), 44.0))
 
@@ -2089,7 +2095,7 @@ func _refresh_keys_reset_style() -> void:
     _keys_reset_style.border_color = ACCENT_COLOR if active else LINE_COLOR
 
 
-# 行をクリックしたとき。カーソルをキーの割り当ての EDIT のその行に移して、待ち受けを始める
+# 行をクリックしたとき。カーソルをキーの割り当ての EDIT のその行に移すだけ（割り当ては長押しで決める）
 func _on_key_row_pressed(action: String) -> void:
     if _cursor != ITEM_KEYS or _level == Level.TOP:
         _children_expanded = true
@@ -2098,80 +2104,102 @@ func _on_key_row_pressed(action: String) -> void:
         _enter_edit()
     _edit_index = KeyBindings.ACTIONS.find(action)
     _update_cursor_visuals()
-    _start_listening(action)
 
 
-# その操作に割り当てるキーの待ち受けを始める
-func _start_listening(action: String) -> void:
-    _stop_button_listening()
-    _listening_action = action
-    _listening_message = LISTENING_PROMPT
-    _hold_key = KEY_NONE
-    _refresh_keys()
-
-
-# 待ち受けを取り消す（待っていなければ何もしない）
-func _stop_listening() -> void:
-    if _listening_action == "":
+# 長押し（かその表示）をやめて、行の表示を元に戻す（何も出していなければ何もしない）
+func _stop_key_hold() -> void:
+    if _key_status_index == -1 and _hold_key == KEY_NONE:
         return
-    _listening_action = ""
-    _listening_message = ""
+    _key_status_index = -1
+    _key_status_message = ""
+    _key_reject_until_msec = 0
     _hold_key = KEY_NONE
+    _hold_key_event = null
     _refresh_keys()
 
 
-# 待ち受け中の入力。押された使えるキーの長押しを始める（Esc は取り消し、使えないキーは待ち続ける）。
-# 長押し中にそのキーが離されたら待ち受けに戻し、別の使えるキーが押されたらそちらで長押しを始め直す。
-# マウス・タッチは通常どおり行のクリックなどに任せるので false を返す。それ以外は他の操作に流さないよう true を返す
-func _input_while_listening(event: InputEvent) -> bool:
-    if event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag:
+# EDIT でカーソルが割り当ての行にあるときの、入力の長押しの処理。キーボードのキーだけが対象（ほかの機器の入力はメニューの操作として通す）。
+# 使えるキーが押されたらメニューの操作はせず、長押しを始める（長押し中に別の使えるキーが押されたら、そちらで始め直す）。
+# 長押し中のキーが短く離されたら、押したときのイベントをメニューの操作として処理する。
+# 使えないキーは、メニューの操作に当たるならそのまま通し（Esc で戻るなど）、当たらないなら「使えません」を出す。
+# 扱った入力は true を返し、メニューの操作には流さない
+func _input_bind_hold(event: InputEvent) -> bool:
+    if _level != Level.EDIT:
         return false
-    if event is InputEventKey:
-        var physical: Key = event.physical_keycode
-        if not event.pressed:
-            if _hold_key != KEY_NONE and physical == _hold_key:
-                _hold_key = KEY_NONE
-                _listening_message = LISTENING_PROMPT
-                _refresh_keys()
+    if _cursor == ITEM_KEYS and event is InputEventKey and _edit_index < KeyBindings.ACTIONS.size():
+        return _input_key_hold(event)
+    if _cursor == ITEM_PAD_BUTTONS and event is InputEventJoypadButton and _edit_index < KeyBindings.PAD_ACTIONS.size():
+        return _input_button_hold(event)
+    return false
+
+
+# 押された入力がメニューの操作（上下左右・決定・キャンセル・menu）に当たるか
+func _is_menu_input(event: InputEvent) -> bool:
+    for menu_action in MENU_ACTIONS:
+        if event.is_action_pressed(menu_action):
             return true
-        if event.echo:
-            return true
-        if physical == KEY_ESCAPE:
-            _stop_listening()
-        elif event.ctrl_pressed or event.alt_pressed or event.meta_pressed or not KeyBindings.is_allowed(physical):
-            # 長押し中に使えないキーが押されても、長押しは続ける
-            if _hold_key == KEY_NONE:
-                _listening_message = LISTENING_REJECT
-                _refresh_keys()
+    return false
+
+
+func _input_key_hold(event: InputEventKey) -> bool:
+    var physical: Key = event.physical_keycode
+    if not event.pressed:
+        if _hold_key == KEY_NONE or physical != _hold_key:
+            return false
+        if float(Time.get_ticks_msec() - _hold_key_start_msec) / 1000.0 >= BIND_HOLD_TIME:
+            _finish_key_hold()
         else:
-            _hold_key = physical
-            _hold_key_start_msec = Time.get_ticks_msec()
-            _listening_message = HOLD_MESSAGE
-            _refresh_keys()
+            # 届く前に離したので、押したときのイベントをふつうのメニューの操作として処理する
+            var pressed_event := _hold_key_event
+            _stop_key_hold()
+            _handle_menu_input(pressed_event)
         return true
-    # コントローラのキャンセルのボタンでも取り消す
-    if event.is_action_pressed("ui_cancel") and not event.is_echo():
-        _stop_listening()
+    # 押しっぱなしで行が流れないよう、echo は捨てる
+    if event.echo:
+        return true
+    if not (event.ctrl_pressed or event.alt_pressed or event.meta_pressed) and KeyBindings.is_allowed(physical):
+        _hold_key = physical
+        _hold_key_event = event
+        _hold_key_start_msec = Time.get_ticks_msec()
+        _key_reject_until_msec = 0
+        _key_status_index = _edit_index
+        _key_status_message = HOLD_MESSAGE
+        _refresh_keys()
+        return true
+    if _is_menu_input(event):
+        return false
+    # 長押し中に使えないキーが押されても、長押しは続ける
+    if _hold_key == KEY_NONE:
+        _key_status_index = _edit_index
+        _key_status_message = KEY_REJECT_MESSAGE
+        _key_reject_until_msec = Time.get_ticks_msec() + int(REJECT_SHOW_TIME * 1000.0)
+        _refresh_keys()
     return true
 
 
-# キーの長押しの進み具合のバーを更新し、BIND_HOLD_TIME に達したらキーを割り当てる
-func _update_key_hold() -> void:
-    if _listening_action == "" or _hold_key == KEY_NONE:
-        return
-    var progress := float(Time.get_ticks_msec() - _hold_key_start_msec) / 1000.0 / BIND_HOLD_TIME
-    if progress < 1.0:
-        var index := KeyBindings.ACTIONS.find(_listening_action)
-        _set_hold_bar(_key_hold_bars[index], _key_status_labels[index], progress)
-        return
-    var action := _listening_action
+# 長押しが BIND_HOLD_TIME に達したので、覚えていた行の操作にキーを割り当てる
+func _finish_key_hold() -> void:
+    var action: String = KeyBindings.ACTIONS[_key_status_index]
     var physical := _hold_key
-    _listening_action = ""
-    _listening_message = ""
+    _key_status_index = -1
+    _key_status_message = ""
     _hold_key = KEY_NONE
+    _hold_key_event = null
     KeyBindings.set_key(action, physical)
     _save_settings()
     key_bindings_changed.emit()
+
+
+# キーの長押しの進み具合のバーを更新し、BIND_HOLD_TIME に達したらキーを割り当てる。使えないキーの文は時間が来たら消す
+func _update_key_hold() -> void:
+    if _hold_key != KEY_NONE:
+        var progress := float(Time.get_ticks_msec() - _hold_key_start_msec) / 1000.0 / BIND_HOLD_TIME
+        if progress < 1.0:
+            _set_hold_bar(_key_hold_bars[_key_status_index], _key_status_labels[_key_status_index], progress)
+        else:
+            _finish_key_hold()
+    elif _key_reject_until_msec > 0 and Time.get_ticks_msec() >= _key_reject_until_msec:
+        _stop_key_hold()
 
 
 # 行の名前の部分の「（デフォルト 〇）」を作り直す（名前のラベルだけ残して消す）。
@@ -2212,21 +2240,21 @@ func _on_keys_reset_pressed() -> void:
 
 # すべてのキーを初期の割り当てに戻す（1回で戻す）
 func _reset_keys() -> void:
-    _stop_listening()
+    _stop_key_hold()
     KeyBindings.reset_keys()
     _save_settings()
     key_bindings_changed.emit()
 
 
-# ボタンの割り当ての行の表示を作り直す（今のボタンの絵を入れ直し、待ち受け中の行は絵を隠して状態の文を出す）
+# ボタンの割り当ての行の表示を作り直す（今のボタンの絵を入れ直し、状態を出す行は絵を隠して状態の文を出す）
 func _refresh_buttons() -> void:
     for i in KeyBindings.PAD_ACTIONS.size():
         var action: String = KeyBindings.PAD_ACTIONS[i]
-        var listening := action == _listening_button_action
+        var showing_status := i == _button_status_index
         ControlsHelp.set_icon_slot(_button_icon_slots[i], ControlsHelp.make_button_icon(KeyBindings.get_button(action), 56.0))
-        _button_icon_slots[i].visible = not listening
-        _button_status_labels[i].get_parent().visible = listening
-        _button_status_labels[i].text = _listening_button_message if listening else ""
+        _button_icon_slots[i].visible = not showing_status
+        _button_status_labels[i].get_parent().visible = showing_status
+        _button_status_labels[i].text = _button_status_message if showing_status else ""
         _set_hold_bar(_button_hold_bars[i], _button_status_labels[i], 0.0)
         _refresh_default_hint(_button_name_boxes[i], KeyBindings.get_button(action) != KeyBindings.get_default_button(action), ControlsHelp.make_button_icon.bind(KeyBindings.get_default_button(action), 44.0))
 
@@ -2239,7 +2267,7 @@ func _refresh_buttons_reset_style() -> void:
     _buttons_reset_style.border_color = ACCENT_COLOR if active else LINE_COLOR
 
 
-# 行をクリックしたとき。カーソルをボタンの割り当ての EDIT のその行に移して、待ち受けを始める
+# 行をクリックしたとき。カーソルをボタンの割り当ての EDIT のその行に移すだけ（割り当ては長押しで決める）
 func _on_button_row_pressed(action: String) -> void:
     if _cursor != ITEM_PAD_BUTTONS or _level == Level.TOP:
         _children_expanded = true
@@ -2248,77 +2276,79 @@ func _on_button_row_pressed(action: String) -> void:
         _enter_edit()
     _edit_index = KeyBindings.PAD_ACTIONS.find(action)
     _update_cursor_visuals()
-    _start_button_listening(action)
 
 
-# その操作に割り当てるボタンの待ち受けを始める（キーの待ち受けは止める）
-func _start_button_listening(action: String) -> void:
-    _stop_listening()
-    _listening_button_action = action
-    _listening_button_message = BUTTON_LISTENING_PROMPT
-    _hold_button = JOY_BUTTON_INVALID
-    _refresh_buttons()
-
-
-# ボタンの待ち受けを取り消す（待っていなければ何もしない）
-func _stop_button_listening() -> void:
-    if _listening_button_action == "":
+# 長押し（かその表示）をやめて、行の表示を元に戻す（何も出していなければ何もしない）
+func _stop_button_hold() -> void:
+    if _button_status_index == -1 and _hold_button == JOY_BUTTON_INVALID:
         return
-    _listening_button_action = ""
-    _listening_button_message = ""
+    _button_status_index = -1
+    _button_status_message = ""
+    _button_reject_until_msec = 0
     _hold_button = JOY_BUTTON_INVALID
+    _hold_button_event = null
     _refresh_buttons()
 
 
-# ボタンの待ち受け中の入力。押された使えるゲームパッドのボタンの長押しを始める（START は取り消し、使えないボタンは待ち続ける）。キーボードの Esc でも取り消す。
-# 長押し中にそのボタンが離されたら待ち受けに戻し、別の使えるボタンが押されたらそちらで長押しを始め直す。
-# マウス・タッチは通常どおり行のクリックなどに任せるので false を返す。それ以外（キー・軸など）は他の操作に流さないよう捨てて true を返す
-func _input_while_button_listening(event: InputEvent) -> bool:
-    if event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag:
-        return false
-    if event is InputEventJoypadButton:
-        var button: JoyButton = event.button_index
-        if not event.pressed:
-            if _hold_button != JOY_BUTTON_INVALID and button == _hold_button:
-                _hold_button = JOY_BUTTON_INVALID
-                _listening_button_message = BUTTON_LISTENING_PROMPT
-                _refresh_buttons()
-            return true
-        if button == JOY_BUTTON_START:
-            _stop_button_listening()
-        elif not KeyBindings.is_button_allowed(button):
-            # 長押し中に使えないボタンが押されても、長押しは続ける
-            if _hold_button == JOY_BUTTON_INVALID:
-                _listening_button_message = BUTTON_LISTENING_REJECT
-                _refresh_buttons()
+# ボタンの長押しの処理（_input_bind_hold から呼ぶ。考え方はキーの _input_key_hold と同じで、対象はゲームパッドのボタンだけ）
+func _input_button_hold(event: InputEventJoypadButton) -> bool:
+    var button: JoyButton = event.button_index
+    if not event.pressed:
+        if _hold_button == JOY_BUTTON_INVALID or button != _hold_button:
+            return false
+        if float(Time.get_ticks_msec() - _hold_button_start_msec) / 1000.0 >= BIND_HOLD_TIME:
+            _finish_button_hold()
         else:
-            _hold_button = button
-            _hold_button_start_msec = Time.get_ticks_msec()
-            _listening_button_message = HOLD_MESSAGE
-            _refresh_buttons()
+            # 届く前に離したので、押したときのイベントをふつうのメニューの操作として処理する
+            var pressed_event := _hold_button_event
+            _stop_button_hold()
+            _handle_menu_input(pressed_event)
         return true
-    if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
-        _stop_button_listening()
+    if event.echo:
+        return true
+    if KeyBindings.is_button_allowed(button):
+        _hold_button = button
+        _hold_button_event = event
+        _hold_button_start_msec = Time.get_ticks_msec()
+        _button_reject_until_msec = 0
+        _button_status_index = _edit_index
+        _button_status_message = HOLD_MESSAGE
+        _refresh_buttons()
+        return true
+    if _is_menu_input(event):
+        return false
+    # 長押し中に使えないボタンが押されても、長押しは続ける
+    if _hold_button == JOY_BUTTON_INVALID:
+        _button_status_index = _edit_index
+        _button_status_message = BUTTON_REJECT_MESSAGE
+        _button_reject_until_msec = Time.get_ticks_msec() + int(REJECT_SHOW_TIME * 1000.0)
+        _refresh_buttons()
     return true
 
 
-# ボタンの長押しの進み具合のバーを更新し、BIND_HOLD_TIME に達したらボタンを割り当てる
-func _update_button_hold() -> void:
-    if _listening_button_action == "" or _hold_button == JOY_BUTTON_INVALID:
-        return
-    var progress := float(Time.get_ticks_msec() - _hold_button_start_msec) / 1000.0 / BIND_HOLD_TIME
-    if progress < 1.0:
-        var index := KeyBindings.PAD_ACTIONS.find(_listening_button_action)
-        _set_hold_bar(_button_hold_bars[index], _button_status_labels[index], progress)
-        return
-    var action := _listening_button_action
+# 長押しが BIND_HOLD_TIME に達したので、覚えていた行の操作にボタンを割り当てる
+func _finish_button_hold() -> void:
+    var action: String = KeyBindings.PAD_ACTIONS[_button_status_index]
     var button := _hold_button
-    _listening_button_action = ""
-    _listening_button_message = ""
+    _button_status_index = -1
+    _button_status_message = ""
     _hold_button = JOY_BUTTON_INVALID
+    _hold_button_event = null
     KeyBindings.set_button(action, button)
     _save_settings()
     pad_bindings_changed.emit()
+
+
+# ボタンの長押しの進み具合のバーを更新し、BIND_HOLD_TIME に達したらボタンを割り当てる。使えないボタンの文は時間が来たら消す
+func _update_button_hold() -> void:
+    if _hold_button != JOY_BUTTON_INVALID:
+        var progress := float(Time.get_ticks_msec() - _hold_button_start_msec) / 1000.0 / BIND_HOLD_TIME
+        if progress < 1.0:
+            _set_hold_bar(_button_hold_bars[_button_status_index], _button_status_labels[_button_status_index], progress)
+        else:
+            _finish_button_hold()
+    elif _button_reject_until_msec > 0 and Time.get_ticks_msec() >= _button_reject_until_msec:
+        _stop_button_hold()
 
 
 func _on_buttons_reset_pressed() -> void:
@@ -2335,7 +2365,7 @@ func _on_buttons_reset_pressed() -> void:
 
 # すべてのボタンを初期の割り当てに戻す（1回で戻す）
 func _reset_buttons() -> void:
-    _stop_button_listening()
+    _stop_button_hold()
     KeyBindings.reset_buttons()
     _save_settings()
     pad_bindings_changed.emit()
