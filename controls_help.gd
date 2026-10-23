@@ -738,7 +738,8 @@ func _make_item(icon: Variant, text: String, icon_scale: float, spacer_height: f
     var texture: Texture2D
     if icon is Control:
         rect = icon
-        texture = icon.get_meta("texture", null)
+        # default が null だと、無いときにエラーを出すので has_meta で確かめる
+        texture = icon.get_meta("texture") if icon.has_meta("texture") else null
     else:
         texture = icon
         rect = _make_texture_icon(texture, _icon_height(icon_scale))
