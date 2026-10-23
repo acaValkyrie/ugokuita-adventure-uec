@@ -115,11 +115,15 @@ const ITEM_PAD_BUTTONS := 8
 # 左の列に並べる順（項目の番号）
 const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_CAMERA, ITEM_KEYS, ITEM_PAD_BUTTONS, ITEM_ROBOT, ITEM_DATA]
 # キーの割り当ての待ち受け中に、行の状態として出す文
-const LISTENING_PROMPT := "キーを押してください"
+const LISTENING_PROMPT := "キーを長押ししてください"
 const LISTENING_REJECT := "このキーは使えません"
 # ボタンの割り当ての待ち受け中に、行の状態として出す文
-const BUTTON_LISTENING_PROMPT := "ボタンを押してください（START で取り消し）"
+const BUTTON_LISTENING_PROMPT := "ボタンを長押ししてください（START で取り消し）"
 const BUTTON_LISTENING_REJECT := "このボタンは使えません"
+# 長押し中（キー・ボタン共通）に、行の状態として出す文
+const HOLD_MESSAGE := "そのまま押し続けてください"
+# 割り当てるキー・ボタンを押し続ける時間 [s]。うっかり押したキーで変わらないように
+const BIND_HOLD_TIME := 0.6
 # カーソルが「閉じる」にあるときの番号
 const CURSOR_CLOSE := -1
 # TOP でカーソルが動く順
@@ -259,6 +263,10 @@ var _keys_reset_style: StyleBoxFlat
 # いま割り当てるキーを待っている操作（待っていなければ空）と、その行の状態に出す文
 var _listening_action := ""
 var _listening_message := ""
+# 長押し中のキー（長押ししていなければ KEY_NONE）と押し始めの時刻 [ms]。各行の状態の文字の右に、進み具合のバーを置く
+var _hold_key: Key = KEY_NONE
+var _hold_key_start_msec: int = 0
+var _key_hold_bars: Array[ColorRect] = []
 # ボタンの割り当ての項目（KeyBindings.PAD_ACTIONS の順の、行のボタン・ボタンの絵を入れる枠・状態の文字。初期設定に戻すボタンと、その枠線のスタイル）
 var _button_rows: Array[Button] = []
 var _button_icon_slots: Array[Control] = []
@@ -268,6 +276,10 @@ var _buttons_reset_style: StyleBoxFlat
 # いま割り当てるボタンを待っている操作（待っていなければ空）と、その行の状態に出す文。キーの待ち受けとは同時にならない
 var _listening_button_action := ""
 var _listening_button_message := ""
+# 長押し中のボタン（長押ししていなければ JOY_BUTTON_INVALID）と押し始めの時刻 [ms]、各行の進み具合のバー
+var _hold_button: JoyButton = JOY_BUTTON_INVALID
+var _hold_button_start_msec: int = 0
+var _button_hold_bars: Array[ColorRect] = []
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
 # セーブデータの項目（持っているアイテムの切り替え、リセットのボタンと中の文字）。リセットは2回押して確定する
@@ -333,6 +345,9 @@ func _process(delta: float) -> void:
     # ロボットタイプを見ているときだけ機体を回す（一時停止中も動く）
     if _current_item == ITEM_ROBOT and _robot_pivot != null:
         _robot_pivot.rotate_y(deg_to_rad(ROBOT_ROT_SPEED) * delta)
+    # 割り当てるキー・ボタンの長押しを進める（一時停止中も進むよう、時刻は Time で見る）
+    _update_key_hold()
+    _update_button_hold()
 
 
 # その機種が PlayStation か（DualShock 3・DualShock 4・DualSense）
@@ -1420,6 +1435,7 @@ func _build_keys_content() -> Control:
         _key_rows.append(parts.row)
         _key_icon_slots.append(parts.slot)
         _key_status_labels.append(parts.status)
+        _key_hold_bars.append(parts.bar)
         _add_edit_control(ITEM_KEYS, parts.row, Callable(), _start_listening.bind(action))
 
     var reset := _make_reset_button(_on_keys_reset_pressed, _refresh_keys_reset_style)
@@ -1443,6 +1459,7 @@ func _build_buttons_content() -> Control:
         _button_rows.append(parts.row)
         _button_icon_slots.append(parts.slot)
         _button_status_labels.append(parts.status)
+        _button_hold_bars.append(parts.bar)
         _add_edit_control(ITEM_PAD_BUTTONS, parts.row, Callable(), _start_button_listening.bind(action))
 
     var reset := _make_reset_button(_on_buttons_reset_pressed, _refresh_buttons_reset_style)
@@ -1482,7 +1499,8 @@ func _make_reset_button(on_pressed: Callable, refresh_style: Callable) -> Dictio
 
 
 # 割り当ての1行（操作の名前・今のキーかボタンの絵を入れる枠・状態の文字を左から並べる）。行全体がボタン。
-# {row, slot, status} を返す。絵は _refresh_keys・_refresh_buttons で入れる。待ち受け中は絵を隠す（枠の大きさは変えない）
+# {row, slot, status, bar} を返す。絵は _refresh_keys・_refresh_buttons で入れる。待ち受け中は絵を隠す（枠の大きさは変えない）。
+# bar は長押しの進み具合のバー（状態の文字の右。長押し中だけ出す）
 func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     var row := _make_flat_button(44, Control.FOCUS_NONE)
     row.pressed.connect(on_pressed)
@@ -1509,7 +1527,15 @@ func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
     hbox.add_child(status_label)
-    return {"row": row, "slot": slot, "status": status_label}
+
+    var bar := ColorRect.new()
+    bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    bar.color = ACCENT_COLOR
+    bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+    bar.custom_minimum_size = Vector2(0, 4)
+    bar.visible = false
+    hbox.add_child(bar)
+    return {"row": row, "slot": slot, "status": status_label, "bar": bar}
 
 
 func _build_robot_content() -> Control:
@@ -2028,6 +2054,7 @@ func _refresh_keys() -> void:
         ControlsHelp.set_icon_slot(_key_icon_slots[i], ControlsHelp.make_key_icon(KeyBindings.get_key(action), 56.0))
         _key_icon_slots[i].modulate.a = 0.0 if listening else 1.0
         _key_status_labels[i].text = _listening_message if listening else ""
+        _key_hold_bars[i].visible = listening and _hold_key != KEY_NONE
 
 
 # 初期設定に戻すボタンの枠線の色（カーソルかマウスが乗っているときだけ赤）
@@ -2055,6 +2082,7 @@ func _start_listening(action: String) -> void:
     _stop_button_listening()
     _listening_action = action
     _listening_message = LISTENING_PROMPT
+    _hold_key = KEY_NONE
     _refresh_keys()
 
 
@@ -2064,35 +2092,67 @@ func _stop_listening() -> void:
         return
     _listening_action = ""
     _listening_message = ""
+    _hold_key = KEY_NONE
     _refresh_keys()
 
 
-# 待ち受け中の入力。押されたキーを割り当てる（Esc は取り消し、使えないキーは待ち続ける）。
+# 待ち受け中の入力。押された使えるキーの長押しを始める（Esc は取り消し、使えないキーは待ち続ける）。
+# 長押し中にそのキーが離されたら待ち受けに戻し、別の使えるキーが押されたらそちらで長押しを始め直す。
 # マウス・タッチは通常どおり行のクリックなどに任せるので false を返す。それ以外は他の操作に流さないよう true を返す
 func _input_while_listening(event: InputEvent) -> bool:
     if event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag:
         return false
     if event is InputEventKey:
-        if not event.pressed or event.echo:
-            return true
         var physical: Key = event.physical_keycode
+        if not event.pressed:
+            if _hold_key != KEY_NONE and physical == _hold_key:
+                _hold_key = KEY_NONE
+                _listening_message = LISTENING_PROMPT
+                _refresh_keys()
+            return true
+        if event.echo:
+            return true
         if physical == KEY_ESCAPE:
             _stop_listening()
         elif event.ctrl_pressed or event.alt_pressed or event.meta_pressed or not KeyBindings.is_allowed(physical):
-            _listening_message = LISTENING_REJECT
-            _refresh_keys()
+            # 長押し中に使えないキーが押されても、長押しは続ける
+            if _hold_key == KEY_NONE:
+                _listening_message = LISTENING_REJECT
+                _refresh_keys()
         else:
-            var action := _listening_action
-            _listening_action = ""
-            _listening_message = ""
-            KeyBindings.set_key(action, physical)
-            _save_settings()
-            key_bindings_changed.emit()
+            _hold_key = physical
+            _hold_key_start_msec = Time.get_ticks_msec()
+            _listening_message = HOLD_MESSAGE
+            _refresh_keys()
+            _set_hold_bar(_key_hold_bars[KeyBindings.ACTIONS.find(_listening_action)], 0.0)
         return true
     # コントローラのキャンセルのボタンでも取り消す
     if event.is_action_pressed("ui_cancel") and not event.is_echo():
         _stop_listening()
     return true
+
+
+# キーの長押しの進み具合のバーを更新し、BIND_HOLD_TIME に達したらキーを割り当てる
+func _update_key_hold() -> void:
+    if _listening_action == "" or _hold_key == KEY_NONE:
+        return
+    var progress := float(Time.get_ticks_msec() - _hold_key_start_msec) / 1000.0 / BIND_HOLD_TIME
+    if progress < 1.0:
+        _set_hold_bar(_key_hold_bars[KeyBindings.ACTIONS.find(_listening_action)], progress)
+        return
+    var action := _listening_action
+    var physical := _hold_key
+    _listening_action = ""
+    _listening_message = ""
+    _hold_key = KEY_NONE
+    KeyBindings.set_key(action, physical)
+    _save_settings()
+    key_bindings_changed.emit()
+
+
+# 長押しの進み具合のバーの幅を合わせる（progress は 0〜1。幅は 100 × 進み具合）
+func _set_hold_bar(bar: ColorRect, progress: float) -> void:
+    bar.custom_minimum_size.x = 100.0 * clampf(progress, 0.0, 1.0)
 
 
 func _on_keys_reset_pressed() -> void:
@@ -2123,6 +2183,7 @@ func _refresh_buttons() -> void:
         ControlsHelp.set_icon_slot(_button_icon_slots[i], ControlsHelp.make_button_icon(KeyBindings.get_button(action), 56.0))
         _button_icon_slots[i].modulate.a = 0.0 if listening else 1.0
         _button_status_labels[i].text = _listening_button_message if listening else ""
+        _button_hold_bars[i].visible = listening and _hold_button != JOY_BUTTON_INVALID
 
 
 # 初期設定に戻すボタンの枠線の色（カーソルかマウスが乗っているときだけ赤）
@@ -2150,6 +2211,7 @@ func _start_button_listening(action: String) -> void:
     _stop_listening()
     _listening_button_action = action
     _listening_button_message = BUTTON_LISTENING_PROMPT
+    _hold_button = JOY_BUTTON_INVALID
     _refresh_buttons()
 
 
@@ -2159,34 +2221,59 @@ func _stop_button_listening() -> void:
         return
     _listening_button_action = ""
     _listening_button_message = ""
+    _hold_button = JOY_BUTTON_INVALID
     _refresh_buttons()
 
 
-# ボタンの待ち受け中の入力。押されたゲームパッドのボタンを割り当てる（START は取り消し、使えないボタンは待ち続ける）。キーボードの Esc でも取り消す。
+# ボタンの待ち受け中の入力。押された使えるゲームパッドのボタンの長押しを始める（START は取り消し、使えないボタンは待ち続ける）。キーボードの Esc でも取り消す。
+# 長押し中にそのボタンが離されたら待ち受けに戻し、別の使えるボタンが押されたらそちらで長押しを始め直す。
 # マウス・タッチは通常どおり行のクリックなどに任せるので false を返す。それ以外（キー・軸など）は他の操作に流さないよう捨てて true を返す
 func _input_while_button_listening(event: InputEvent) -> bool:
     if event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag:
         return false
     if event is InputEventJoypadButton:
-        if not event.pressed:
-            return true
         var button: JoyButton = event.button_index
+        if not event.pressed:
+            if _hold_button != JOY_BUTTON_INVALID and button == _hold_button:
+                _hold_button = JOY_BUTTON_INVALID
+                _listening_button_message = BUTTON_LISTENING_PROMPT
+                _refresh_buttons()
+            return true
         if button == JOY_BUTTON_START:
             _stop_button_listening()
         elif not KeyBindings.is_button_allowed(button):
-            _listening_button_message = BUTTON_LISTENING_REJECT
-            _refresh_buttons()
+            # 長押し中に使えないボタンが押されても、長押しは続ける
+            if _hold_button == JOY_BUTTON_INVALID:
+                _listening_button_message = BUTTON_LISTENING_REJECT
+                _refresh_buttons()
         else:
-            var action := _listening_button_action
-            _listening_button_action = ""
-            _listening_button_message = ""
-            KeyBindings.set_button(action, button)
-            _save_settings()
-            pad_bindings_changed.emit()
+            _hold_button = button
+            _hold_button_start_msec = Time.get_ticks_msec()
+            _listening_button_message = HOLD_MESSAGE
+            _refresh_buttons()
+            _set_hold_bar(_button_hold_bars[KeyBindings.PAD_ACTIONS.find(_listening_button_action)], 0.0)
         return true
     if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
         _stop_button_listening()
     return true
+
+
+# ボタンの長押しの進み具合のバーを更新し、BIND_HOLD_TIME に達したらボタンを割り当てる
+func _update_button_hold() -> void:
+    if _listening_button_action == "" or _hold_button == JOY_BUTTON_INVALID:
+        return
+    var progress := float(Time.get_ticks_msec() - _hold_button_start_msec) / 1000.0 / BIND_HOLD_TIME
+    if progress < 1.0:
+        _set_hold_bar(_button_hold_bars[KeyBindings.PAD_ACTIONS.find(_listening_button_action)], progress)
+        return
+    var action := _listening_button_action
+    var button := _hold_button
+    _listening_button_action = ""
+    _listening_button_message = ""
+    _hold_button = JOY_BUTTON_INVALID
+    KeyBindings.set_button(action, button)
+    _save_settings()
+    pad_bindings_changed.emit()
 
 
 func _on_buttons_reset_pressed() -> void:
