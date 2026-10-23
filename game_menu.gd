@@ -2155,7 +2155,7 @@ func _input_key_hold(event: InputEventKey) -> bool:
             _handle_menu_input(pressed_event)
         return true
     # 押しっぱなしで行が流れないよう、echo は捨てる
-    if event.echo:
+    if event.is_echo():
         return true
     if not (event.ctrl_pressed or event.alt_pressed or event.meta_pressed) and KeyBindings.is_allowed(physical):
         _hold_key = physical
@@ -2304,7 +2304,8 @@ func _input_button_hold(event: InputEventJoypadButton) -> bool:
             _stop_button_hold()
             _handle_menu_input(pressed_event)
         return true
-    if event.echo:
+    # ゲームパッドのボタンのイベントには echo のプロパティが無いので is_echo() で見る
+    if event.is_echo():
         return true
     if KeyBindings.is_button_allowed(button):
         _hold_button = button
