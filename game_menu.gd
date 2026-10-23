@@ -267,6 +267,8 @@ var _listening_message := ""
 var _hold_key: Key = KEY_NONE
 var _hold_key_start_msec: int = 0
 var _key_hold_bars: Array[ColorRect] = []
+# 各行の名前の部分（右に初期設定のキーを添える）
+var _key_name_boxes: Array[HBoxContainer] = []
 # ボタンの割り当ての項目（KeyBindings.PAD_ACTIONS の順の、行のボタン・ボタンの絵を入れる枠・状態の文字。初期設定に戻すボタンと、その枠線のスタイル）
 var _button_rows: Array[Button] = []
 var _button_icon_slots: Array[Control] = []
@@ -280,6 +282,8 @@ var _listening_button_message := ""
 var _hold_button: JoyButton = JOY_BUTTON_INVALID
 var _hold_button_start_msec: int = 0
 var _button_hold_bars: Array[ColorRect] = []
+# 各行の名前の部分（右に初期設定のボタンを添える）
+var _button_name_boxes: Array[HBoxContainer] = []
 var _robot_name_label: Label
 var _robot_dots: Array[ColorRect] = []
 # セーブデータの項目（持っているアイテムの切り替え、リセットのボタンと中の文字）。リセットは2回押して確定する
@@ -1436,6 +1440,7 @@ func _build_keys_content() -> Control:
         _key_icon_slots.append(parts.slot)
         _key_status_labels.append(parts.status)
         _key_hold_bars.append(parts.bar)
+        _key_name_boxes.append(parts.name_box)
         _add_edit_control(ITEM_KEYS, parts.row, Callable(), _start_listening.bind(action))
 
     var reset := _make_reset_button(_on_keys_reset_pressed, _refresh_keys_reset_style)
@@ -1460,6 +1465,7 @@ func _build_buttons_content() -> Control:
         _button_icon_slots.append(parts.slot)
         _button_status_labels.append(parts.status)
         _button_hold_bars.append(parts.bar)
+        _button_name_boxes.append(parts.name_box)
         _add_edit_control(ITEM_PAD_BUTTONS, parts.row, Callable(), _start_button_listening.bind(action))
 
     var reset := _make_reset_button(_on_buttons_reset_pressed, _refresh_buttons_reset_style)
@@ -1499,7 +1505,7 @@ func _make_reset_button(on_pressed: Callable, refresh_style: Callable) -> Dictio
 
 
 # 割り当ての1行（操作の名前・今のキーかボタンの絵を入れる枠・状態の文字を左から並べる）。行全体がボタン。
-# {row, slot, status, bar} を返す。絵は _refresh_keys・_refresh_buttons で入れる。待ち受け中は絵を隠す（枠の大きさは変えない）。
+# {row, slot, status, bar, name_box} を返す。絵は _refresh_keys・_refresh_buttons で入れる。待ち受け中は絵を隠す（枠の大きさは変えない）。
 # bar は長押しの進み具合のバー（状態の文字の右。長押し中だけ出す）
 func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     var row := _make_flat_button(44, Control.FOCUS_NONE)
@@ -1513,10 +1519,16 @@ func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     hbox.add_theme_constant_override("separation", 16)
     margin.add_child(hbox)
 
+    # 名前の部分。名前の右に、初期設定と違うときだけ「（デフォルト 〇）」を足す（足す中身は _refresh_default_hint で作る）
+    var name_box := HBoxContainer.new()
+    name_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    name_box.alignment = BoxContainer.ALIGNMENT_BEGIN
+    name_box.custom_minimum_size = Vector2(300, 0)
+    name_box.add_theme_constant_override("separation", 4)
+    hbox.add_child(name_box)
     var name_label := _make_label(title, 18, TEXT_BODY)
-    name_label.custom_minimum_size = Vector2(200, 0)
     name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-    hbox.add_child(name_label)
+    name_box.add_child(name_label)
 
     var slot := Control.new()
     slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1535,7 +1547,7 @@ func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     bar.custom_minimum_size = Vector2(0, 4)
     bar.visible = false
     hbox.add_child(bar)
-    return {"row": row, "slot": slot, "status": status_label, "bar": bar}
+    return {"row": row, "slot": slot, "status": status_label, "bar": bar, "name_box": name_box}
 
 
 func _build_robot_content() -> Control:
@@ -2055,6 +2067,7 @@ func _refresh_keys() -> void:
         _key_icon_slots[i].modulate.a = 0.0 if listening else 1.0
         _key_status_labels[i].text = _listening_message if listening else ""
         _key_hold_bars[i].visible = listening and _hold_key != KEY_NONE
+        _refresh_default_hint(_key_name_boxes[i], KeyBindings.get_key(action) != KeyBindings.get_default_key(action), ControlsHelp.make_key_icon.bind(KeyBindings.get_default_key(action), 36.0))
 
 
 # 初期設定に戻すボタンの枠線の色（カーソルかマウスが乗っているときだけ赤）
@@ -2150,6 +2163,24 @@ func _update_key_hold() -> void:
     key_bindings_changed.emit()
 
 
+# 行の名前の部分の「（デフォルト 〇）」を作り直す（名前のラベルだけ残して消す）。
+# differs（今の割り当てが初期設定と違うか）のときだけ、「（デフォルト 」・初期設定の絵（make_icon で作る）・「）」を足す
+func _refresh_default_hint(name_box: HBoxContainer, differs: bool, make_icon: Callable) -> void:
+    while name_box.get_child_count() > 1:
+        var child := name_box.get_child(1)
+        name_box.remove_child(child)
+        child.queue_free()
+    if not differs:
+        return
+    name_box.add_child(_make_label("（デフォルト ", 18, TEXT_BODY))
+    var icon: Control = make_icon.call()
+    icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+    name_box.add_child(icon)
+    name_box.add_child(_make_label("）", 18, TEXT_BODY))
+    # 作り直したラベルの色を、右の列の文字の色（EDIT のあいだは白、それ以外は灰）に合わせる
+    _apply_right_text_color()
+
+
 # 長押しの進み具合のバーの幅を合わせる（progress は 0〜1。幅は 100 × 進み具合）
 func _set_hold_bar(bar: ColorRect, progress: float) -> void:
     bar.custom_minimum_size.x = 100.0 * clampf(progress, 0.0, 1.0)
@@ -2184,6 +2215,7 @@ func _refresh_buttons() -> void:
         _button_icon_slots[i].modulate.a = 0.0 if listening else 1.0
         _button_status_labels[i].text = _listening_button_message if listening else ""
         _button_hold_bars[i].visible = listening and _hold_button != JOY_BUTTON_INVALID
+        _refresh_default_hint(_button_name_boxes[i], KeyBindings.get_button(action) != KeyBindings.get_default_button(action), ControlsHelp.make_button_icon.bind(KeyBindings.get_default_button(action), 36.0))
 
 
 # 初期設定に戻すボタンの枠線の色（カーソルかマウスが乗っているときだけ赤）
