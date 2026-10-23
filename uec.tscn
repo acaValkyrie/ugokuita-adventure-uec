@@ -1,5 +1,5 @@
 [gd_scene format=3 uid="uid://dxgc5cf2qo388"]
 
-[ext_resource type="PackedScene" uid="uid://bo28cnvgwoobj" path="res://assets/uec-all-v2.glb" id="1_stage"]
+[ext_resource type="PackedScene" uid="uid://bo28cnvgwoobj" path="res://assets/models/uec-all-v2.glb" id="1_stage"]
 
 [node name="uec-all" unique_id=2015995146 instance=ExtResource("1_stage")]

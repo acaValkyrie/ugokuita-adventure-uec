@@ -1,7 +1,7 @@
 [gd_scene load_steps=21 format=3 uid="uid://da3c8ktvtj35a"]
 
 [ext_resource type="Script" uid="uid://voefr7qy7ut3" path="res://car.gd" id="1_7822p"]
-[ext_resource type="PackedScene" uid="uid://ylkf1vi76cbh" path="res://assets/ugokuita-neo.glb" id="2_uoj53"]
+[ext_resource type="PackedScene" uid="uid://ylkf1vi76cbh" path="res://assets/models/ugokuita-neo.glb" id="2_uoj53"]
 [ext_resource type="AudioStream" path="res://assets/audio/running_loop.wav" id="3_runsnd"]
 [ext_resource type="Script" path="res://surface_sounds.gd" id="4_surf"]
 [ext_resource type="AudioStream" path="res://assets/audio/grass/rustle02.ogg" id="g0_rustle02"]

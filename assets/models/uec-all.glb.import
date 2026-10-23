@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://6p3t4snh46ek"
-path="res://.godot/imported/uec-all.glb-deef6776f988977e5425de06b27a8896.scn"
+path="res://.godot/imported/uec-all.glb-02331faa54c425b3de6ab87d00be6250.scn"
 
 [deps]
 
-source_file="res://assets/uec-all.glb"
-dest_files=["res://.godot/imported/uec-all.glb-deef6776f988977e5425de06b27a8896.scn"]
+source_file="res://assets/models/uec-all.glb"
+dest_files=["res://.godot/imported/uec-all.glb-02331faa54c425b3de6ab87d00be6250.scn"]
 
 [params]
 

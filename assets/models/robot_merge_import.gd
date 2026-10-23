@@ -66,7 +66,7 @@ const SIMPLIFY_MAX_ERROR := {
 }
 
 # 基板の部品の取り除きと、基板に貼る画像の設定（bake_board_textures.gd と共有）
-const BoardParts := preload("res://assets/board_parts.gd")
+const BoardParts := preload("res://assets/models/board_parts.gd")
 
 # 残すノード（サブツリー全体と、その祖先）
 var _keep := {}

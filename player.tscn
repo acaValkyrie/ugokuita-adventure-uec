@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3 uid="uid://car2bj5dqnq7c"]
 
-[ext_resource type="PackedScene" uid="uid://ylkf1vi76cbh" path="res://assets/ugokuita-neo.glb" id="1_4flbx"]
+[ext_resource type="PackedScene" uid="uid://ylkf1vi76cbh" path="res://assets/models/ugokuita-neo.glb" id="1_4flbx"]
 [ext_resource type="Script" uid="uid://pj7ds0a2mdng" path="res://player.gd" id="1_onrkg"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_onrkg"]

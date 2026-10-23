@@ -87,8 +87,8 @@ const CHILD_ITEMS := [1, 2, 6, 7, 8]
 const CHILD_INDENT := 30
 # ROBOT_MODELS の順
 const ROBOT_SCENES := [
-    preload("res://assets/ugokuita-neo.glb"),
-    preload("res://assets/ugokuita-classic.fbx"),
+    preload("res://assets/models/ugokuita-neo.glb"),
+    preload("res://assets/models/ugokuita-classic.fbx"),
 ]
 # 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: ロボットタイプ、4: 操作の設定、5: セーブデータ、6: カメラの操作、7: キーの割り当て、8: ボタンの割り当て）
 const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "ロボットタイプ", CONTROLLER_HEADING, "セーブデータ", "カメラの操作", "キーの割り当て", "ボタンの割り当て"]

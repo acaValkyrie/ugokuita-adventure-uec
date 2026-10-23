@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://d2qnurga68lwn"]
 
 [ext_resource type="Script" uid="uid://voefr7qy7ut3" path="res://car.gd" id="1_7822p"]
-[ext_resource type="PackedScene" uid="uid://fvoi2gejmsm2" path="res://assets/ugokuita-classic.fbx" id="2_classic"]
+[ext_resource type="PackedScene" uid="uid://fvoi2gejmsm2" path="res://assets/models/ugokuita-classic.fbx" id="2_classic"]
 [ext_resource type="AudioStream" uid="uid://bccdt6qbujnpx" path="res://assets/audio/running_loop.wav" id="3_runsnd"]
 [ext_resource type="Script" uid="uid://dxd53fm8n6pww" path="res://surface_sounds.gd" id="4_surf"]
 [ext_resource type="Script" uid="uid://c33dgrrh1kul" path="res://bump_sounds.gd" id="5_bump"]

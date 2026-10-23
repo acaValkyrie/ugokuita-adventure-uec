@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bvlybdqxavldi"
-path="res://.godot/imported/Nadegg.fbx-754258d04e0491e5152b05912da8cd61.scn"
+uid="uid://dbiinedh7k5cs"
+path="res://.godot/imported/Gym.fbx-04a5feadeb9cbe77f0e2b288948acb65.scn"
 
 [deps]
 
-source_file="res://assets/Nadegg.fbx"
-dest_files=["res://.godot/imported/Nadegg.fbx-754258d04e0491e5152b05912da8cd61.scn"]
+source_file="res://assets/models/Gym.fbx"
+dest_files=["res://.godot/imported/Gym.fbx-04a5feadeb9cbe77f0e2b288948acb65.scn"]
 
 [params]
 
@@ -35,7 +35,7 @@ animation/fps=30
 animation/trimming=true
 animation/remove_immutable_tracks=true
 animation/import_rest_as_RESET=false
-import_script/path="res://assets/gym_import.gd"
+import_script/path="res://assets/models/gym_import.gd"
 materials/extract=0
 materials/extract_format=0
 materials/extract_path=""

@@ -3,8 +3,8 @@ extends Node
 # 実行: Godot --path <プロジェクト> res://tools/bake_board_textures.tscn（headless では描画できない）
 # glb を書き換えたら撮り直してから取り込み直す
 
-const BoardParts := preload("res://assets/board_parts.gd")
-const SOURCE := "res://assets/ugokuita-neo.glb"
+const BoardParts := preload("res://assets/models/board_parts.gd")
+const SOURCE := "res://assets/models/ugokuita-neo.glb"
 # 撮る幅 [px]。縮小して輪郭をなめらかにする
 const RENDER_WIDTH := 2048
 # 保存する幅 [px]。基板は約 100mm なので約 5px/mm

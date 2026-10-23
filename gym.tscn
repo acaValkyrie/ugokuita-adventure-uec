@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
-[ext_resource type="PackedScene" path="res://assets/Gym.fbx" id="1_gym"]
-[ext_resource type="PackedScene" path="res://assets/Nadegg.fbx" id="2_nadegg"]
+[ext_resource type="PackedScene" path="res://assets/models/Gym.fbx" id="1_gym"]
+[ext_resource type="PackedScene" path="res://assets/models/Nadegg.fbx" id="2_nadegg"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_doorway"]
 size = Vector3(1, 1.6, 1.9)
