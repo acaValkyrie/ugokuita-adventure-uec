@@ -263,7 +263,7 @@ var _keys_reset_style: StyleBoxFlat
 # いま割り当てるキーを待っている操作（待っていなければ空）と、その行の状態に出す文
 var _listening_action := ""
 var _listening_message := ""
-# 長押し中のキー（長押ししていなければ KEY_NONE）と押し始めの時刻 [ms]。各行の状態の文字の右に、進み具合のバーを置く
+# 長押し中のキー（長押ししていなければ KEY_NONE）と押し始めの時刻 [ms]。各行の状態の文の下に、進み具合のバーを置く
 var _hold_key: Key = KEY_NONE
 var _hold_key_start_msec: int = 0
 var _key_hold_bars: Array[ColorRect] = []
@@ -1504,9 +1504,9 @@ func _make_reset_button(on_pressed: Callable, refresh_style: Callable) -> Dictio
     return {"button": button, "style": style, "margin": margin}
 
 
-# 割り当ての1行（操作の名前・今のキーかボタンの絵を入れる枠・状態の文字を左から並べる）。行全体がボタン。
-# {row, slot, status, bar, name_box} を返す。絵は _refresh_keys・_refresh_buttons で入れる。待ち受け中は絵を隠す（枠の大きさは変えない）。
-# bar は長押しの進み具合のバー（状態の文字の右。長押し中だけ出す）
+# 割り当ての1行（操作の名前、そのあとに、今のキーかボタンの絵を入れる枠か、状態の部分のどちらかを並べる）。行全体がボタン。
+# {row, slot, status, bar, name_box} を返す。絵は _refresh_keys・_refresh_buttons で入れる。待ち受け中・長押し中は絵の枠を隠し、同じ場所に状態の部分を出す。
+# status は状態の文、bar はその下の長押しの進み具合のバー（幅は状態の文の幅 × 進み具合）。status の親が状態の部分（VBoxContainer）
 func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     var row := _make_flat_button(44, Control.FOCUS_NONE)
     row.pressed.connect(on_pressed)
@@ -1523,7 +1523,7 @@ func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     var name_box := HBoxContainer.new()
     name_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
     name_box.alignment = BoxContainer.ALIGNMENT_BEGIN
-    name_box.custom_minimum_size = Vector2(300, 0)
+    name_box.custom_minimum_size = Vector2(280, 0)
     name_box.add_theme_constant_override("separation", 4)
     hbox.add_child(name_box)
     var name_label := _make_label(title, 18, TEXT_BODY)
@@ -1535,18 +1535,28 @@ func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     hbox.add_child(slot)
 
-    var status_label := _make_label("", 16, TEXT_DIM)
+    # 状態の部分。今の割り当ての絵と同じ場所に、待ち受け中・長押し中だけ絵の代わりに出す（上に状態の文、下に長押しのバー）
+    var status_box := VBoxContainer.new()
+    status_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    status_box.alignment = BoxContainer.ALIGNMENT_CENTER
+    status_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    status_box.add_theme_constant_override("separation", 2)
+    status_box.visible = false
+    hbox.add_child(status_box)
+
+    # 文が長くても行からはみ出さないよう、1行で切る
+    var status_label := _make_label("", 14, TEXT_DIM)
     status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-    hbox.add_child(status_label)
+    status_label.clip_text = true
+    status_box.add_child(status_label)
 
     var bar := ColorRect.new()
     bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
     bar.color = ACCENT_COLOR
-    bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+    bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
     bar.custom_minimum_size = Vector2(0, 4)
-    bar.visible = false
-    hbox.add_child(bar)
+    status_box.add_child(bar)
     return {"row": row, "slot": slot, "status": status_label, "bar": bar, "name_box": name_box}
 
 
@@ -2064,10 +2074,11 @@ func _refresh_keys() -> void:
         var action: String = KeyBindings.ACTIONS[i]
         var listening := action == _listening_action
         ControlsHelp.set_icon_slot(_key_icon_slots[i], ControlsHelp.make_key_icon(KeyBindings.get_key(action), 56.0))
-        _key_icon_slots[i].modulate.a = 0.0 if listening else 1.0
+        _key_icon_slots[i].visible = not listening
+        _key_status_labels[i].get_parent().visible = listening
         _key_status_labels[i].text = _listening_message if listening else ""
-        _key_hold_bars[i].visible = listening and _hold_key != KEY_NONE
-        _refresh_default_hint(_key_name_boxes[i], KeyBindings.get_key(action) != KeyBindings.get_default_key(action), ControlsHelp.make_key_icon.bind(KeyBindings.get_default_key(action), 36.0))
+        _set_hold_bar(_key_hold_bars[i], _key_status_labels[i], 0.0)
+        _refresh_default_hint(_key_name_boxes[i], KeyBindings.get_key(action) != KeyBindings.get_default_key(action), ControlsHelp.make_key_icon.bind(KeyBindings.get_default_key(action), 44.0))
 
 
 # 初期設定に戻すボタンの枠線の色（カーソルかマウスが乗っているときだけ赤）
@@ -2137,7 +2148,6 @@ func _input_while_listening(event: InputEvent) -> bool:
             _hold_key_start_msec = Time.get_ticks_msec()
             _listening_message = HOLD_MESSAGE
             _refresh_keys()
-            _set_hold_bar(_key_hold_bars[KeyBindings.ACTIONS.find(_listening_action)], 0.0)
         return true
     # コントローラのキャンセルのボタンでも取り消す
     if event.is_action_pressed("ui_cancel") and not event.is_echo():
@@ -2151,7 +2161,8 @@ func _update_key_hold() -> void:
         return
     var progress := float(Time.get_ticks_msec() - _hold_key_start_msec) / 1000.0 / BIND_HOLD_TIME
     if progress < 1.0:
-        _set_hold_bar(_key_hold_bars[KeyBindings.ACTIONS.find(_listening_action)], progress)
+        var index := KeyBindings.ACTIONS.find(_listening_action)
+        _set_hold_bar(_key_hold_bars[index], _key_status_labels[index], progress)
         return
     var action := _listening_action
     var physical := _hold_key
@@ -2181,9 +2192,10 @@ func _refresh_default_hint(name_box: HBoxContainer, differs: bool, make_icon: Ca
     _apply_right_text_color()
 
 
-# 長押しの進み具合のバーの幅を合わせる（progress は 0〜1。幅は 100 × 進み具合）
-func _set_hold_bar(bar: ColorRect, progress: float) -> void:
-    bar.custom_minimum_size.x = 100.0 * clampf(progress, 0.0, 1.0)
+# 長押しの進み具合のバーの幅を合わせる（progress は 0〜1。幅は状態の文の幅 × 進み具合）
+func _set_hold_bar(bar: ColorRect, status_label: Label, progress: float) -> void:
+    bar.custom_minimum_size.x = status_label.size.x * clampf(progress, 0.0, 1.0)
+    bar.size.x = bar.custom_minimum_size.x
 
 
 func _on_keys_reset_pressed() -> void:
@@ -2212,10 +2224,11 @@ func _refresh_buttons() -> void:
         var action: String = KeyBindings.PAD_ACTIONS[i]
         var listening := action == _listening_button_action
         ControlsHelp.set_icon_slot(_button_icon_slots[i], ControlsHelp.make_button_icon(KeyBindings.get_button(action), 56.0))
-        _button_icon_slots[i].modulate.a = 0.0 if listening else 1.0
+        _button_icon_slots[i].visible = not listening
+        _button_status_labels[i].get_parent().visible = listening
         _button_status_labels[i].text = _listening_button_message if listening else ""
-        _button_hold_bars[i].visible = listening and _hold_button != JOY_BUTTON_INVALID
-        _refresh_default_hint(_button_name_boxes[i], KeyBindings.get_button(action) != KeyBindings.get_default_button(action), ControlsHelp.make_button_icon.bind(KeyBindings.get_default_button(action), 36.0))
+        _set_hold_bar(_button_hold_bars[i], _button_status_labels[i], 0.0)
+        _refresh_default_hint(_button_name_boxes[i], KeyBindings.get_button(action) != KeyBindings.get_default_button(action), ControlsHelp.make_button_icon.bind(KeyBindings.get_default_button(action), 44.0))
 
 
 # 初期設定に戻すボタンの枠線の色（カーソルかマウスが乗っているときだけ赤）
@@ -2283,7 +2296,6 @@ func _input_while_button_listening(event: InputEvent) -> bool:
             _hold_button_start_msec = Time.get_ticks_msec()
             _listening_button_message = HOLD_MESSAGE
             _refresh_buttons()
-            _set_hold_bar(_button_hold_bars[KeyBindings.PAD_ACTIONS.find(_listening_button_action)], 0.0)
         return true
     if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
         _stop_button_listening()
@@ -2296,7 +2308,8 @@ func _update_button_hold() -> void:
         return
     var progress := float(Time.get_ticks_msec() - _hold_button_start_msec) / 1000.0 / BIND_HOLD_TIME
     if progress < 1.0:
-        _set_hold_bar(_button_hold_bars[KeyBindings.PAD_ACTIONS.find(_listening_button_action)], progress)
+        var index := KeyBindings.PAD_ACTIONS.find(_listening_button_action)
+        _set_hold_bar(_button_hold_bars[index], _button_status_labels[index], progress)
         return
     var action := _listening_button_action
     var button := _hold_button
