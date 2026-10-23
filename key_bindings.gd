@@ -23,7 +23,7 @@ const ACTION_NAMES := {
     "jump": "ジャンプ",
     "boost": "ブースト",
     "drift": "ドリフト",
-    "respawn": "Recover",
+    "respawn": "復帰",
     "map": "マップ",
     "interact": "看板を開く",
 }
