@@ -44,6 +44,9 @@ const ICON_SHOULDER_R1 := preload("res://assets/ui/controls/shoulder_r1.png")
 # 文字の無いキーの絵（tools/make_blank_key_icons.py で作ったもの）。割り当てを変えたキーは、この上に文字を重ねて描く
 const ICON_KEY_BLANK := preload("res://assets/ui/controls/key_blank.png")
 const ICON_KEY_BLANK_WIDE := preload("res://assets/ui/controls/key_blank_wide.png")
+# 文字の無いボタンの絵（同じスクリプトで作ったもの）。割り当てたスティックの押し込み・十字キー・左の肩のボタンは、この上に文字（十字キーは三角）を重ねて描く
+const ICON_BUTTON_BLANK := preload("res://assets/ui/controls/button_blank.png")
+const ICON_SHOULDER_BLANK_L := preload("res://assets/ui/controls/shoulder_blank_l.png")
 
 # 専用の絵があるキー（physical_keycode → [絵, 絵に描いてある文字。KeyBindings.key_label と同じ表記]）。
 # キー配列が違って、そのキーの位置に別の文字が書いてあるときは、絵を使わず文字を重ねて描く
@@ -65,6 +68,14 @@ const ARROW_KEYS := {
 # 文字を重ねる絵の中の、キーの面（縁と影を除いた黒い部分）の位置。絵の大きさに対する割合（tools/make_blank_key_icons.py で調べた矩形）
 const KEY_FACE_SQUARE := Rect2(55.0 / 256.0, 55.0 / 256.0, 145.0 / 256.0, 141.0 / 256.0)
 const KEY_FACE_WIDE := Rect2(61.0 / 512.0, 11.0 / 112.0, 389.0 / 512.0, 83.0 / 112.0)
+# 文字を重ねるボタンの絵の中の、文字を置く面の位置（同じく割合）。丸いボタンは、丸（中心 (128, 128)・半径 80）に収まる正方形 x 68〜188・y 68〜188。
+# 肩のボタンは角の丸い長方形の面 x 10〜167・y 10〜82（左右反転しても同じ位置）
+const BUTTON_FACE_ROUND := Rect2(68.0 / 256.0, 68.0 / 256.0, 120.0 / 256.0, 120.0 / 256.0)
+const BUTTON_FACE_SHOULDER := Rect2(10.0 / 178.0, 10.0 / 93.0, 158.0 / 178.0, 73.0 / 93.0)
+# 肩のボタンの文字の大きさ（絵の高さに対する割合）。面が低くて横に長いので、丸いボタンより大きくする
+const SHOULDER_TEXT_SCALE := 0.5
+# 肩のボタンの絵の高さの倍率（丸いボタンの絵の高さに対して）。余白を切った絵なので、丸いボタンと高さがそろう倍率
+const SHOULDER_HEIGHT_SCALE := 0.5625
 # 横長のキーの絵は上下の余白を切ってあるので、キーの高さを正方形のキーとそろえるための、絵の高さの倍率
 const WIDE_KEY_HEIGHT_SCALE := 0.72
 # キーに重ねる文字の色と、大きさ（絵の高さに対する割合。横長のキーは面に収まるよう縮める）
@@ -98,31 +109,45 @@ const ICON_ALIGN := {
 }
 
 # コントローラのボタン表記ごとのアイコン。
-# Godot のボタン番号は位置で決まるため（下のボタン＝ジャンプ、左のボタン＝ブースト、
-# 左側の小さいボタン＝リセット、上のボタン＝マップ）、表記が変わっても操作は同じでアイコンだけが変わる。
-# ドリフトは右のショルダーボタン。
+# Godot のボタン番号は位置で決まるため（0＝下、1＝右、2＝左、3＝上のボタン。4＝左側の小さいボタン、10＝右のショルダーボタン）、
+# 表記が変わっても操作は同じでアイコンだけが変わる。どの操作にどのボタンを割り当てるかは KeyBindings で決まり、
+# 絵は make_button_icon でボタン番号から引く（"face" は番号 0〜3 の順、"back" は番号 4、"shoulder_r" は番号 10 の絵。PlayStation の "back" は世代ごとに違うので get_ps_back_icon で引く）。
 # ただし "interact"（看板を開く）と "cancel" は例外で、表記ごとの標準の決定・キャンセルのボタン
 # （game_menu.gd の _apply_pad_buttons。Nintendo は A・B、PlayStation は ×・○、Xbox は A・B）なので、
 # 割り当ても表記で変わる。決定とキャンセルを入れ替える設定は get_confirm_icon_for / get_cancel_icon_for で反映する。
 const PAD_ICONS := {
     "nintendo": {
         "rt": ICON_TRIGGER_ZR, "lt": ICON_TRIGGER_ZL,
-        "jump": ICON_BUTTON_B, "boost": ICON_BUTTON_Y, "reset": ICON_BUTTON_MINUS,
-        "interact": ICON_BUTTON_A, "map": ICON_BUTTON_X, "cancel": ICON_BUTTON_B,
-        "drift": ICON_SHOULDER_R,
+        "face": [ICON_BUTTON_B, ICON_BUTTON_A, ICON_BUTTON_Y, ICON_BUTTON_X], "back": ICON_BUTTON_MINUS,
+        "interact": ICON_BUTTON_A, "cancel": ICON_BUTTON_B,
+        "shoulder_r": ICON_SHOULDER_R,
     },
     "playstation": {
         "rt": ICON_TRIGGER_R2, "lt": ICON_TRIGGER_L2,
-        "jump": ICON_BUTTON_CROSS, "boost": ICON_BUTTON_SQUARE, "reset": ICON_BUTTON_CREATE,
-        "interact": ICON_BUTTON_CROSS, "map": ICON_BUTTON_TRIANGLE, "cancel": ICON_BUTTON_CIRCLE,
-        "drift": ICON_SHOULDER_R1,
+        "face": [ICON_BUTTON_CROSS, ICON_BUTTON_CIRCLE, ICON_BUTTON_SQUARE, ICON_BUTTON_TRIANGLE], "back": ICON_BUTTON_CREATE,
+        "interact": ICON_BUTTON_CROSS, "cancel": ICON_BUTTON_CIRCLE,
+        "shoulder_r": ICON_SHOULDER_R1,
     },
     "xbox": {
         "rt": ICON_TRIGGER_RT, "lt": ICON_TRIGGER_LT,
-        "jump": ICON_BUTTON_A, "boost": ICON_BUTTON_X, "reset": ICON_BUTTON_BACK,
-        "interact": ICON_BUTTON_A, "map": ICON_BUTTON_Y, "cancel": ICON_BUTTON_B,
-        "drift": ICON_SHOULDER_RB,
+        "face": [ICON_BUTTON_A, ICON_BUTTON_B, ICON_BUTTON_X, ICON_BUTTON_Y], "back": ICON_BUTTON_BACK,
+        "interact": ICON_BUTTON_A, "cancel": ICON_BUTTON_B,
+        "shoulder_r": ICON_SHOULDER_RB,
     },
+}
+# 専用の絵が無いボタンに重ねる文字（表記ごと）。左の肩のボタンと、左右のスティックの押し込み
+const PAD_SHOULDER_L_LABELS := {"nintendo": "L", "xbox": "LB", "playstation": "L1"}
+const PAD_STICK_LABELS := {
+    "nintendo": {JOY_BUTTON_LEFT_STICK: "LS", JOY_BUTTON_RIGHT_STICK: "RS"},
+    "xbox": {JOY_BUTTON_LEFT_STICK: "LS", JOY_BUTTON_RIGHT_STICK: "RS"},
+    "playstation": {JOY_BUTTON_LEFT_STICK: "L3", JOY_BUTTON_RIGHT_STICK: "R3"},
+}
+# 十字キーの絵に描く三角の向き（上向きの三角を回す角度 [rad]。ARROW_KEYS と同じ）
+const PAD_ARROWS := {
+    JOY_BUTTON_DPAD_UP: 0.0,
+    JOY_BUTTON_DPAD_RIGHT: PI / 2.0,
+    JOY_BUTTON_DPAD_DOWN: PI,
+    JOY_BUTTON_DPAD_LEFT: -PI / 2.0,
 }
 
 # PlayStation の世代（選んだ機種から決まる。GameMenu.get_ps_generation）ごとの、左側の小さいボタン（SELECT・SHARE・CREATE）と右側の小さいボタン（START・OPTIONS）のアイコン。
@@ -201,6 +226,7 @@ func _connect_menu() -> void:
     GameMenu.pad_layout_changed.connect(_on_pad_layout_changed)
     GameMenu.swap_confirm_changed.connect(_on_swap_confirm_changed)
     GameMenu.key_bindings_changed.connect(_on_key_bindings_changed)
+    GameMenu.pad_bindings_changed.connect(_on_pad_bindings_changed)
     # 読み込んだ設定を反映する
     _rebuild()
 
@@ -214,6 +240,10 @@ func _on_swap_confirm_changed(_swapped: bool) -> void:
 
 
 func _on_key_bindings_changed() -> void:
+    _rebuild()
+
+
+func _on_pad_bindings_changed() -> void:
     _rebuild()
 
 
@@ -251,20 +281,19 @@ func _items_for(mode: Mode) -> Array:
         return _keyboard_items()
     if mode != Mode.GAMEPAD:
         return ITEMS[mode]
-    var icons: Dictionary = PAD_ICONS[_icon_family(GameMenu.pad_layout)].duplicate()
-    # PlayStation のリセットは、選んだ機種の世代の左側の小さいボタンにする
-    if GameMenu.is_playstation_layout(GameMenu.pad_layout):
-        icons["reset"] = get_ps_back_icon(GameMenu.get_ps_generation())
+    var icons: Dictionary = PAD_ICONS[_icon_family(GameMenu.pad_layout)]
+    # ボタンの絵は、割り当てたボタンに合わせて毎回作る（make_button_icon）。肩のボタンは絵の高さを自分で縮める
+    var button_height := _icon_height(0.8)
     return [
         [ICON_STICK_LEFT, "Steer"],
         # コントローラの実際の左右の位置に合わせて、LT（左）を RT（右）より先に並べる
         [icons.lt, "Reverse"],
         [icons.rt, "Accelerate"],
         [ICON_STICK_RIGHT, "Camera"],
-        [icons.jump, "Jump", 0.8],
-        [icons.drift, "Drift", 0.45],  # 余白を切った絵なので、ショルダーボタンの高さがほかのボタンとそろう倍率
-        [icons.reset, RECOVER_LABEL, 0.8],
-        [icons.map, "Map", 0.8],
+        [make_button_icon(KeyBindings.get_button("jump"), button_height), "Jump"],
+        [make_button_icon(KeyBindings.get_button("drift"), button_height), "Drift"],
+        [make_button_icon(KeyBindings.get_button("respawn"), button_height), RECOVER_LABEL],
+        [make_button_icon(KeyBindings.get_button("map"), button_height), "Map"],
     ]
 
 
@@ -313,12 +342,10 @@ func _make_action_icon(action: String, height: float) -> Control:
         Mode.KEYBOARD:
             return make_key_icon(KeyBindings.get_key(action), height)
         Mode.GAMEPAD:
-            var texture: Texture2D
+            # 看板を開くボタンは決定と同じ（表記と入れ替えの設定で決まる）。それ以外は割り当てたボタン
             if action == "interact":
-                texture = get_confirm_icon_for(GameMenu.pad_layout)
-            else:
-                texture = PAD_ICONS[_icon_family(GameMenu.pad_layout)][action]
-            return _make_texture_icon(texture, height)
+                return _make_texture_icon(get_confirm_icon_for(GameMenu.pad_layout), height)
+            return make_button_icon(KeyBindings.get_button(action), height)
     return null
 
 
@@ -329,12 +356,10 @@ func get_icon_token(action: String) -> String:
         Mode.KEYBOARD:
             return "key:%d" % KeyBindings.get_key(action)
         Mode.GAMEPAD:
-            var texture: Texture2D
             if action == "interact":
-                texture = get_confirm_icon_for(GameMenu.pad_layout)
-            else:
-                texture = PAD_ICONS[_icon_family(GameMenu.pad_layout)][action]
-            return "pad:%s" % texture.resource_path
+                return "pad:%s" % get_confirm_icon_for(GameMenu.pad_layout).resource_path
+            # ボタンの絵は、割り当てたボタンと機種・PlayStation の世代（左側の小さいボタンの絵が変わる）で決まる
+            return "pad:%d:%s:%s" % [KeyBindings.get_button(action), _icon_family(GameMenu.pad_layout), GameMenu.get_ps_generation()]
     return ""
 
 
@@ -391,6 +416,51 @@ func make_key_icon(physical: Key, height: float) -> Control:
     return icon
 
 
+# ゲームパッドのボタンの絵を作る。ボタン番号と、今のボタン表記（機種）で絵が決まる。height は丸いボタンの絵の高さ
+# （肩のボタンは余白を切った絵なので、SHOULDER_HEIGHT_SCALE をかけて、丸いボタンと高さをそろえる）。
+# 0〜3 は位置で決まる絵、4 は左側の小さいボタン（PlayStation は世代ごと）、10 は右の肩のボタン。
+# 専用の絵が無い 9（左の肩）・7・8（スティックの押し込み）・11〜14（十字キー）は、文字の無いボタンの絵の面に、文字（十字キーは三角）を重ねて描く。
+# 絵の中の縦の基準は絵の中央なので、align のメタデータは付けない
+func make_button_icon(button: JoyButton, height: float) -> Control:
+    var family := _icon_family(GameMenu.pad_layout)
+    var icons: Dictionary = PAD_ICONS[family]
+    var texture: Texture2D = ICON_BUTTON_BLANK
+    var icon_height := height
+    var face := BUTTON_FACE_ROUND
+    var text := ""
+    var arrow := NAN
+    var text_scale := KEY_TEXT_SCALE
+    match button:
+        JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_X, JOY_BUTTON_Y:
+            texture = icons["face"][button]
+        JOY_BUTTON_BACK:
+            texture = get_ps_back_icon(GameMenu.get_ps_generation()) if family == "playstation" else icons["back"]
+        JOY_BUTTON_RIGHT_SHOULDER:
+            texture = icons["shoulder_r"]
+            icon_height = roundf(height * SHOULDER_HEIGHT_SCALE)
+        JOY_BUTTON_LEFT_SHOULDER:
+            texture = ICON_SHOULDER_BLANK_L
+            icon_height = roundf(height * SHOULDER_HEIGHT_SCALE)
+            face = BUTTON_FACE_SHOULDER
+            text = PAD_SHOULDER_L_LABELS[family]
+            text_scale = SHOULDER_TEXT_SCALE
+        JOY_BUTTON_LEFT_STICK, JOY_BUTTON_RIGHT_STICK:
+            text = PAD_STICK_LABELS[family][button]
+        JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT:
+            arrow = PAD_ARROWS[button]
+        _:
+            # 割り当てられない番号（設定ファイルが壊れていたとき用）は、番号をそのまま出す
+            text = str(int(button))
+    var icon := _make_texture_icon(texture, icon_height)
+    if texture == ICON_BUTTON_BLANK or texture == ICON_SHOULDER_BLANK_L:
+        var overlay := Control.new()
+        overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+        overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+        overlay.draw.connect(_draw_face_overlay.bind(overlay, face, text, arrow, text_scale))
+        icon.add_child(overlay)
+    return icon
+
+
 # キーの絵の中の、キーの面の位置（px）。絵は icon の全体に広がっているものとして計算する
 func _key_face(icon: Control) -> Rect2:
     var texture: Texture2D = icon.get_meta("texture")
@@ -402,18 +472,24 @@ func _key_face(icon: Control) -> Rect2:
 # 文字の無いキーの絵の上に、文字（矢印のキーは三角）を面の中央に描く
 func _draw_key_overlay(overlay: Control, physical: Key, wide: bool) -> void:
     var fraction := KEY_FACE_WIDE if wide else KEY_FACE_SQUARE
+    var arrow: float = ARROW_KEYS.get(physical, NAN)
+    _draw_face_overlay(overlay, fraction, KeyBindings.key_label(physical), arrow, KEY_TEXT_SCALE)
+
+
+# 文字の無い絵の上に、文字を面（fraction は絵に対する割合）の中央に描く。arrow_angle が NAN でなければ、文字の代わりに三角の矢印を描く。
+# 文字の大きさは絵の高さの text_scale 倍で、面に収まらないときは縮める。キーとボタンで共通
+func _draw_face_overlay(overlay: Control, fraction: Rect2, text: String, arrow_angle: float, text_scale: float) -> void:
     var face := Rect2(fraction.position * overlay.size, fraction.size * overlay.size)
     var center := face.get_center()
-    if ARROW_KEYS.has(physical):
+    if not is_nan(arrow_angle):
         # 上向きの三角を、向きに合わせて回す。外接する矩形の中心を面の中央に合わせる
         var radius := overlay.size.y * KEY_ARROW_SCALE
         var points := PackedVector2Array()
         for point in [Vector2(0.0, -radius), Vector2(radius * 0.95, radius * 0.75), Vector2(-radius * 0.95, radius * 0.75)]:
-            points.append(center + (point + Vector2(0.0, radius * 0.125)).rotated(ARROW_KEYS[physical]))
+            points.append(center + (point + Vector2(0.0, radius * 0.125)).rotated(arrow_angle))
         overlay.draw_colored_polygon(points, KEY_TEXT_COLOR)
         return
-    var text := KeyBindings.key_label(physical)
-    var font_size := roundi(overlay.size.y * KEY_TEXT_SCALE)
+    var font_size := roundi(overlay.size.y * text_scale)
     var text_width := UiStyle.FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
     # 面に収まらないときは縮める（面の幅の 88% まで）
     var max_width := face.size.x * 0.88

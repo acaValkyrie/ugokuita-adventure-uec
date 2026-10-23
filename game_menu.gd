@@ -13,6 +13,7 @@ signal pad_layout_changed(layout: String)
 signal robot_model_changed(model: String)
 signal swap_confirm_changed(swapped: bool)
 signal key_bindings_changed
+signal pad_bindings_changed
 
 # Master バスの既定音量（default_bus_layout.tres）
 const BASE_DB := -6.0206
