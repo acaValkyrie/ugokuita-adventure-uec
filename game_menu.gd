@@ -114,6 +114,9 @@ const ITEM_KEYS := 7
 const ITEM_PAD_BUTTONS := 8
 # 左の列に並べる順（項目の番号）
 const ROW_ORDER := [ITEM_VOLUME, ITEM_CONTROLLER, ITEM_PAD, ITEM_CONFIRM, ITEM_CAMERA, ITEM_KEYS, ITEM_PAD_BUTTONS, ITEM_ROBOT, ITEM_DATA]
+# 割り当ての行で、今の割り当ての絵を入れる枠の幅。高さ 56 で作った横長のキーの絵（key_blank_wide・key_shift・key_space はどれも 512×112）の幅 =
+# round(56 × WIDE_KEY_HEIGHT_SCALE 0.72 = 40.3 → 40 × 512 / 112) = 183 に合わせ、最も幅の広い絵が収まるようにする
+const BINDING_ICON_SLOT_WIDTH := 183.0
 # 使えないキー・ボタンを押したときに、行の状態として出す文
 const KEY_REJECT_MESSAGE := "このキーは使えません"
 const BUTTON_REJECT_MESSAGE := "このボタンは使えません"
@@ -1541,10 +1544,15 @@ func _make_binding_row(title: String, on_pressed: Callable) -> Dictionary:
     name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
     name_box.add_child(name_label)
 
+    # 絵の枠は、幅を固定した CenterContainer の中に置く（set_icon_slot が枠の最小サイズを絵に合わせるため、幅の固定は外側でする）。絵が正方形でも横長でも中央がそろう
+    var slot_wrap := CenterContainer.new()
+    slot_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    slot_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+    slot_wrap.custom_minimum_size = Vector2(BINDING_ICON_SLOT_WIDTH, 0)
+    hbox.add_child(slot_wrap)
     var slot := Control.new()
     slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-    hbox.add_child(slot)
+    slot_wrap.add_child(slot)
 
     # 状態の部分。今の割り当ての絵と同じ場所に、長押し中・使えないキーを押した直後だけ絵の代わりに出す（上に状態の文、下に長押しのバー）
     var status_box := VBoxContainer.new()
@@ -2085,7 +2093,7 @@ func _refresh_keys() -> void:
         var action: String = KeyBindings.ACTIONS[i]
         var showing_status := i == _key_status_index
         ControlsHelp.set_icon_slot(_key_icon_slots[i], ControlsHelp.make_key_icon(KeyBindings.get_key(action), 56.0))
-        _key_icon_slots[i].visible = not showing_status
+        _key_icon_slots[i].get_parent().visible = not showing_status
         _key_status_labels[i].get_parent().visible = showing_status
         _key_status_labels[i].text = _key_status_message if showing_status else ""
         _set_hold_bar(_key_hold_bars[i], _key_status_labels[i], 0.0)
@@ -2257,7 +2265,7 @@ func _refresh_buttons() -> void:
         var action: String = KeyBindings.PAD_ACTIONS[i]
         var showing_status := i == _button_status_index
         ControlsHelp.set_icon_slot(_button_icon_slots[i], ControlsHelp.make_button_icon(KeyBindings.get_button(action), 56.0))
-        _button_icon_slots[i].visible = not showing_status
+        _button_icon_slots[i].get_parent().visible = not showing_status
         _button_status_labels[i].get_parent().visible = showing_status
         _button_status_labels[i].text = _button_status_message if showing_status else ""
         _set_hold_bar(_button_hold_bars[i], _button_status_labels[i], 0.0)
