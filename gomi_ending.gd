@@ -33,6 +33,9 @@ const GLINT_CAMERA_ELEVATIONS := [10.0, 30.0, 50.0]
 const GLINT_CAMERA_TURNS := [0.0, 30.0, -30.0, 60.0, -60.0]
 # 群がってから BAD END までは、機体を中心にカメラの経度を ORBIT_SPEED_DEG [度/秒] で回し続ける。
 const ORBIT_SPEED_DEG := 15.0
+# 回っている間は、機体からの距離を ORBIT_RADIUS [m] まで ORBIT_RADIUS_SPEED [m/秒] で縮める（箱のまわりの棚にカメラが届かないようにする）。
+const ORBIT_RADIUS := 1.8
+const ORBIT_RADIUS_SPEED := 1.0
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
 const NADEGG_HEAD_CENTER := Vector3(0, 0.12, 0)
@@ -128,6 +131,7 @@ func _process(delta: float) -> void:
 	if is_instance_valid(_camera) and is_instance_valid(_bin):
 		if _orbiting:
 			_orbit_azimuth += deg_to_rad(ORBIT_SPEED_DEG) * delta
+			_orbit_radius = move_toward(_orbit_radius, ORBIT_RADIUS, ORBIT_RADIUS_SPEED * delta)
 			_camera.global_position = _bin.to_global(_orbit_center + _orbit_offset())
 			_camera_focus = _bin.to_global(_orbit_center)
 		_camera.look_at(_camera_focus)
