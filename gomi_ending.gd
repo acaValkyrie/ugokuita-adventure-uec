@@ -17,7 +17,7 @@ const SCREWS_INTERVAL_MAX := 1.2
 const EYE_SPARKLE_SOUND := preload("res://assets/audio/salvage/eye_sparkle.ogg")
 # ED3 が始まってから Back to Start を押すまで流す BGM（ループしない）
 const BGM := preload("res://assets/audio/salvage/ed3_bgm.ogg")
-const BGM_VOLUME_DB := -10.0
+const BGM_VOLUME_DB := 0.0
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
 const NADEGG_HEAD_CENTER := Vector3(0, 0.12, 0)
