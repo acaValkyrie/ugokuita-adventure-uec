@@ -1073,6 +1073,14 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 看板の列の5枚目に「動く板ミュージアム」（https://yae.wiki/2025/12/10/ugokuita_museum_hardware/）を足した。ポスターは、ユーザーの貼った記事ページの画面写真から、写真とサイトのロゴを切り出して、ほかの看板と同じ作りで組んだ（`tools/make_museum_poster.py`、Windows の NotoSansJP-VF.ttf を使う）。確認: ゲームで看板の前に機体を置き、ポスターと白枠と「ウェブで開く」のヒントが出ることを見た。
 - 中分類（ボタンの表示形式・決定とキャンセル・カメラの操作）は、コントローラーの設定で決定を押して入ったときだけ開く。キャンセル・TOP での上下移動・親の行のクリック・メニューを開き直したときにたたむ。マウスが乗っただけではたたまない（下の行がずれてカーソルが飛ぶため）。開いているときは山形が「∧」。
 
+## エンディング3（ED3）を作っている途中（2026-10-27 時点、ブランチ `ed3`）
+
+- 新倉庫（GomiStation）の水色の箱に機体が完全に入ると、Nadegg たちが群がって部品を外して持ち去り、最後に「BAD END」を出す。main にはまだマージしない（ユーザーの判断）。
+- 箱の中身・棚の備品・Nadegg の配置と、箱に入ったかの判定は `gomi_station_contents.tscn`・`gomi_nadegg.tscn`・`gomi_station.gd`。詳しくは `assets/textures/gomi_station/README.md`。
+- 演出の本体は `gomi_ending.gd`（GomiStation の子の SalvageEnding）。画面は `ending.gd` のエンディング3、演出中は `player_switch.gd` で機体を切り替えられない。外して運ぶ部品は `robot_merge_import.gd` の `SALVAGE_KEEP_SUBTREES` で結合せずに残す。
+- 検証は `tools/verify_gomi_contents.gd`・`tools/verify_gomi_ending.gd`（`tests/gomi_ending_stage.tscn`）。ブランチに移したときには流し直していない。
+- 作業ツリーには、ED3 と関係なく行頭の空白がタブに変わっただけのファイル（car.gd・game_menu.gd・map.gd など8つ）が残っている。コミットしていない。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
