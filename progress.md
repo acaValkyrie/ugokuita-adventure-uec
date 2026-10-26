@@ -1073,6 +1073,11 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 看板の列の5枚目に「動く板ミュージアム」（https://yae.wiki/2025/12/10/ugokuita_museum_hardware/）を足した。ポスターは、ユーザーの貼った記事ページの画面写真から、写真とサイトのロゴを切り出して、ほかの看板と同じ作りで組んだ（`tools/make_museum_poster.py`、Windows の NotoSansJP-VF.ttf を使う）。確認: ゲームで看板の前に機体を置き、ポスターと白枠と「ウェブで開く」のヒントが出ることを見た。
 - 中分類（ボタンの表示形式・決定とキャンセル・カメラの操作）は、コントローラーの設定で決定を押して入ったときだけ開く。キャンセル・TOP での上下移動・親の行のクリック・メニューを開き直したときにたたむ。マウスが乗っただけではたたまない（下の行がずれてカーソルが飛ぶため）。開いているときは山形が「∧」。
 
+## 掲示板から Giving Campaign の看板を外した（2026-10-27）
+
+- `main_scene.tscn` から `LinkBoardGivingCampaign` を消し、後ろの Homecloud とミュージアムを1枚ぶん手前に詰めた（4枚、6m 間隔。ユーザーの判断）。ポスター画像・元の画像・`tools/make_giving_poster.py` は残した（また使えるように）。
+- 確認: ヘッドレスでシーンを読み、看板が4枚で間隔がどれも 6.0000m であることを確かめた。ゲームの画面では見ていない。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
