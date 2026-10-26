@@ -15,6 +15,9 @@ const SCREWS_INTERVAL_MIN := 0.5
 const SCREWS_INTERVAL_MAX := 1.2
 # 目が光るカットで鳴らす音
 const EYE_SPARKLE_SOUND := preload("res://assets/audio/salvage/eye_sparkle.ogg")
+# ED3 が始まってから Back to Start を押すまで流す BGM（ループしない）
+const BGM := preload("res://assets/audio/salvage/ed3_bgm.ogg")
+const BGM_VOLUME_DB := -10.0
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
 const NADEGG_HEAD_CENTER := Vector3(0, 0.12, 0)
@@ -56,6 +59,7 @@ var _power_tool: AudioStreamPlayer3D
 var _screws: AudioStreamPlayer3D
 var _screws_timer := 0.0
 var _eye_sparkle: AudioStreamPlayer
+var _bgm: AudioStreamPlayer
 var _leaving_tree := false
 var _crowd: Array[Node3D] = []
 var _smoke: Node3D
@@ -194,6 +198,12 @@ func _begin(body: Node3D, bin_id: StringName) -> void:
 	_eye_sparkle.bus = "SE"
 	_eye_sparkle.max_polyphony = 2
 	add_child(_eye_sparkle)
+	_bgm = AudioStreamPlayer.new()
+	_bgm.stream = BGM
+	_bgm.bus = "BGM"
+	_bgm.volume_db = BGM_VOLUME_DB
+	add_child(_bgm)
+	_bgm.play()
 	await _glint()
 	if phase != Phase.GATHERING:
 		return
@@ -951,7 +961,7 @@ func restore_after_ending() -> void:
 		_previous_camera.make_current()
 	if is_instance_valid(_camera):
 		_camera.queue_free()
-	for player in [_power_tool, _screws, _eye_sparkle]:
+	for player in [_power_tool, _screws, _eye_sparkle, _bgm]:
 		if is_instance_valid(player):
 			player.queue_free()
 	phase = Phase.IDLE
