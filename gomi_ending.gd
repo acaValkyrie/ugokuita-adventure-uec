@@ -15,10 +15,9 @@ const NADEGG_HEAD_RADIUS := 0.10
 const EYE_SURFACE_OFFSET := 0.0008
 # 目の画像は球面に沿わせず、頭部に接する平らな板にする。
 const EYE_SIZE := Vector2(1024.0 * 0.000100 * 0.80, 1024.0 * 0.000100 * 0.65)
-# 目はランダムに大きさを変え、ときどき一瞬消えてチラつく。
-const EYE_FLICKER_SCALE_MIN := 0.8
-const EYE_FLICKER_SCALE_MAX := 1.25
-const EYE_FLICKER_OFF_CHANCE := 0.2
+# 目は光がまたたくように、横に伸びると縦に縮み、縦に伸びると横に縮む。
+const EYE_PULSE_AMOUNT := 0.25
+const EYE_PULSE_PERIOD := 0.6
 const INITIAL_NADEGG_COUNT := 9
 const REINFORCEMENT_WAVES := 4
 const EXTRA_NADEGG_COUNT := INITIAL_NADEGG_COUNT + REINFORCEMENT_WAVES * 2
@@ -58,6 +57,7 @@ var _carrier_idle_tweens: Dictionary = {}
 var _carrier_idle_states: Dictionary = {}
 var _crowd_scuffle_states: Dictionary = {}
 var _eye_labels: Array[Node3D] = []
+var _eye_pulse_time := 0.0
 var _reinforcement_waves := 0
 var _departed_carriers: Array[int] = []
 var _finishing_scuffle := false
@@ -89,7 +89,7 @@ func _process(delta: float) -> void:
 		_camera.look_at(_camera_focus)
 	if is_instance_valid(_smoke) and not _finishing_scuffle:
 		_update_smoke_puffs(delta)
-	_update_eye_flicker(delta)
+	_update_eye_pulse(delta)
 
 
 func get_fully_containing_bin(body: Node3D) -> StringName:
@@ -359,8 +359,6 @@ func _prepare_ambush() -> void:
 			glint.mesh = eye_quad
 			var forward := _eye_forward(x)
 			glint.transform = Transform3D(Basis.looking_at(-forward, Vector3.UP), forward * (NADEGG_HEAD_RADIUS + EYE_SURFACE_OFFSET))
-			glint.set_meta("flicker_scale", 1.0)
-			glint.set_meta("flicker_timer", 0.0)
 			var material := StandardMaterial3D.new()
 			material.albedo_texture = EYE_GLINT
 			material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
@@ -379,28 +377,21 @@ func _prepare_ambush() -> void:
 
 func _set_eye_scale(size: float, eyes: Node3D) -> void:
 	eyes.set_meta("eye_scale", size)
+	var stretch := EYE_PULSE_AMOUNT * sin(TAU * _eye_pulse_time / EYE_PULSE_PERIOD)
 	for glint in eyes.get_children():
-		glint.scale = Vector3.ONE * size * float(glint.get_meta("flicker_scale"))
+		glint.scale = Vector3(1.0 + stretch, 1.0 - stretch, 1.0) * size
 
 
 func _eye_forward(x: float) -> Vector3:
 	return Vector3(x, 0.055, -sqrt(NADEGG_HEAD_RADIUS * NADEGG_HEAD_RADIUS - x * x - 0.055 * 0.055)).normalized()
 
 
-# 見えている目ごとに、短い間隔で大きさを選び直し、ときどき一瞬消す。
-func _update_eye_flicker(delta: float) -> void:
+# 見えている目を、縦と横が交互に伸び縮みするように動かす。
+func _update_eye_pulse(delta: float) -> void:
+	_eye_pulse_time += delta
 	for eyes in _eye_labels:
-		if not is_instance_valid(eyes) or not eyes.is_visible_in_tree():
-			continue
-		for glint in eyes.get_children():
-			var timer := float(glint.get_meta("flicker_timer")) - delta
-			if timer <= 0.0:
-				var off := randf() < EYE_FLICKER_OFF_CHANCE
-				glint.visible = not off
-				glint.set_meta("flicker_scale", randf_range(EYE_FLICKER_SCALE_MIN, EYE_FLICKER_SCALE_MAX))
-				timer = randf_range(0.03, 0.07) if off else randf_range(0.05, 0.15)
-			glint.set_meta("flicker_timer", timer)
-		_set_eye_scale(float(eyes.get_meta("eye_scale")), eyes)
+		if is_instance_valid(eyes) and eyes.is_visible_in_tree():
+			_set_eye_scale(float(eyes.get_meta("eye_scale")), eyes)
 
 
 func _face_toward(actor: Node3D, target: Vector3) -> void:
