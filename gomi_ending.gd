@@ -281,9 +281,6 @@ func _cut_camera(position_in_bin: Vector3, focus_in_bin: Vector3, fov: float) ->
 
 func _gather() -> void:
 	# 二つのカットで目を光らせた個体が順番に飛びかかり、その途中から残りが続く。
-	# 群がり始めたところから分解の音を流す。
-	_power_tool.play()
-	_screws_timer = 0.0
 	_eye_labels[2].show()
 	_actors[2].rotation.x = 0.0
 	_face_toward(_actors[2], _vehicle.global_position)
@@ -291,6 +288,7 @@ func _gather() -> void:
 	_tweens.append(first)
 	_tween_hop(first, _actors[2], _gather_position(2), 0.7, 0.46)
 	first.finished.connect(_start_carrier_idle.bind(_actors[2], 2))
+	first.finished.connect(_start_salvage_sounds)
 	await get_tree().create_timer(0.32).timeout
 	if phase != Phase.GATHERING:
 		return
@@ -433,6 +431,16 @@ func _update_eye_pulse(delta: float) -> void:
 	for eyes in _eye_labels:
 		if is_instance_valid(eyes) and eyes.is_visible_in_tree():
 			_set_eye_scale(float(eyes.get_meta("eye_scale")), eyes)
+
+
+# 一体目が機体に着いたところから、電動ドライバとねじの音を流す。
+func _start_salvage_sounds() -> void:
+	if phase != Phase.GATHERING and phase != Phase.DISMANTLING:
+		return
+	if not is_instance_valid(_power_tool) or _power_tool.playing:
+		return
+	_power_tool.play()
+	_screws_timer = 0.0
 
 
 # 群がっている間（電動ドライバの音が鳴っている間）、ねじの音を少しずつ高さを変えてランダムな間隔で鳴らす。
