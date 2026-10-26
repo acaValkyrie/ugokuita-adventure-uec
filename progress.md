@@ -1079,6 +1079,8 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 箱の中身・棚の備品・Nadegg の配置と、箱に入ったかの判定は `gomi_station_contents.tscn`・`gomi_nadegg.tscn`・`gomi_station.gd`。詳しくは `assets/textures/gomi_station/README.md`。
 - 演出の本体は `gomi_ending.gd`（GomiStation の子の SalvageEnding）。画面は `ending.gd` のエンディング3、演出中は `player_switch.gd` で機体を切り替えられない。外して運ぶ部品は `robot_merge_import.gd` の `SALVAGE_KEEP_SUBTREES` で結合せずに残す。
 - 検証は `tools/verify_gomi_contents.gd`・`tools/verify_gomi_ending.gd`（`tests/gomi_ending_stage.tscn`）。ブランチに移したときには流し直していない。
+- Nadegg の目の光（`nadegg_eye_glint.png`）は、ユーザーが白い十字に水色のふちを付けた絵に描き直した。乗算で重ねる案は試したが、やめた（ユーザーの判断）。
+- 目の光は、頭を近似した球（半径 0.10m）に沿わせて曲げるのをやめ、頭の表面に接する平らな板（QuadMesh）にした。左右の目は別々に、0.05〜0.15 秒ごとに大きさを 0.8〜1.25 倍で選び直し、2割の確率で 0.03〜0.07 秒だけ消える（`_update_eye_flicker`）。カットごとに大きくなる演出は、この揺れの土台として残している。確認: `verify_gomi_ending.gd` が通り、正面で平らな目が2つ出ること、斜めから奥側の目が頭に隠れることをスクリーンショットで見た。チラつきの動きはゲームでまだ見ていない。
 - 作業ツリーには、ED3 と関係なく行頭の空白がタブに変わっただけのファイル（car.gd・game_menu.gd・map.gd など8つ）が残っている。コミットしていない。
 
 ## まだやっていないこと
