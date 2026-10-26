@@ -243,9 +243,10 @@ func _glint() -> void:
 	var first_eyes := _eye_labels[2]
 	var second_eyes := _eye_labels[0]
 	_set_eye_scale(1.0, first_eyes)
-	# 1カット目: 機体の側面とタイヤを右前景に、縁のNadeggを左奥に。
+	# 1カット目: 機体の横から、縁のNadeggの目に寄って大きく見せる。
 	_cut_camera(Vector3(-0.58, 0.12, -0.25), Vector3(1.25, 0.62, 0.12), 52.0)
 	_face_toward(first_actor, _camera.global_position)
+	_focus_on_eyes(first_eyes, 24.0)
 	_eye_sparkle.play()
 	var first_glint := create_tween()
 	_tweens.append(first_glint)
@@ -253,19 +254,31 @@ func _glint() -> void:
 	first_glint.tween_method(_set_eye_scale.bind(first_eyes), 1.35, 1.15, 0.14)
 	await first_glint.finished
 	await get_tree().create_timer(0.33).timeout
-	# 2カット目: 棚から来た別個体を、反対側から機体の上面フレーム越しに見る。
+	# 2カット目: 緑の棚の前の別個体に寄って、反対側から見る。
 	first_eyes.hide()
 	second_actor.global_position = _bin.to_global(Vector3(-0.91, 0.80, -0.27))
-	second_actor.rotation.x = -0.75
+	second_actor.rotation.x = 0.0
 	second_eyes.show()
 	_cut_camera(Vector3(0.40, 0.45, 0.35), Vector3(-1.25, 0.30, -0.90), 62.0)
 	_face_toward(second_actor, _camera.global_position)
-	_set_eye_scale(1.15, second_eyes)
+	var facing_camera := second_actor.rotation.y
+	# 緑の棚のPCなどを物色していた個体が、機体に気づいて振り向いてから目を光らせる。
+	second_actor.rotation.y = facing_camera + PI
+	_focus_on_eyes(second_eyes, 26.0)
+	_set_eye_scale(1.0, second_eyes)
+	var turn := create_tween()
+	_tweens.append(turn)
+	turn.tween_interval(0.35)
+	turn.tween_property(second_actor, "rotation:y", facing_camera, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	turn.parallel().tween_property(second_actor, "rotation:x", -0.75, 0.32)
+	await turn.finished
+	if phase != Phase.GATHERING:
+		return
 	_eye_sparkle.play()
 	var second_glint := create_tween()
 	_tweens.append(second_glint)
-	second_glint.tween_method(_set_eye_scale.bind(second_eyes), 1.15, 1.55, 0.18).set_trans(Tween.TRANS_BACK)
-	second_glint.tween_method(_set_eye_scale.bind(second_eyes), 1.55, 1.30, 0.14)
+	second_glint.tween_method(_set_eye_scale.bind(second_eyes), 1.0, 1.8, 0.20).set_trans(Tween.TRANS_BACK)
+	second_glint.tween_method(_set_eye_scale.bind(second_eyes), 1.8, 1.5, 0.14)
 	await second_glint.finished
 	await get_tree().create_timer(0.40).timeout
 	_cut_camera(Vector3(1.45, 1.10, -1.45), Vector3(0, 0.10, 0), 52.0)
@@ -275,6 +288,13 @@ func _glint() -> void:
 func _cut_camera(position_in_bin: Vector3, focus_in_bin: Vector3, fov: float) -> void:
 	_camera.global_position = _bin.to_global(position_in_bin)
 	_camera_focus = _bin.to_global(focus_in_bin)
+	_camera.fov = fov
+	_camera.look_at(_camera_focus)
+
+
+# 目の位置にカメラを向け、画角を絞ってNadeggを大きく見せる。
+func _focus_on_eyes(eyes: Node3D, fov: float) -> void:
+	_camera_focus = eyes.global_position
 	_camera.fov = fov
 	_camera.look_at(_camera_focus)
 
