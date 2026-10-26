@@ -416,8 +416,10 @@ func _prepare_ambush() -> void:
 			var glint := MeshInstance3D.new()
 			glint.name = "LeftEye" if x < 0 else "RightEye"
 			glint.mesh = eye_quad
-			var forward := _eye_forward(x)
-			glint.transform = Transform3D(Basis.looking_at(-forward, Vector3.UP), forward * (NADEGG_HEAD_RADIUS + EYE_SURFACE_OFFSET))
+			# 左右の目を同じ向きにそろえ、顔の正面（-Z）に向けて地面に垂直に立てる。
+			# 頭の一番前に接する面に置き、板の角が頭にめり込まないようにする。
+			var surface := _eye_forward(x) * (NADEGG_HEAD_RADIUS + EYE_SURFACE_OFFSET)
+			glint.transform = Transform3D(Basis(Vector3.UP, PI), Vector3(surface.x, surface.y, -(NADEGG_HEAD_RADIUS + EYE_SURFACE_OFFSET)))
 			var material := StandardMaterial3D.new()
 			material.albedo_texture = EYE_GLINT
 			material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR

@@ -163,8 +163,8 @@ func _verify() -> void:
 			var center: Vector3 = glint.position
 			eye_centers.append(center)
 			assert(center.y > 0.03 and center.z < -0.06, "星形目が頭部の前面を向いていません")
-			assert(absf(center.length() - 0.1008) < 0.0001, "星形目が黄色い頭部に接していません")
-			assert(glint.basis.z.normalized().dot(center.normalized()) > 0.999, "星形目の板が頭部の外を向いていません")
+			assert(absf(center.z + 0.1008) < 0.0001, "星形目が黄色い頭部の一番前の面にありません")
+			assert(glint.basis.z.normalized().dot(Vector3.FORWARD) > 0.999 and absf(glint.basis.y.normalized().dot(Vector3.UP)) > 0.999, "星形目の板が正面を向いて地面に垂直に立っていません")
 			var eye_scale := float(eyes.get_meta("eye_scale"))
 			assert(is_equal_approx(glint.scale.x, glint.scale.y) and glint.scale.x / eye_scale > 0.74 and glint.scale.x / eye_scale < 1.26, "星形目の拡大縮小が縦横でそろっていません")
 		assert(absf(eye_centers[1].x - eye_centers[0].x - 0.0767) < 0.004, "二つの星形目が重なっています")
