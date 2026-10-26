@@ -50,6 +50,8 @@ var _tweens: Array[Tween] = []
 var _camera: Camera3D
 var _previous_camera: Camera3D
 var _camera_focus := Vector3.ZERO
+# カメラが機体を向き直すときの上方向。真上近くから見下ろすカットでは、画面が回らないようにカット開始時の上方向に固定する。
+var _camera_up := Vector3.UP
 var _power_tool: AudioStreamPlayer3D
 var _screws: AudioStreamPlayer3D
 var _screws_timer := 0.0
@@ -96,7 +98,7 @@ func _physics_process(_delta: float) -> void:
 
 func _process(delta: float) -> void:
 	if is_instance_valid(_camera) and is_instance_valid(_bin):
-		_camera.look_at(_camera_focus)
+		_camera.look_at(_camera_focus, _camera_up)
 	if is_instance_valid(_smoke) and not _finishing_scuffle:
 		_update_smoke_puffs(delta)
 	_update_eye_pulse(delta)
@@ -230,7 +232,13 @@ func _glint() -> void:
 	# 最初のカット: 箱に入った機体を上から見下ろす。真上だと look_at が向きを決められないので、少し手前にずらす。
 	var vehicle_in_bin := _bin.to_local(_vehicle.global_position)
 	_cut_camera(vehicle_in_bin + Vector3(0, 2.4, 0.35), vehicle_in_bin, 50.0)
-	await get_tree().create_timer(0.9).timeout
+	_camera_up = _camera.global_basis.y
+	# カット中はカメラを画面の右へ少し動かす。_process で毎フレーム機体を向き直すので、視点は機体のまま。
+	var overhead := create_tween()
+	_tweens.append(overhead)
+	overhead.tween_property(_camera, "global_position", _camera.global_position + _camera.global_basis.x * 0.4, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await overhead.finished
+	_camera_up = Vector3.UP
 	if phase != Phase.GATHERING:
 		return
 	var first_actor := _actors[2]
