@@ -23,6 +23,8 @@ const PlaybackInput := preload("res://salvage_playback_input.gd")
 const OVERHEAD_DISTANCE := 2.4
 const OVERHEAD_ELEVATION_DEG := 60.0
 const OVERHEAD_ORBIT_DEG := 20.0
+# 最初のカットの長さ [秒]
+const OVERHEAD_DURATION := 1.5
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
 const NADEGG_HEAD_CENTER := Vector3(0, 0.12, 0)
@@ -253,7 +255,7 @@ func _glint() -> void:
 	_cut_camera(vehicle_in_bin + _overhead_offset(0.0), vehicle_in_bin, 50.0)
 	var overhead := create_tween()
 	_tweens.append(overhead)
-	overhead.tween_method(_orbit_overhead.bind(vehicle_in_bin), 0.0, deg_to_rad(OVERHEAD_ORBIT_DEG), 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	overhead.tween_method(_orbit_overhead.bind(vehicle_in_bin), 0.0, deg_to_rad(OVERHEAD_ORBIT_DEG), OVERHEAD_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await overhead.finished
 	if phase != Phase.GATHERING:
 		return
