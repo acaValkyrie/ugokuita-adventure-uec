@@ -792,6 +792,10 @@ func _dismantle() -> void:
 		_face_toward(actor, _camera.global_position)
 		cargo.reparent(actor, true)
 		cargo.position = Vector3(0.24 if i % 2 == 0 else -0.24, 0.04, -0.02)
+		# 横へずらした位置からカメラを向き直す。向きを変えると持っている部品も回るので、部品が真ん中に来るよう位置を合わせ直すのを数回繰り返す。
+		for adjust in 3:
+			actor.global_position = showcase_center - actor.global_basis * cargo.position
+			_face_toward(actor, _camera.global_position)
 		actor.global_position = showcase_center - actor.global_basis * cargo.position
 		await get_tree().create_timer(1.05, false).timeout
 		if phase != Phase.DISMANTLING:
