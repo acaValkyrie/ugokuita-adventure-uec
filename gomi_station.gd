@@ -8,6 +8,9 @@ const GOMI_SHADOW_LAYER := 4
 const FADE_START_DISTANCE := 2.0
 const FADE_FULL_DISTANCE := 1.0
 const StairProximity = preload("res://stair_proximity.gd")
+# 新倉庫の中で流す環境音（ギャラリーのざわめき）。外では建物からの距離に応じて小さくし、この距離 [m] で聞こえなくなる。クレジットは assets/audio/CREDITS.md
+const CROWD_SOUND := preload("res://assets/audio/salvage/warehouse_crowd.ogg")
+const CROWD_FADE_OUT_DISTANCE := 2.5
 
 @onready var _outside_stairs: MeshInstance3D = $OutsideStairs
 
@@ -15,6 +18,9 @@ var _proximity := StairProximity.new()
 var _fade_materials: Array[BaseMaterial3D] = []
 var _outside_alpha := 0.0
 var _surplus_bin_areas: Dictionary = {}
+var _crowd_player: AudioStreamPlayer
+# 建物のメッシュを囲む箱（GomiStation の座標）
+var _building_bounds := AABB()
 
 
 func _ready() -> void:
@@ -34,6 +40,15 @@ func _ready() -> void:
 		return
 	mesh_instance.layers = GOMI_RENDER_LAYER | GOMI_SHADOW_LAYER
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_building_bounds = mesh_instance.transform * mesh_instance.get_aabb()
+	var crowd_stream := CROWD_SOUND as AudioStreamOggVorbis
+	crowd_stream.loop = true
+	_crowd_player = AudioStreamPlayer.new()
+	_crowd_player.stream = crowd_stream
+	_crowd_player.bus = "BGM"
+	add_child(_crowd_player)
+	_crowd_player.play()
+	_crowd_player.stream_paused = true
 
 
 func _setup_surplus_bins() -> void:
@@ -85,6 +100,7 @@ func _on_surplus_bin_body_exited(body: Node3D, bin_id: StringName) -> void:
 
 func _process(_delta: float) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node3D
+	_update_crowd(player)
 	if player == null:
 		_set_outside_alpha(0.0)
 		return
@@ -92,6 +108,20 @@ func _process(_delta: float) -> void:
 	# 屋外階段の表示は、機体外形と実際の屋外階段メッシュとの距離だけで決める。
 	var distance := _proximity.distance_to(player, FADE_START_DISTANCE)
 	_set_outside_alpha(clampf((FADE_START_DISTANCE - distance) / (FADE_START_DISTANCE - FADE_FULL_DISTANCE), 0.0, 1.0))
+
+
+# 建物の中では最大の音量で、外では建物を囲む箱からの距離に応じて小さくする。エンディング中は止める。
+func _update_crowd(player: Node3D) -> void:
+	if not is_instance_valid(_crowd_player):
+		return
+	var weight := 0.0
+	if player != null and not Ending.is_shown():
+		var local := global_transform.affine_inverse() * player.global_position
+		var nearest := local.clamp(_building_bounds.position, _building_bounds.end)
+		weight = clampf(1.0 - local.distance_to(nearest) / CROWD_FADE_OUT_DISTANCE, 0.0, 1.0)
+	_crowd_player.stream_paused = weight <= 0.0
+	if weight > 0.0:
+		_crowd_player.volume_db = linear_to_db(weight)
 
 
 func _set_outside_alpha(alpha: float) -> void:
