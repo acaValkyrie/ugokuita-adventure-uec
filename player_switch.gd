@@ -28,6 +28,8 @@ func _on_robot_model_changed(model: String) -> void:
 
 
 func _replace(old: VehicleBody3D, model: String) -> void:
+    if Ending.is_controls_locked():
+        return
     if not SCENES.has(model):
         push_warning("未知の機体: %s" % model)
         return

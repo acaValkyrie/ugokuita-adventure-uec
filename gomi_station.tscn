@@ -8,6 +8,7 @@
 [ext_resource type="ArrayMesh" path="res://assets/models/gomi_inside_stairs.res" id="5_inside_stairs"]
 [ext_resource type="ArrayMesh" path="res://assets/models/gomi_outside_stairs.res" id="6_outside_stairs"]
 [ext_resource type="PackedScene" path="res://gomi_station_contents.tscn" id="7_contents"]
+[ext_resource type="Script" path="res://gomi_ending.gd" id="8_ending"]
 
 [node name="GomiStation" type="StaticBody3D" unique_id=1597494071]
 script = ExtResource("4_gomi_station")
@@ -34,3 +35,6 @@ shape = ExtResource("2_gomi_collision")
 
 [node name="SurplusContents" parent="." instance=ExtResource("7_contents")]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+
+[node name="SalvageEnding" type="Node3D" parent="."]
+script = ExtResource("8_ending")

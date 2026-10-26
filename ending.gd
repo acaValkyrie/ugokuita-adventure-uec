@@ -3,6 +3,7 @@ extends CanvasLayer
 # 普段は街の鳥の声を BGM として流し、エンディング中は止める。高く上がるほど小さくする（10m〜80m）。
 # エンディング1: ステージから落ちたとき（集中線が出始めるほど速く落ちているとき）。
 # エンディング2: 東3号館の屋上の5倍の高さまで上がったとき。無重力になる（機体の側で is_zero_gravity() を見て漂わせる）。
+# エンディング3: 新倉庫の箱に完全に入ると、Nadeggに機体を持ち去られる。
 
 # この高さ [m] より下で、集中線が出る速さ（最高速度超え）で落ちていたらエンディングにする
 const FALL_HEIGHT := -10.0
@@ -24,8 +25,12 @@ const AMBIENT_FADE_SPEED := 3.0
 const FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 
 var _shown := false
-# 出しているエンディング（1か2）
+# 出しているエンディング（1〜3）
 var _ending := 1
+var _ending3_director: Node
+var _title_label: Label
+var _ending3_labels: Array[Label] = []
+var _music_credit: Label
 var _panel: PanelContainer
 var _box: VBoxContainer
 var _button: Button
@@ -69,13 +74,21 @@ func _ready() -> void:
     accent_bar.custom_minimum_size = Vector2(5, 32)
     accent_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     title_row.add_child(accent_bar)
-    title_row.add_child(_make_label("Thank you for Playing!", 30))
+    _title_label = _make_label("Thank you for Playing!", 30)
+    title_row.add_child(_title_label)
 
     _box.add_child(_make_ending2_label("- ENDING 2 -", 18))
+    var ending3_number := _make_label("- ENDING 3 -", 18)
+    _ending3_labels.append(ending3_number)
+    _box.add_child(ending3_number)
+    var ending3_story := _make_label("Nadeggたちが機体に群がった。\n部品は次々と持ち去られ、\n最後には何も残らなかった。", 18)
+    _ending3_labels.append(ending3_story)
+    _box.add_child(ending3_story)
     _box.add_child(_make_label("製作：動く板製作委員会", 18))
     # 音楽のクレジット（CC BY / CC BY-SA の表記。詳しくは assets/audio/CREDITS.md）。Fanfare 1 はエンディング2の曲なので、ネタバレにならないようエンディング2だけで表記する
     _box.add_child(_make_ending2_label("Music: \"Fanfare 1\" by tcarisland (CC BY 4.0)", 13, UiStyle.TEXT_DIM_COLOR))
-    _box.add_child(_make_label("Music: \"Fanfare 02\" by Beau Buckley (CC BY-SA 4.0)", 13, UiStyle.TEXT_DIM_COLOR))
+    _music_credit = _make_label("Music: \"Fanfare 02\" by Beau Buckley (CC BY-SA 4.0)", 13, UiStyle.TEXT_DIM_COLOR)
+    _box.add_child(_music_credit)
 
     # ボタンは左寄せ。上の文字との間を 4 あける
     var button_margin := MarginContainer.new()
@@ -151,6 +164,32 @@ func is_zero_gravity() -> bool:
     return _shown and _ending == 2
 
 
+func is_controls_locked() -> bool:
+    return is_instance_valid(_ending3_director)
+
+
+func begin_salvage_ending(director: Node) -> bool:
+    if _shown or is_controls_locked():
+        return false
+    _ending3_director = director
+    _ending = 3
+    _shown = true
+    _panel.hide()
+    _ambient_player.stop()
+    _player.stop()
+    return true
+
+
+func complete_salvage_ending(director: Node) -> void:
+    if director == _ending3_director:
+        _show(3)
+
+
+func cancel_salvage_ending(director: Node) -> void:
+    if director == _ending3_director:
+        _hide()
+
+
 # エンディング用フォントの縁取りなしのラベル
 func _make_label(text: String, size: int, color: Color = UiStyle.TEXT_COLOR) -> Label:
     var label := Label.new()
@@ -173,15 +212,24 @@ func _show(ending: int) -> void:
     _ending = ending
     for label in _ending2_labels:
         label.visible = ending == 2
+    for label in _ending3_labels:
+        label.visible = ending == 3
+    _title_label.text = "BAD END" if ending == 3 else "Thank you for Playing!"
+    _music_credit.visible = ending != 3
     _panel.visible = true
     _ambient_player.stop()
-    _player.stream = _bgm2 if ending == 2 else BGM
-    _player.play()
+    if ending == 3:
+        _player.stop()
+    else:
+        _player.stream = _bgm2 if ending == 2 else BGM
+        _player.play()
     # ゲームパッドやキーボードの決定でも押せるようにする
     _button.grab_focus()
 
 
 func _hide() -> void:
+    var director := _ending3_director
+    _ending3_director = null
     _shown = false
     _panel.visible = false
     _player.stop()
@@ -189,6 +237,8 @@ func _hide() -> void:
     if not _ambient_player.playing:
         _ambient_player.play()
     _button.release_focus()
+    if is_instance_valid(director):
+        director.restore_after_ending()
 
 
 func _on_back_pressed() -> void:
