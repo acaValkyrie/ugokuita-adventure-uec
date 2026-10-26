@@ -81,9 +81,6 @@ func _ready() -> void:
     var ending3_number := _make_label("- ENDING 3 -", 18)
     _ending3_labels.append(ending3_number)
     _box.add_child(ending3_number)
-    var ending3_story := _make_label("Nadeggたちが機体に群がった。\n部品は次々と持ち去られ、\n最後には何も残らなかった。", 18)
-    _ending3_labels.append(ending3_story)
-    _box.add_child(ending3_story)
     _box.add_child(_make_label("製作：動く板製作委員会", 18))
     # 音楽のクレジット（CC BY / CC BY-SA の表記。詳しくは assets/audio/CREDITS.md）。Fanfare 1 はエンディング2の曲なので、ネタバレにならないようエンディング2だけで表記する
     _box.add_child(_make_ending2_label("Music: \"Fanfare 1\" by tcarisland (CC BY 4.0)", 13, UiStyle.TEXT_DIM_COLOR))
