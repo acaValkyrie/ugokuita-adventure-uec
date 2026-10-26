@@ -217,11 +217,10 @@ func _verify() -> void:
 	var first_smoke := director.get("_smoke") as Node3D
 	var growing_puff := first_smoke.get_node("Puff00") as MeshInstance3D
 	var initial_size := growing_puff.scale.x
-	var initial_transparency := growing_puff.transparency
 	await create_timer(0.12).timeout
-	assert(growing_puff.transparency < initial_transparency, "煙球が薄い状態から現れません")
+	assert(growing_puff.scale.x > initial_size, "煙球が小さい状態から現れません")
 	await create_timer(0.24).timeout
-	assert(growing_puff.scale.x < initial_size, "煙球が個別に縮みません")
+	var grown_size := growing_puff.scale.x
 	var last_angle := 8.0 * TAU / 9.0
 	var last_target: Vector3 = director.call("_vehicle_offset", Vector3(cos(last_angle) * 0.45, 0.04, sin(last_angle) * 0.32))
 	assert(crowd[8].global_position.distance_to(last_target) > 0.2, "後続の群れが飛び込む前に煙が出ました")
@@ -233,13 +232,14 @@ func _verify() -> void:
 	assert(_face_alignment_to(last_swarm, car.global_position) > 0.80, "群れの目が機体へ向いていません")
 	await create_timer(0.24).timeout
 	assert(last_swarm.global_position.distance_to(swarm_start) > 0.05, "追加Nadeggが移動しません")
+	assert(growing_puff.scale.x < grown_size, "煙球が個別に縮みません")
 	assert(swarm_eyes.global_position.distance_to(swarm_eyes_start) > 0.05, "星形目が移動するNadeggから離れています")
 	await _screenshot("ed3_swarm_midair")
 	var smoke_elapsed: float = director.get("_smoke_elapsed")
 	var smoke_cycle := 1.25
 	var next_cycle_start := (floorf(smoke_elapsed / smoke_cycle) + 1.0) * smoke_cycle
 	director.call("_update_smoke_puffs", next_cycle_start + smoke_cycle * 0.01 - smoke_elapsed)
-	assert(growing_puff.transparency >= 0.95 and growing_puff.scale.x > initial_size * 0.9, "煙球が縮んで消えたあと再出現しません")
+	assert(growing_puff.scale.x < 0.05, "煙球が縮んで消えたあと小さい状態から再出現しません")
 	var player_switch := root.get_node("PlayerSwitch")
 	player_switch.call("_replace", car, "neo" if _run_model == "classic" else "classic")
 	assert(is_instance_valid(car) and car.robot_key == _run_model)
@@ -379,7 +379,7 @@ func _verify() -> void:
 	await _screenshot("ed3_carrier_idle")
 	await create_timer(0.35).timeout
 	var smoke := director.get("_smoke") as Node3D
-	assert(smoke.scale.is_equal_approx(Vector3(6.1, 5.9, 6.1)), "煙全体の倍率が変化しています")
+	assert(smoke.scale.is_equal_approx(Vector3(2.0, 1.93, 2.0)), "煙全体の倍率が変化しています")
 	var foreground := smoke.get_node("ForegroundPuffs") as Node3D
 	assert(not foreground.visible, "停止中の手前の煙が表示されています")
 	assert(smoke.get_child_count() == 13, "奥側の煙球が12個ありません")
@@ -387,9 +387,9 @@ func _verify() -> void:
 	var differing_phases := 0
 	for i in 12:
 		var puff := smoke.get_node("Puff%02d" % i) as MeshInstance3D
-		if puff.transparency < 0.9:
+		if puff.scale.x > 0.05:
 			visible_puffs += 1
-		if absf(puff.transparency - growing_puff.transparency) > 0.1:
+		if absf(puff.scale.x - growing_puff.scale.x) > 0.03:
 			differing_phases += 1
 	assert(visible_puffs >= 5 and differing_phases >= 5, "煙球の出現時刻が揃っています")
 	assert(absf((smoke.get_node("Puff00") as Node3D).position.z - (smoke.get_node("Puff01") as Node3D).position.z) > 0.05, "煙球が奥行き方向へ散っていません")

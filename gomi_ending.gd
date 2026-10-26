@@ -490,14 +490,15 @@ func _start_smoke() -> void:
 	_smoke.name = "ComicScuffleSmoke"
 	add_child(_smoke)
 	_smoke.global_position = _vehicle.global_position + Vector3.UP * 0.15
-	_smoke.scale = Vector3(6.1, 5.9, 6.1)
+	# 不透明なので、分解中のカメラ（機体から約2.75m）が煙の中に入らない大きさにする。
+	_smoke.scale = Vector3(2.0, 1.93, 2.0)
 	_smoke_puffs.clear()
 	_smoke_base_scales.clear()
 	_smoke_elapsed = 0.0
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.albedo_color = Color(0.97, 0.96, 0.90, 0.18)
+	# 煙は不透明にし、大きさの変化だけで現れたり消えたりさせる。
+	material.albedo_color = Color(0.97, 0.96, 0.90)
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var ball := SphereMesh.new()
 	ball.radius = 0.5
@@ -527,7 +528,6 @@ func _start_smoke() -> void:
 	foreground.position = _smoke.to_local(_smoke.global_position + toward_camera * 0.18)
 	foreground.scale = Vector3.ONE * 0.25
 	var foreground_material := material.duplicate() as StandardMaterial3D
-	foreground_material.albedo_color.a = 0.18
 	var right := _camera.global_basis.x
 	var up := _camera.global_basis.y
 	for i in 6:
@@ -550,10 +550,9 @@ func _update_smoke_puffs(delta: float) -> void:
 		var puff := _smoke_puffs[i]
 		var duration := 1.25 + float((i * 7) % 5) * 0.14
 		var phase := fposmod(_smoke_elapsed / duration + float(i) * 0.618034, 1.0)
-		# 大きく薄い状態で現れ、濃くなったあと各自の速さで縮んで消える。
-		var opacity := smoothstep(0.0, 0.20, phase) * (1.0 - smoothstep(0.55, 1.0, phase))
-		puff.transparency = 1.0 - opacity
-		puff.scale = _smoke_base_scales[i] * lerpf(1.3, 0.06, pow(phase, 1.2))
+		# 小さい状態から一気にふくらんで現れ、各自の速さで縮んで消える。
+		var grow := smoothstep(0.0, 0.20, phase)
+		puff.scale = _smoke_base_scales[i] * maxf(grow * lerpf(1.3, 0.06, pow(phase, 1.2)), 0.01)
 
 
 func _show_comic_word(word: String, offset: Vector3) -> Label3D:
