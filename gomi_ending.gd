@@ -15,7 +15,7 @@ const NADEGG_HEAD_RADIUS := 0.10
 const EYE_SURFACE_OFFSET := 0.0008
 # 目の画像は球面に沿わせず、頭部に接する平らな板にする。
 const EYE_SIZE := Vector2(1024.0 * 0.000100 * 0.80, 1024.0 * 0.000100 * 0.65)
-# 目は光がまたたくように、横に伸びると縦に縮み、縦に伸びると横に縮む。
+# 目は光がまたたくように、全体が大きくなったり小さくなったりする。
 const EYE_PULSE_AMOUNT := 0.25
 const EYE_PULSE_PERIOD := 0.6
 const INITIAL_NADEGG_COUNT := 9
@@ -377,16 +377,16 @@ func _prepare_ambush() -> void:
 
 func _set_eye_scale(size: float, eyes: Node3D) -> void:
 	eyes.set_meta("eye_scale", size)
-	var stretch := EYE_PULSE_AMOUNT * sin(TAU * _eye_pulse_time / EYE_PULSE_PERIOD)
+	var pulse := 1.0 + EYE_PULSE_AMOUNT * sin(TAU * _eye_pulse_time / EYE_PULSE_PERIOD)
 	for glint in eyes.get_children():
-		glint.scale = Vector3(1.0 + stretch, 1.0 - stretch, 1.0) * size
+		glint.scale = Vector3.ONE * pulse * size
 
 
 func _eye_forward(x: float) -> Vector3:
 	return Vector3(x, 0.055, -sqrt(NADEGG_HEAD_RADIUS * NADEGG_HEAD_RADIUS - x * x - 0.055 * 0.055)).normalized()
 
 
-# 見えている目を、縦と横が交互に伸び縮みするように動かす。
+# 見えている目を、全体が大きくなったり小さくなったりするように動かす。
 func _update_eye_pulse(delta: float) -> void:
 	_eye_pulse_time += delta
 	for eyes in _eye_labels:

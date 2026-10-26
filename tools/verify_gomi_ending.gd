@@ -166,7 +166,7 @@ func _verify() -> void:
 			assert(absf(center.length() - 0.1008) < 0.0001, "星形目が黄色い頭部に接していません")
 			assert(glint.basis.z.normalized().dot(center.normalized()) > 0.999, "星形目の板が頭部の外を向いていません")
 			var eye_scale := float(eyes.get_meta("eye_scale"))
-			assert(absf(glint.scale.x + glint.scale.y - 2.0 * eye_scale) < 0.001 and glint.scale.x / eye_scale > 0.74 and glint.scale.x / eye_scale < 1.26, "星形目の縦横の伸び縮みが違います")
+			assert(is_equal_approx(glint.scale.x, glint.scale.y) and glint.scale.x / eye_scale > 0.74 and glint.scale.x / eye_scale < 1.26, "星形目の拡大縮小が縦横でそろっていません")
 		assert(absf(eye_centers[1].x - eye_centers[0].x - 0.0767) < 0.004, "二つの星形目が重なっています")
 		assert(eye_centers[1].normalized().dot(Vector3.LEFT) < 0.0, "横から見た右目が頭部に隠れません")
 	await _screenshot("ed3_glint_frame")
