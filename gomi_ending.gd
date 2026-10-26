@@ -220,6 +220,7 @@ func _begin(body: Node3D, bin_id: StringName) -> void:
 	_playback_input = PlaybackInput.new()
 	_playback_input.director = self
 	add_child(_playback_input)
+	ControlsHelp.set_salvage_playback(true)
 	await _glint()
 	if phase != Phase.GATHERING:
 		return
@@ -1026,6 +1027,7 @@ func skip_to_bad_end() -> void:
 
 # 一時停止とスキップの入力を片付け、一時停止していたら再開する。
 func _end_playback_controls() -> void:
+	ControlsHelp.set_salvage_playback(false)
 	if is_instance_valid(_playback_input):
 		_playback_input.queue_free()
 	_playback_input = null
