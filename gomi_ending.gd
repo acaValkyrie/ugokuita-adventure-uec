@@ -24,7 +24,7 @@ const EYE_SURFACE_OFFSET := 0.0008
 # 目の画像は球面に沿わせず、頭部に接する平らな板にする。
 const EYE_SIZE := Vector2(1024.0 * 0.000100 * 0.80, 1024.0 * 0.000100 * 0.65)
 # 目は光がまたたくように、全体が大きくなったり小さくなったりする。
-const EYE_PULSE_AMOUNT := 0.25
+const EYE_PULSE_AMOUNT := 0.10
 const EYE_PULSE_PERIOD := 0.6
 const INITIAL_NADEGG_COUNT := 9
 const REINFORCEMENT_WAVES := 4
