@@ -46,6 +46,7 @@ const DEBUG_POWER_UP_NAMES := {
     "torque": "Torque",
     "jump_up": "Jump Up",
     "jet": "Jet",
+    "limit_break": "Limit Break",
 }
 # デバッグ欄に出すヒントの名前
 const DEBUG_HINT_NAMES := {

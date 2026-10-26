@@ -35,6 +35,12 @@ const ITEMS := {
         "description": "ジャンプ長押しで空を飛べるようになったぞ！！",
         "icon": preload("res://assets/ui/powerups/powerup_jet.png"),
     },
+    "limit_break": {
+        "name": "上限突破",
+        "description": "BOOSTとダッシュを重ねるほど、どこまでも速くなるぞ！！",
+        # アイコンは仮（ちぎれる鎖の絵ができたら差し替える）
+        "icon": preload("res://assets/ui/powerups/powerup_boost_charge.png"),
+    },
 }
 
 # 効果の倍率
@@ -58,6 +64,7 @@ const ITEM_PLACEMENTS := {
     "torque": Vector3(-225.60, 0.63, 44.51),
     # 東3号館（高層棟。モデル上は hi_東図書館A）の屋上の上にある、斜めの屋根（北東へ約27°で上がる）の先端。先端の面の高さは約51.95m
     "jet": Vector3(93.1, 52.58, -124.35),
+    # 上限突破（limit_break）の置き場所は未定。決まるまではデバッグ欄からだけ取れる
 }
 
 # 本番の配置は ITEM_PLACEMENTS。デバッグ用に機体の手前にも4つ並べるときだけ true
@@ -92,6 +99,7 @@ const E3_ROOF_ITEM_POSITIONS := [
     Vector3(80.4, 43.13, -151.0),
     Vector3(81.6, 43.13, -151.0),
     Vector3(82.8, 43.13, -151.0),
+    Vector3(84.0, 43.13, -151.0),
 ]
 # 一時的なデバッグ用（プールの調整中）。true のとき、スタート地点（とリセットの戻り先）をジャンプ力UPのメダルの場所（西11号館前）にする。終わったら false に戻す
 const DEBUG_START_AT_JUMP_UP := false
