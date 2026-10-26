@@ -7,6 +7,7 @@
 
 [ext_resource type="ArrayMesh" path="res://assets/models/gomi_inside_stairs.res" id="5_inside_stairs"]
 [ext_resource type="ArrayMesh" path="res://assets/models/gomi_outside_stairs.res" id="6_outside_stairs"]
+[ext_resource type="PackedScene" path="res://gomi_station_contents.tscn" id="7_contents"]
 
 [node name="GomiStation" type="StaticBody3D" unique_id=1597494071]
 script = ExtResource("4_gomi_station")
@@ -30,3 +31,6 @@ mesh = ExtResource("6_outside_stairs")
 
 [node name="Collision" type="CollisionShape3D" parent="." unique_id=1523891973]
 shape = ExtResource("2_gomi_collision")
+
+[node name="SurplusContents" parent="." instance=ExtResource("7_contents")]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)

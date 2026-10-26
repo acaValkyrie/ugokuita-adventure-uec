@@ -1,5 +1,8 @@
 extends StaticBody3D
 
+signal surplus_bin_entered(bin_id: StringName, body: Node3D)
+signal surplus_bin_exited(bin_id: StringName, body: Node3D)
+
 const GOMI_RENDER_LAYER := 1
 const GOMI_SHADOW_LAYER := 4
 const FADE_START_DISTANCE := 2.0
@@ -11,9 +14,11 @@ const StairProximity = preload("res://stair_proximity.gd")
 var _proximity := StairProximity.new()
 var _fade_materials: Array[BaseMaterial3D] = []
 var _outside_alpha := 0.0
+var _surplus_bin_areas: Dictionary = {}
 
 
 func _ready() -> void:
+	_setup_surplus_bins()
 	_outside_stairs.hide()
 	_proximity.setup(_outside_stairs)
 	# GeometryInstance3D.transparencyはForward+専用。Compatibilityでも
@@ -29,6 +34,53 @@ func _ready() -> void:
 		return
 	mesh_instance.layers = GOMI_RENDER_LAYER | GOMI_SHADOW_LAYER
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+
+func _setup_surplus_bins() -> void:
+	for bin in $SurplusContents/BinContents.get_children():
+		var bin_id := StringName(bin.name)
+		var area := bin.get_node("Interior") as Area3D
+		_surplus_bin_areas[bin_id] = area
+		area.body_entered.connect(_on_surplus_bin_body_entered.bind(bin_id))
+		area.body_exited.connect(_on_surplus_bin_body_exited.bind(bin_id))
+
+
+# Area3Dの重なりは物理フレームで更新される。
+func get_surplus_bin_ids_for_body(body: Node3D) -> Array[StringName]:
+	var ids: Array[StringName] = []
+	if not _is_surplus_bin_visitor(body):
+		return ids
+	for bin_id in _surplus_bin_areas:
+		if (_surplus_bin_areas[bin_id] as Area3D).overlaps_body(body):
+			ids.append(bin_id)
+	return ids
+
+
+func get_bodies_in_surplus_bin(bin_id: StringName) -> Array[Node3D]:
+	var bodies: Array[Node3D] = []
+	var area := _surplus_bin_areas.get(bin_id) as Area3D
+	if area == null:
+		return bodies
+	for body in area.get_overlapping_bodies():
+		if _is_surplus_bin_visitor(body):
+			bodies.append(body)
+	return bodies
+
+
+func _is_surplus_bin_visitor(body: Node3D) -> bool:
+	# playerグループの現行機体と、単独で使う車/旧CharacterBodyの両方に対応。
+	# 棚やNadeggなどのStaticBodyは検知対象にしない。
+	return is_instance_valid(body) and (body.is_in_group("player") or body is VehicleBody3D or body is CharacterBody3D)
+
+
+func _on_surplus_bin_body_entered(body: Node3D, bin_id: StringName) -> void:
+	if _is_surplus_bin_visitor(body):
+		surplus_bin_entered.emit(bin_id, body)
+
+
+func _on_surplus_bin_body_exited(body: Node3D, bin_id: StringName) -> void:
+	if _is_surplus_bin_visitor(body):
+		surplus_bin_exited.emit(bin_id, body)
 
 
 func _process(_delta: float) -> void:
