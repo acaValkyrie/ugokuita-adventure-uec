@@ -23,7 +23,7 @@ assets/audio/drift/drift_charge_loop3.ogg
 assets/audio/drift/drift_dash.ogg
 assets/audio/bgm/source/
 
-# ED3 で Nadegg が分解している間の音（Pixabay）も同じ理由で単体では置けない。暗号化は ED3 を main に入れるときにまとめてやる
+# ED3 の音（分解の音・目が光る音・新倉庫の環境音・BGM。Pixabay）も同じ理由で、暗号化した .enc だけをコミットする（GitHub Actions で BGM_KEY を使って戻す）
 assets/audio/salvage/power_tool.ogg
 assets/audio/salvage/screws.ogg
 assets/audio/salvage/eye_sparkle.ogg
