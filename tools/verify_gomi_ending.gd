@@ -303,11 +303,11 @@ func _verify() -> void:
 	var first_carrier: Node3D = director.get("_actors")[0]
 	for i in 240:
 		if first_carrier.visible and first_carrier.get_node_or_null("SalvagedParts") != null \
-				and first_carrier.global_position.distance_to(director_camera.global_position) < 0.62 \
+				and first_carrier.global_position.distance_to(director_camera.global_position) < 0.7 \
 				and not director_camera.is_position_behind(first_carrier.global_position):
 			break
 		await create_timer(0.02).timeout
-	assert(first_carrier.visible and first_carrier.global_position.distance_to(director_camera.global_position) < 0.62, "部品を持ったNadeggがカメラ前に来ません")
+	assert(first_carrier.visible and first_carrier.global_position.distance_to(director_camera.global_position) < 0.7, "部品を持ったNadeggがカメラ前に来ません")
 	assert(not director.get("_carrier_idle_tweens").has(first_carrier) and director.get("_carrier_idle_tweens").has(crowd[0]), "担当交代時に待機動作が切り替わりません")
 	assert(first_carrier.get_node("SalvagedParts").find_children("*", "Label3D").is_empty(), "運搬部品に文字が付いています")
 	var showcase_position := first_carrier.global_position
@@ -532,10 +532,17 @@ func _watch_showcases(director: Node, showcase_groups: Array, state: Dictionary)
 		var cargo: Node3D
 		for tick in 300:
 			cargo = actor.get_node_or_null("SalvagedParts") as Node3D
-			if actor.visible and cargo != null and actor.global_position.distance_to(camera.global_position) < 0.62:
+			if actor.visible and cargo != null and cargo.global_position.distance_to(camera.global_position) < 0.62:
 				break
 			await create_timer(0.02).timeout
-		assert(actor.visible and cargo != null and actor.global_position.distance_to(camera.global_position) < 0.62, "部品種類%dのカメラ前提示がありません" % i)
+		assert(actor.visible and cargo != null and cargo.global_position.distance_to(camera.global_position) < 0.62, "部品種類%dのカメラ前提示がありません" % i)
+		# unproject_position はゲームの基準解像度の座標で返るので、窓の大きさではなく描いている範囲で比べる。
+		var screen_size := camera.get_viewport().get_visible_rect().size
+		var screen_center := screen_size * 0.5
+		var cargo_on_screen := camera.unproject_position(cargo.global_position)
+		var actor_on_screen := camera.unproject_position(actor.global_position)
+		assert(cargo_on_screen.distance_to(screen_center) < screen_size.x * 0.08, "部品種類%dが画面の真ん中にありません" % i)
+		assert(absf(actor_on_screen.x - screen_center.x) > screen_size.x * 0.12, "部品種類%dのNadeggが左右に寄っていません" % i)
 		var word_count: int = director.get("_comic_labels").size()
 		assert(cargo.get_child_count() == showcase_groups[i].size(), "部品種類%dの提示用メッシュ数が違います" % i)
 		for part_index in showcase_groups[i].size():

@@ -784,13 +784,15 @@ func _dismantle() -> void:
 		var cargo := _make_cargo(batches[i], display_parts[i])
 		if phase != Phase.DISMANTLING:
 			return
-		_face_toward(actor, _camera.global_position)
-		cargo.reparent(actor, true)
-		# 実車部品を顔の横に掲げ、カメラ前で静止して提示する。
-		cargo.position = Vector3(0.16 if i % 2 == 0 else -0.16, 0.04, -0.02)
+		# 実車部品を画面の真ん中に置き、Nadeggは部品の横（左右交互）に寄せて、カメラ前で静止して提示する。
 		var back := _camera.global_basis.z.normalized()
 		var up := _camera.global_basis.y.normalized()
-		actor.global_position = _camera.global_position - back * 0.60 - up * 0.04
+		var showcase_center := _camera.global_position - back * 0.60 - up * 0.04
+		actor.global_position = showcase_center
+		_face_toward(actor, _camera.global_position)
+		cargo.reparent(actor, true)
+		cargo.position = Vector3(0.24 if i % 2 == 0 else -0.24, 0.04, -0.02)
+		actor.global_position = showcase_center - actor.global_basis * cargo.position
 		await get_tree().create_timer(1.05, false).timeout
 		if phase != Phase.DISMANTLING:
 			return
