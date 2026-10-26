@@ -71,6 +71,18 @@ jobs:
               -pass env:BGM_KEY
             test -s "assets/audio/drift/${name}.ogg"
           done
+      # ED3 の音（分解の音・目が光る音・新倉庫の環境音・BGM。Pixabay）も規約で素材そのままの配布ができないので、同じ鍵で戻す
+      - name: Decrypt ED3 sounds
+        env:
+          BGM_KEY: ${{ secrets.BGM_KEY }}
+        run: |
+          for name in power_tool screws eye_sparkle warehouse_crowd ed3_bgm; do
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+              -in "assets/audio/salvage/${name}.ogg.enc" \
+              -out "assets/audio/salvage/${name}.ogg" \
+              -pass env:BGM_KEY
+            test -s "assets/audio/salvage/${name}.ogg"
+          done
       - name: Install Godot and export templates
         run: |
           base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"

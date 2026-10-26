@@ -148,6 +148,8 @@ const PAD_ICONS := {
 }
 # 専用の絵が無いボタンに重ねる文字（表記ごと）。左の肩のボタンと、左右のスティックの押し込み
 const PAD_SHOULDER_L_LABELS := {"nintendo": "L", "xbox": "LB", "playstation": "L1"}
+# START（メニュー）のボタンの専用の絵が無い表記で、文字の無いボタンの絵に重ねる文字。PlayStation は世代ごとの絵（get_ps_start_icon）を使う
+const PAD_START_LABELS := {"nintendo": "+", "xbox": "≡"}
 const PAD_STICK_LABELS := {
     "nintendo": {JOY_BUTTON_LEFT_STICK: "LS", JOY_BUTTON_RIGHT_STICK: "RS"},
     "xbox": {JOY_BUTTON_LEFT_STICK: "LS", JOY_BUTTON_RIGHT_STICK: "RS"},
@@ -192,6 +194,8 @@ var _hbox: HBoxContainer
 # Recover のアイコンに付ける金色の縁取り（_rebuild のたびに作り直す）と、動けなくなっていそうか
 var _recover_ring: Control
 var _stuck := false
+# ED3 の再生中か。再生中は一時停止・スキップ・メニューの操作だけを出す
+var _salvage_playback := false
 
 
 func _ready() -> void:
@@ -288,6 +292,8 @@ func _set_mode(mode: Mode) -> void:
 
 # モードごとの表示項目を返す。コントローラは選択中のボタン表記で組み立てる
 func _items_for(mode: Mode) -> Array:
+    if _salvage_playback:
+        return _salvage_items(mode)
     if mode == Mode.KEYBOARD:
         return _keyboard_items()
     if mode != Mode.GAMEPAD:
@@ -306,6 +312,39 @@ func _items_for(mode: Mode) -> Array:
         [make_button_icon(KeyBindings.get_button("respawn"), button_height), RECOVER_LABEL],
         [make_button_icon(KeyBindings.get_button("map"), button_height), "Map"],
     ]
+
+
+# ED3 の再生中の表示項目。一時停止とスキップは同じボタン（短く押すと一時停止、長押しでスキップ）。
+# タッチは一時停止のボタンが無いので何も出さない
+func _salvage_items(mode: Mode) -> Array:
+    match mode:
+        Mode.KEYBOARD:
+            var key_height := _icon_height(0.6)
+            return [
+                [make_key_icon(KEY_SPACE, key_height), "Pause"],
+                [make_key_icon(KEY_SPACE, key_height), "Hold to Skip"],
+                [make_key_icon(KEY_ESCAPE, key_height), "Menu"],
+            ]
+        Mode.GAMEPAD:
+            var button_height := _icon_height(0.8)
+            return [
+                [_make_texture_icon(get_cancel_icon_for(GameMenu.pad_layout), button_height), "Pause"],
+                [_make_texture_icon(get_cancel_icon_for(GameMenu.pad_layout), button_height), "Hold to Skip"],
+                [make_button_icon(JOY_BUTTON_START, button_height), "Menu"],
+            ]
+    return []
+
+
+# ED3 の再生の始まりと終わりに、表示項目を切り替える
+func set_salvage_playback(active: bool) -> void:
+    if active == _salvage_playback:
+        return
+    _salvage_playback = active
+    _rebuild()
+
+
+func is_salvage_playback() -> bool:
+    return _salvage_playback
 
 
 # キーボードのときの表示項目。割り当てたキーに合わせて、キーの絵（Control）を毎回作る。
@@ -429,7 +468,7 @@ func make_key_icon(physical: Key, height: float) -> Control:
 
 # ゲームパッドのボタンの絵を作る。ボタン番号と、今のボタン表記（機種）で絵が決まる。height は丸いボタンの絵の高さ
 # （肩のボタンは余白を切った絵なので、SHOULDER_HEIGHT_SCALE をかけて、丸いボタンと高さをそろえる）。
-# 0〜3 は位置で決まる絵、4 は左側の小さいボタン（PlayStation は世代ごと）、10 は右の肩のボタン。
+# 0〜3 は位置で決まる絵、4 は左側の小さいボタン（PlayStation は世代ごと）、10 は右の肩のボタン。 6（START）は PlayStation は世代ごとの絵、ほかは文字を重ねる。
 # 専用の絵が無い 9（左の肩）・7・8（スティックの押し込み）は、文字の無いボタンの絵の面に文字を重ねて描く。11〜14（十字キー）は _make_dpad_icon で十字の形を描く。
 # 絵の中の縦の基準は絵の中央なので、align のメタデータは付けない
 func make_button_icon(button: JoyButton, height: float) -> Control:
@@ -445,6 +484,11 @@ func make_button_icon(button: JoyButton, height: float) -> Control:
             texture = icons["face"][button]
         JOY_BUTTON_BACK:
             texture = get_ps_back_icon(GameMenu.get_ps_generation()) if family == "playstation" else icons["back"]
+        JOY_BUTTON_START:
+            if family == "playstation":
+                texture = get_ps_start_icon(GameMenu.get_ps_generation())
+            else:
+                text = PAD_START_LABELS[family]
         JOY_BUTTON_RIGHT_SHOULDER:
             texture = icons["shoulder_r"]
             icon_height = roundf(height * SHOULDER_HEIGHT_SCALE)

@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://gomi_station.tscn" id="1_station"]
+[ext_resource type="PackedScene" path="res://car.tscn" id="2_car"]
+
+[sub_resource type="Environment" id="Environment_test"]
+background_mode = 1
+background_color = Color(0.25, 0.3, 0.35, 1)
+ambient_light_source = 3
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.8
+
+[node name="GomiEndingStage" type="Node3D"]
+
+[node name="Station" parent="." instance=ExtResource("1_station")]
+rotation = Vector3(-1.5707963, 0, 0)
+
+[node name="Car" parent="." instance=ExtResource("2_car")]
+position = Vector3(7.5, 0.65, -3.5)
+
+[node name="Camera" type="Camera3D" parent="."]
+position = Vector3(7.8, 2.85, -7)
+rotation_degrees = Vector3(-16, 49, 0)
+current = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_test")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-60, -35, 0)
+light_energy = 0.8

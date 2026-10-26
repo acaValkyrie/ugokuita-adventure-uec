@@ -22,6 +22,31 @@ const KEEP_SUBTREES := {
 	],
 }
 
+# ED3で実際に車体から外して運ぶ部分だけ、結合せず元の形と名前を残す。
+# NeoのJetsonは巨大な基板アセンブリ全体を残さず、基板とケースの主要面だけを選ぶ。
+const SALVAGE_KEEP_SUBTREES := {
+	"ugokuita-neo.glb": [
+		"Main Frame III v42/BATTERY_COVER_12V v11_1/BATTERY_COVER_12V v11/Battery_Bottom",
+		"Main Frame III v42/BATTERY_COVER_12V v11_1/BATTERY_COVER_12V v11/Battery_Top",
+		"Main Frame III v42/Orin_nano_case_main_No_CAN_No inserts v6_1",
+		"Main Frame III v42/P3766-P3768SKU4-P3767ENVELOPE v4_1/P3766-P3768SKU4-P3767ENVELOPE v4/375-0137-000_1",
+		"Main Frame III v42/P3766-P3768SKU4-P3767ENVELOPE v4_1/P3766-P3768SKU4-P3767ENVELOPE v4/600-13768-0000-A04_ASM_1/600-13768-0000-A04_ASM/600-13768-0000-A04_1",
+		"Main Frame III v42/P3766-P3768SKU4-P3767ENVELOPE v4_1/P3766-P3768SKU4-P3767ENVELOPE v4/P3767_ASM_1/P3767_ASM/P3767-GROGU_ASM_1/P3767-GROGU_ASM/GROGU_MODULE_BOARD_ME_1",
+		"Main Frame III v42/mid-360-asm v5_1",
+		"Main Frame III v42/HFSF6-3060-598-X8-AH16-BH582 v1_1",
+		"Main Frame III v42/HFSF6-3060-598-X8-AH16-BH582 v1(Mirror)_1",
+	],
+	"ugokuita-classic.fbx": [
+		"MainFrame - Reverse Prototype v12/N100DC-ITX v7_1",
+		"MainFrame - Reverse Prototype v12/Battery_Case_Right_12V7_2Ah (1) (1)",
+		"MainFrame - Reverse Prototype v12/Battery_Case_Right_12V7_2Ah (1) (1) (1)",
+		"MainFrame - Reverse Prototype v12/Battery_Case_Right_12V7_2Ah (1) (1) (2)",
+		"MainFrame - Reverse Prototype v12/Livox Mid-70 3D Model and FOV Shape v4_1",
+		"MainFrame - Reverse Prototype v12/Body5",
+		"MainFrame - Reverse Prototype v12/Body6",
+	],
+}
+
 # 取り込み元のファイル名 → {差し替えるマテリアルの名前: 差し替え先のマテリアルのパス}
 # Fusion から書き出すと木目などの外観の画像が含まれず、色も黒になるため
 const MATERIAL_OVERRIDES := {
@@ -167,7 +192,7 @@ func _post_import(scene: Node) -> Object:
 			mi.set_surface_override_material(i, color_materials[color])
 		recolored_count += 1
 	# 残すノードのパスが取り込み後のシーンに存在するか確かめる。1つでも無ければ何も変えない
-	for path in KEEP_SUBTREES[source_name]:
+	for path in KEEP_SUBTREES[source_name] + SALVAGE_KEEP_SUBTREES.get(source_name, []):
 		var node := scene.get_node_or_null(NodePath(path))
 		if node == null:
 			push_error("robot_merge_import: 残すノードが見つからないためまとめを中止する: %s" % path)

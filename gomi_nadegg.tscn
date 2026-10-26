@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/models/Nadegg.fbx" id="1_nadegg"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_body"]
+radius = 0.115
+
+[node name="NadeggBrowser" type="StaticBody3D"]
+collision_mask = 0
+
+[node name="Model" parent="." instance=ExtResource("1_nadegg")]
+position = Vector3(0, 0.12, 0)
+scale = Vector3(2, 2, 2)
+
+[node name="Body1" parent="Model/Nadegg v2" index="0"]
+layers = 1
+
+[node name="Body2" parent="Model/Nadegg v2" index="1"]
+layers = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.12, 0)
+shape = SubResource("SphereShape3D_body")
+
+[editable path="Model"]

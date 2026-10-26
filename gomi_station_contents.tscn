@@ -1,0 +1,1417 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://gomi_nadegg.tscn" id="1_nadegg"]
+[ext_resource type="Texture2D" path="res://assets/textures/gomi_station/surplus_equipment_atlas.png" id="2_equipment"]
+[ext_resource type="Texture2D" path="res://assets/textures/gomi_station/surplus_bin_contents.png" id="3_bin"]
+
+[ext_resource type="Texture2D" path="res://assets/textures/gomi_station/surplus_oscilloscope.png" id="4_oscilloscope"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_black_display"]
+atlas = ExtResource("2_equipment")
+region = Rect2(130, 58, 592, 420)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_beige_display"]
+atlas = ExtResource("2_equipment")
+region = Rect2(894, 34, 456, 448)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_black_pc"]
+atlas = ExtResource("2_equipment")
+region = Rect2(300, 510, 296, 474)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_beige_pc"]
+atlas = ExtResource("2_equipment")
+region = Rect2(990, 530, 278, 452)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oscilloscope"]
+atlas = ExtResource("4_oscilloscope")
+region = Rect2(58, 60, 1660, 782)
+filter_clip = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bin"]
+albedo_texture = ExtResource("3_bin")
+roughness = 1.0
+cull_mode = 2
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_bin"]
+material = SubResource("StandardMaterial3D_bin")
+size = Vector2(1.94, 1.14)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_green_shelf"]
+albedo_color = Color(0.007843, 0.411765, 0.054902, 1)
+roughness = 1.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_green_shelf"]
+material = SubResource("StandardMaterial3D_green_shelf")
+size = Vector3(1.56, 0.015, 0.96)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bin_surface"]
+size = Vector3(1.94, 0.02, 1.14)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bin_interior"]
+size = Vector3(1.94, 0.36, 1.14)
+
+[node name="SurplusContents" type="Node3D"]
+
+[node name="Browsers" type="Node3D" parent="."]
+
+[node name="PCBrowser" parent="Browsers" instance=ExtResource("1_nadegg")]
+position = Vector3(1.45, 0.01, -2.1)
+rotation = Vector3(0, -1.570796, 0)
+
+[node name="DisplayBrowser" parent="Browsers" instance=ExtResource("1_nadegg")]
+position = Vector3(1.45, 0.01, -5.8)
+rotation = Vector3(0, -1.570796, 0)
+
+[node name="BinBrowser" parent="Browsers" instance=ExtResource("1_nadegg")]
+position = Vector3(6.108264, 0.733, -4.74171)
+rotation = Vector3(0, 0, 0.349066)
+
+[node name="ShelfEquipment" type="Node3D" parent="."]
+
+[node name="BinContents" type="Node3D" parent="."]
+
+[node name="SouthWest" type="MeshInstance3D" parent="BinContents"]
+position = Vector3(3.058265, 0.37, -3.49171)
+rotation = Vector3(0, 0, 0)
+cast_shadow = 0
+gi_mode = 0
+mesh = SubResource("PlaneMesh_bin")
+
+[node name="SouthEast" type="MeshInstance3D" parent="BinContents"]
+position = Vector3(5.108264, 0.37, -3.49171)
+rotation = Vector3(0, 3.141593, 0)
+cast_shadow = 0
+gi_mode = 0
+mesh = SubResource("PlaneMesh_bin")
+
+[node name="NorthWest" type="MeshInstance3D" parent="BinContents"]
+position = Vector3(3.058265, 0.37, -4.74171)
+rotation = Vector3(0, 3.141593, 0)
+cast_shadow = 0
+gi_mode = 0
+mesh = SubResource("PlaneMesh_bin")
+
+[node name="NorthEast" type="MeshInstance3D" parent="BinContents"]
+position = Vector3(5.108264, 0.37, -4.74171)
+rotation = Vector3(0, 0, 0)
+cast_shadow = 0
+gi_mode = 0
+mesh = SubResource("PlaneMesh_bin")
+
+[node name="GreenRackEquipment" type="Node3D" parent="."]
+
+[node name="FrontWest" type="Node3D" parent="GreenRackEquipment"]
+position = Vector3(1.6, 0, -0.642534)
+
+[node name="MiddleShelf" type="MeshInstance3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0, 0.5925, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="UpperShelf" type="MeshInstance3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0, 1.1125, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="TopShelf" type="MeshInstance3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0, 1.6325, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="FrontEast" type="Node3D" parent="GreenRackEquipment"]
+position = Vector3(3.25, 0, -0.642534)
+
+[node name="MiddleShelf" type="MeshInstance3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0, 0.5925, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="UpperShelf" type="MeshInstance3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0, 1.1125, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="TopShelf" type="MeshInstance3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0, 1.6325, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="SideSouth" type="Node3D" parent="GreenRackEquipment"]
+position = Vector3(0.671267, 0, -2.021267)
+
+[node name="MiddleShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0, 0.5925, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="UpperShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0, 1.1125, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="TopShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0, 1.6325, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="SideMiddleSouth" type="Node3D" parent="GreenRackEquipment"]
+position = Vector3(0.671267, 0, -3.671267)
+
+[node name="MiddleShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0, 0.5925, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="UpperShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0, 1.1125, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="TopShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0, 1.6325, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="SideMiddleNorth" type="Node3D" parent="GreenRackEquipment"]
+position = Vector3(0.671267, 0, -5.321267)
+
+[node name="MiddleShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0, 0.5925, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="UpperShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0, 1.1125, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="TopShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0, 1.6325, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="SideNorth" type="Node3D" parent="GreenRackEquipment"]
+position = Vector3(0.671267, 0, -6.971267)
+
+[node name="MiddleShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0, 0.5925, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="UpperShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0, 1.1125, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="TopShelf" type="MeshInstance3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0, 1.6325, 0)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("BoxMesh_green_shelf")
+gi_mode = 0
+
+[node name="NorthLower1" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(2.438854, 0.499600, -6.895436)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000565878
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="NorthLower2" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(2.798854, 0.499600, -6.895436)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000734649
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="NorthLower3" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(3.158854, 0.499600, -6.895436)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000565878
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="NorthMiddle1" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(2.438854, 0.899100, -6.895436)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000734649
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="NorthMiddle2" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(2.798854, 0.899100, -6.895436)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000565878
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="NorthMiddle3" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(3.158854, 0.899100, -6.895436)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000734649
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="NorthTop1" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(2.498854, 1.818100, -6.895436)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000565878
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="NorthTop2" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(3.098854, 1.818100, -6.895436)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000734649
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="SouthLowerScope1" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(4.498854, 0.499600, -0.395436)
+offset = Vector2(0, 391.0)
+pixel_size = 0.000259036
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_oscilloscope")
+
+[node name="SouthLowerScope2" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(5.098854, 0.499600, -0.395436)
+offset = Vector2(0, 391.0)
+pixel_size = 0.000259036
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_oscilloscope")
+
+[node name="SouthMiddleScope1" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(4.498854, 0.899100, -0.395436)
+offset = Vector2(0, 391.0)
+pixel_size = 0.000259036
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_oscilloscope")
+
+[node name="SouthMiddleScope2" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(5.098854, 0.899100, -0.395436)
+offset = Vector2(0, 391.0)
+pixel_size = 0.000259036
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_oscilloscope")
+
+[node name="SouthTopScope1" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(4.498854, 1.818100, -0.395436)
+offset = Vector2(0, 391.0)
+pixel_size = 0.000259036
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_oscilloscope")
+
+[node name="SouthTopScope2" type="Sprite3D" parent="ShelfEquipment"]
+position = Vector3(5.098854, 1.818100, -0.395436)
+offset = Vector2(0, 391.0)
+pixel_size = 0.000259036
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_oscilloscope")
+
+[node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(-0.570000, 0.097000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(-0.190000, 0.097000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0.190000, 0.097000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Bottom4" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0.570000, 0.097000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(-0.570000, 0.602000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(-0.190000, 0.602000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0.190000, 0.602000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Middle4" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0.570000, 0.602000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(-0.500000, 1.122000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0.000000, 1.122000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0.500000, 1.122000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Top1" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(-0.500000, 1.642000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Top2" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0.000000, 1.642000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Top3" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
+position = Vector3(0.500000, 1.642000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(-0.570000, 0.097000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(-0.190000, 0.097000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0.190000, 0.097000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Bottom4" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0.570000, 0.097000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(-0.570000, 0.602000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(-0.190000, 0.602000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0.190000, 0.602000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Middle4" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0.570000, 0.602000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(-0.570000, 1.122000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(-0.190000, 1.122000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0.190000, 1.122000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Upper4" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0.570000, 1.122000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Top1" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(-0.500000, 1.642000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Top2" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0.000000, 1.642000, 0.000000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Top3" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
+position = Vector3(0.500000, 1.642000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 0.097000, -0.570000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 0.097000, -0.190000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 0.097000, 0.190000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Bottom4" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 0.097000, 0.570000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 0.602000, -0.570000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 0.602000, -0.190000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 0.602000, 0.190000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Middle4" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 0.602000, 0.570000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 1.122000, -0.570000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 1.122000, -0.190000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 1.122000, 0.190000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Upper4" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 1.122000, 0.570000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Top1" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 1.642000, -0.500000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Top2" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 1.642000, 0.000000)
+offset = Vector2(0, 237.0)
+pixel_size = 0.000844595
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_pc")
+
+[node name="Top3" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
+position = Vector3(0.000000, 1.642000, 0.500000)
+offset = Vector2(0, 226.0)
+pixel_size = 0.000899281
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_pc")
+
+[node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 0.097000, -0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 0.097000, 0.000000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 0.097000, 0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 0.602000, -0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 0.602000, 0.000000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 0.602000, 0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 1.122000, -0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 1.122000, 0.000000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 1.122000, 0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Top1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 1.642000, -0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Top2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 1.642000, 0.000000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Top3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
+position = Vector3(0.000000, 1.642000, 0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 0.097000, -0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 0.097000, 0.000000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 0.097000, 0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 0.602000, -0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 0.602000, 0.000000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 0.602000, 0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 1.122000, -0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 1.122000, 0.000000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 1.122000, 0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Top1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 1.642000, -0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Top2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 1.642000, 0.000000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Top3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
+position = Vector3(0.000000, 1.642000, 0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 0.097000, -0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 0.097000, 0.000000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 0.097000, 0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 0.602000, -0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 0.602000, 0.000000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 0.602000, 0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 1.122000, -0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 1.122000, 0.000000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 1.122000, 0.500000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Top1" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 1.642000, -0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="Top2" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 1.642000, 0.000000)
+offset = Vector2(0, 210.0)
+pixel_size = 0.000709459
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_black_display")
+
+[node name="Top3" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
+position = Vector3(0.000000, 1.642000, 0.500000)
+offset = Vector2(0, 224.0)
+pixel_size = 0.000921053
+billboard = 2
+shaded = true
+double_sided = true
+alpha_cut = 1
+alpha_scissor_threshold = 0.5
+texture_filter = 3
+texture = SubResource("AtlasTexture_beige_display")
+
+[node name="ContentsCollision" type="StaticBody3D" parent="BinContents/SouthWest"]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BinContents/SouthWest/ContentsCollision"]
+position = Vector3(0, -0.01, 0)
+shape = SubResource("BoxShape3D_bin_surface")
+
+[node name="Interior" type="Area3D" parent="BinContents/SouthWest"]
+position = Vector3(0, 0.18, 0)
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BinContents/SouthWest/Interior"]
+shape = SubResource("BoxShape3D_bin_interior")
+
+[node name="ContentsCollision" type="StaticBody3D" parent="BinContents/SouthEast"]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BinContents/SouthEast/ContentsCollision"]
+position = Vector3(0, -0.01, 0)
+shape = SubResource("BoxShape3D_bin_surface")
+
+[node name="Interior" type="Area3D" parent="BinContents/SouthEast"]
+position = Vector3(0, 0.18, 0)
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BinContents/SouthEast/Interior"]
+shape = SubResource("BoxShape3D_bin_interior")
+
+[node name="ContentsCollision" type="StaticBody3D" parent="BinContents/NorthWest"]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BinContents/NorthWest/ContentsCollision"]
+position = Vector3(0, -0.01, 0)
+shape = SubResource("BoxShape3D_bin_surface")
+
+[node name="Interior" type="Area3D" parent="BinContents/NorthWest"]
+position = Vector3(0, 0.18, 0)
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BinContents/NorthWest/Interior"]
+shape = SubResource("BoxShape3D_bin_interior")
+
+[node name="ContentsCollision" type="StaticBody3D" parent="BinContents/NorthEast"]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BinContents/NorthEast/ContentsCollision"]
+position = Vector3(0, -0.01, 0)
+shape = SubResource("BoxShape3D_bin_surface")
+
+[node name="Interior" type="Area3D" parent="BinContents/NorthEast"]
+position = Vector3(0, 0.18, 0)
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BinContents/NorthEast/Interior"]
+shape = SubResource("BoxShape3D_bin_interior")

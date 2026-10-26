@@ -58,7 +58,8 @@ func _process(_delta: float) -> void:
     if car:
         _gauge = car.boost_gauge
     # 絵は印が変わったときだけ作り直す（タッチは絵が無いので空の印）
-    var token := ControlsHelp.get_icon_token("boost") if car != null else ""
+    # ED3 の再生中は操作の説明を出さない
+    var token := ControlsHelp.get_icon_token("boost") if car != null and not ControlsHelp.is_salvage_playback() else ""
     if token != _hint_token:
         _hint_token = token
         ControlsHelp.set_icon_slot(_hint, ControlsHelp.make_boost_icon(HINT_HEIGHT) if token != "" else null)
