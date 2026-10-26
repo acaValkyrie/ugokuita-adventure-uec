@@ -1081,6 +1081,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 検証は `tools/verify_gomi_contents.gd`・`tools/verify_gomi_ending.gd`（`tests/gomi_ending_stage.tscn`）。ブランチに移したときには流し直していない。
 - Nadegg の目の光（`nadegg_eye_glint.png`）は、ユーザーが白い十字に水色のふちを付けた絵に描き直した。乗算で重ねる案は試したが、やめた（ユーザーの判断）。
 - 目の光は、頭を近似した球（半径 0.10m）に沿わせて曲げるのをやめ、頭の表面に接する平らな板（QuadMesh）にした。目は光がまたたくように、0.6 秒周期で全体が 0.75〜1.25 倍に拡大・縮小する（`_update_eye_pulse`。縦横はそろえる。左右の目は同じ調子）。ランダムにチラつかせる案と、縦と横を交互に伸び縮みさせる案は試したが、やめた（ユーザーの判断）。カットごとに大きくなる演出は、この伸び縮みの土台として残している。確認: `verify_gomi_ending.gd` が通り、正面で平らな目が2つ出ること、斜めから奥側の目が頭に隠れることをスクリーンショットで見た。伸び縮みの動きはゲームでまだ見ていない。
+- 音: 機体が箱に入った直後の2つの目が光るカットで、きらめきの音（`salvage/eye_sparkle.ogg`）を鳴らす。群がって分解している間（DISMANTLING）は電動ドライバの音（`salvage/power_tool.ogg`、ループ、-4dB）を流し、ねじの音（`salvage/screws.ogg`）を高さを ±10% 変えながら 0.5〜1.2 秒おきに鳴らす。BAD END で止める。3本とも Pixabay の素材なので手元にだけ置き（.gitignore 済み）、ED3 を main に入れるときに鍵を作り直して暗号化する（ユーザーの判断）。元の mp3 は `bgm/source/`、変換の手順は `assets/audio/CREDITS.md`。確認: 動画の音量を 0.5 秒ごとに測り、3〜4.5 秒にきらめき、7〜13 秒に分解の音、BAD END で無音になることを確かめた。耳では聞いていない。
 - ED3 を動画で確かめるときは `tools/record_gomi_ending.gd` を Movie Maker で流す（`--write-movie tmp/ed3.avi --fixed-fps 30`、約 18 秒で 16 秒の動画）。検証の操作を挟まず、箱の中央に機体を落として BAD END を 3 秒見せて終わる。mp4 には `ffmpeg -i tmp/ed3.avi -c:v libx264 -pix_fmt yuv420p -crf 23 -c:a aac tmp/ed3.mp4`（51MB → 4MB）。画面の大きさは窓の初期値の 1152×648 になる（スクリプトの `root.size` は効いていない）。
 - 作業ツリーには、ED3 と関係なく行頭の空白がタブに変わっただけのファイル（car.gd・game_menu.gd・map.gd など8つ）が残っている。コミットしていない。
 
