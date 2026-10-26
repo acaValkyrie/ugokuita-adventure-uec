@@ -753,8 +753,6 @@ func _dismantle() -> void:
 		var actor := carriers[i]
 		_stop_carrier_idle(actor)
 		var cargo := _make_cargo(batches[i], display_parts[i])
-		# 部品を持ち去るNadeggが現れるときも、目が光るときと同じきらめきの音を鳴らす。
-		_eye_sparkle.play()
 		if phase != Phase.DISMANTLING:
 			return
 		_face_toward(actor, _camera.global_position)
