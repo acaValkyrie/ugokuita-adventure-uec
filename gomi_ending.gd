@@ -8,6 +8,14 @@ const CONTENTS_TO_BIN_FLOOR := 0.34
 const FLOOR_EPSILON := 0.012
 const RIM_EPSILON := 0.012
 const RATTLE := preload("res://assets/audio/bump/rattle_a.wav")
+# 群がって分解している間に流す電動ドライバの音と、ランダムに鳴らすねじの音。クレジットは assets/audio/CREDITS.md
+const POWER_TOOL_SOUND := preload("res://assets/audio/salvage/power_tool.ogg")
+const SCREWS_SOUND := preload("res://assets/audio/salvage/screws.ogg")
+const POWER_TOOL_VOLUME_DB := -4.0
+const SCREWS_INTERVAL_MIN := 0.5
+const SCREWS_INTERVAL_MAX := 1.2
+# 目が光るカットで鳴らす音
+const EYE_SPARKLE_SOUND := preload("res://assets/audio/salvage/eye_sparkle.ogg")
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
 const NADEGG_HEAD_CENTER := Vector3(0, 0.12, 0)
@@ -44,6 +52,10 @@ var _camera: Camera3D
 var _previous_camera: Camera3D
 var _camera_focus := Vector3.ZERO
 var _rattle: AudioStreamPlayer3D
+var _power_tool: AudioStreamPlayer3D
+var _screws: AudioStreamPlayer3D
+var _screws_timer := 0.0
+var _eye_sparkle: AudioStreamPlayer
 var _leaving_tree := false
 var _crowd: Array[Node3D] = []
 var _smoke: Node3D
@@ -90,6 +102,7 @@ func _process(delta: float) -> void:
 	if is_instance_valid(_smoke) and not _finishing_scuffle:
 		_update_smoke_puffs(delta)
 	_update_eye_pulse(delta)
+	_update_screws(delta)
 
 
 func get_fully_containing_bin(body: Node3D) -> StringName:
@@ -166,6 +179,27 @@ func _begin(body: Node3D, bin_id: StringName) -> void:
 	_rattle.unit_size = 3.0
 	add_child(_rattle)
 	_rattle.global_position = body.global_position
+	var power_tool_stream := POWER_TOOL_SOUND as AudioStreamOggVorbis
+	power_tool_stream.loop = true
+	_power_tool = AudioStreamPlayer3D.new()
+	_power_tool.stream = power_tool_stream
+	_power_tool.bus = "SE"
+	_power_tool.unit_size = 3.0
+	_power_tool.volume_db = POWER_TOOL_VOLUME_DB
+	add_child(_power_tool)
+	_power_tool.global_position = body.global_position
+	_screws = AudioStreamPlayer3D.new()
+	_screws.stream = SCREWS_SOUND
+	_screws.bus = "SE"
+	_screws.unit_size = 3.0
+	_screws.max_polyphony = 3
+	add_child(_screws)
+	_screws.global_position = body.global_position
+	_eye_sparkle = AudioStreamPlayer.new()
+	_eye_sparkle.stream = EYE_SPARKLE_SOUND
+	_eye_sparkle.bus = "SE"
+	_eye_sparkle.max_polyphony = 2
+	add_child(_eye_sparkle)
 	await _glint()
 	if phase != Phase.GATHERING:
 		return
@@ -173,6 +207,8 @@ func _begin(body: Node3D, bin_id: StringName) -> void:
 	if phase != Phase.GATHERING:
 		return
 	phase = Phase.DISMANTLING
+	_power_tool.play()
+	_screws_timer = 0.0
 	_reinforce()
 	await _dismantle()
 	if phase != Phase.DISMANTLING:
@@ -182,6 +218,8 @@ func _begin(body: Node3D, bin_id: StringName) -> void:
 	body.collision_layer = 0
 	body.collision_mask = 0
 	phase = Phase.COMPLETE
+	_power_tool.stop()
+	_screws.stop()
 	Ending.complete_salvage_ending(self)
 
 
@@ -210,6 +248,7 @@ func _glint() -> void:
 	# 1カット目: 機体の側面とタイヤを右前景に、縁のNadeggを左奥に。
 	_cut_camera(Vector3(-0.58, 0.12, -0.25), Vector3(1.25, 0.62, 0.12), 52.0)
 	_face_toward(first_actor, _camera.global_position)
+	_eye_sparkle.play()
 	var first_glint := create_tween()
 	_tweens.append(first_glint)
 	first_glint.tween_method(_set_eye_scale.bind(first_eyes), 1.0, 1.35, 0.18).set_trans(Tween.TRANS_BACK)
@@ -224,6 +263,7 @@ func _glint() -> void:
 	_cut_camera(Vector3(0.40, 0.45, 0.35), Vector3(-1.25, 0.30, -0.90), 62.0)
 	_face_toward(second_actor, _camera.global_position)
 	_set_eye_scale(1.15, second_eyes)
+	_eye_sparkle.play()
 	var second_glint := create_tween()
 	_tweens.append(second_glint)
 	second_glint.tween_method(_set_eye_scale.bind(second_eyes), 1.15, 1.55, 0.18).set_trans(Tween.TRANS_BACK)
@@ -392,6 +432,17 @@ func _update_eye_pulse(delta: float) -> void:
 	for eyes in _eye_labels:
 		if is_instance_valid(eyes) and eyes.is_visible_in_tree():
 			_set_eye_scale(float(eyes.get_meta("eye_scale")), eyes)
+
+
+# 分解している間、ねじの音を少しずつ高さを変えてランダムな間隔で鳴らす。
+func _update_screws(delta: float) -> void:
+	if phase != Phase.DISMANTLING or not is_instance_valid(_screws):
+		return
+	_screws_timer -= delta
+	if _screws_timer <= 0.0:
+		_screws.pitch_scale = randf_range(0.9, 1.1)
+		_screws.play()
+		_screws_timer = randf_range(SCREWS_INTERVAL_MIN, SCREWS_INTERVAL_MAX)
 
 
 func _face_toward(actor: Node3D, target: Vector3) -> void:
@@ -865,6 +916,9 @@ func restore_after_ending() -> void:
 		_camera.queue_free()
 	if is_instance_valid(_rattle):
 		_rattle.queue_free()
+	for player in [_power_tool, _screws, _eye_sparkle]:
+		if is_instance_valid(player):
+			player.queue_free()
 	phase = Phase.IDLE
 
 
