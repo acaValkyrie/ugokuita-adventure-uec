@@ -22,6 +22,8 @@ func _initialize() -> void:
 
 func _record() -> void:
 	root.size = Vector2i(1280, 720)
+	# GameMenuは窓からフォーカスが外れると全部の音を消す。書き出しの窓は前に出ないことがあるので、毎フレーム消音を外す。
+	process_frame.connect(func(): AudioServer.set_bus_mute(0, false))
 	var menu := root.get_node("GameMenu")
 	menu.robot_model = _run_model
 	var warmup := root.get_node("ShaderWarmup")
