@@ -7,7 +7,6 @@ enum Phase { IDLE, GATHERING, DISMANTLING, COMPLETE }
 const CONTENTS_TO_BIN_FLOOR := 0.34
 const FLOOR_EPSILON := 0.012
 const RIM_EPSILON := 0.012
-const RATTLE := preload("res://assets/audio/bump/rattle_a.wav")
 # 群がって分解している間に流す電動ドライバの音と、ランダムに鳴らすねじの音。クレジットは assets/audio/CREDITS.md
 const POWER_TOOL_SOUND := preload("res://assets/audio/salvage/power_tool.ogg")
 const SCREWS_SOUND := preload("res://assets/audio/salvage/screws.ogg")
@@ -51,7 +50,6 @@ var _tweens: Array[Tween] = []
 var _camera: Camera3D
 var _previous_camera: Camera3D
 var _camera_focus := Vector3.ZERO
-var _rattle: AudioStreamPlayer3D
 var _power_tool: AudioStreamPlayer3D
 var _screws: AudioStreamPlayer3D
 var _screws_timer := 0.0
@@ -173,12 +171,6 @@ func _begin(body: Node3D, bin_id: StringName) -> void:
 		actor.collision_layer = 0
 	_prepare_ambush()
 	_setup_camera()
-	_rattle = AudioStreamPlayer3D.new()
-	_rattle.stream = RATTLE
-	_rattle.bus = "SE"
-	_rattle.unit_size = 3.0
-	add_child(_rattle)
-	_rattle.global_position = body.global_position
 	var power_tool_stream := POWER_TOOL_SOUND as AudioStreamOggVorbis
 	power_tool_stream.loop = true
 	_power_tool = AudioStreamPlayer3D.new()
@@ -721,7 +713,8 @@ func _dismantle() -> void:
 		var actor := carriers[i]
 		_stop_carrier_idle(actor)
 		var cargo := _make_cargo(batches[i], display_parts[i])
-		_rattle.play()
+		# 部品を持ち去るNadeggが現れるときも、目が光るときと同じきらめきの音を鳴らす。
+		_eye_sparkle.play()
 		if phase != Phase.DISMANTLING:
 			return
 		_face_toward(actor, _camera.global_position)
@@ -944,8 +937,6 @@ func restore_after_ending() -> void:
 		_previous_camera.make_current()
 	if is_instance_valid(_camera):
 		_camera.queue_free()
-	if is_instance_valid(_rattle):
-		_rattle.queue_free()
 	for player in [_power_tool, _screws, _eye_sparkle]:
 		if is_instance_valid(player):
 			player.queue_free()
