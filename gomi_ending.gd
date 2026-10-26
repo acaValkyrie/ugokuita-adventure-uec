@@ -227,6 +227,12 @@ func _setup_camera() -> void:
 
 func _glint() -> void:
 	# それぞれ別のNadeggを、機体の側面/タイヤと上面フレーム越しに見る。
+	# 最初のカット: 箱に入った機体を上から見下ろす。真上だと look_at が向きを決められないので、少し手前にずらす。
+	var vehicle_in_bin := _bin.to_local(_vehicle.global_position)
+	_cut_camera(vehicle_in_bin + Vector3(0, 2.4, 0.35), vehicle_in_bin, 50.0)
+	await get_tree().create_timer(0.9).timeout
+	if phase != Phase.GATHERING:
+		return
 	var first_actor := _actors[2]
 	var second_actor := _actors[0]
 	first_actor.global_position = _bin.to_global(Vector3(0.91, 0.70, -0.27))
