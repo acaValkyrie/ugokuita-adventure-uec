@@ -297,6 +297,9 @@ func _verify() -> void:
 		copy.queue_free()
 	var showcase_state := {"seen": [], "done": false}
 	_watch_showcases(director, showcase_groups, showcase_state)
+	# カメラが回り続けるので、追加波の開始点は記録された瞬間のカメラで画面外かを確かめる。
+	var wave_state := {"checked": 0}
+	_watch_wave_starts(director, wave_state)
 	assert(director.get("_crowd").size() == 17 and is_instance_valid(director.get("_smoke")))
 	assert(_visible_crowd_count(director) == 9, "最初の群れが九体ではありません")
 	await _screenshot("ed3_first_parts")
@@ -310,18 +313,20 @@ func _verify() -> void:
 	assert(first_carrier.visible and first_carrier.global_position.distance_to(director_camera.global_position) < 0.7, "部品を持ったNadeggがカメラ前に来ません")
 	assert(not director.get("_carrier_idle_tweens").has(first_carrier) and director.get("_carrier_idle_tweens").has(crowd[0]), "担当交代時に待機動作が切り替わりません")
 	assert(first_carrier.get_node("SalvagedParts").find_children("*", "Label3D").is_empty(), "運搬部品に文字が付いています")
-	var showcase_position := first_carrier.global_position
+	# カメラが回るので、見せている間はカメラから見た位置が止まっていることを確かめる。
+	var showcase_position := director_camera.global_transform.affine_inverse() * first_carrier.global_position
 	var showcased_cargo := first_carrier.get_node("SalvagedParts") as Node3D
 	assert(showcased_cargo.get_child_count() == showcase_groups[0].size(), "カメラ前の運搬品が実車部品ではありません")
 	await create_timer(0.16).timeout
-	assert(first_carrier.visible and first_carrier.global_position.distance_to(showcase_position) < 0.001, "部品提示中にNadeggが滑らかに移動しています")
+	assert(first_carrier.visible and (director_camera.global_transform.affine_inverse() * first_carrier.global_position).distance_to(showcase_position) < 0.001, "部品提示中にNadeggがカメラに対して動いています")
 	assert(first_carrier.get_node("SalvagedParts").find_children("*", "Label3D").is_empty(), "部品提示に漫画文字が付いています")
 	await _screenshot("ed3_carrier_showcase")
 	for i in 240:
 		if not first_carrier.visible:
 			break
 		await create_timer(0.02).timeout
-	assert(not first_carrier.visible and first_carrier.global_position.distance_to(showcase_position) < 0.001, "部品提示後のNadeggがその場で消えません")
+	# 消えたあともカメラは回り続けるので、消えたのに気づくまでに回った分（数cm）は許す。
+	assert(not first_carrier.visible and (director_camera.global_transform.affine_inverse() * first_carrier.global_position).distance_to(showcase_position) < 0.05, "部品提示後のNadeggがその場で消えません")
 	assert(director.get("_departed_carriers").size() >= 1)
 	await _screenshot("ed3_carrier_exit")
 	var idle_tweens: Dictionary = director.get("_carrier_idle_tweens")
@@ -429,9 +434,7 @@ func _verify() -> void:
 		await create_timer(0.02).timeout
 	assert(showcase_state["done"] and showcase_state["seen"] == [0, 1, 2, 3, 4], "5種類の実車部品が一度ずつ提示されません")
 	var wave_starts: Array = director.get("_wave_start_positions")
-	assert(wave_starts.size() == 8, "追加4波の開始位置が記録されていません")
-	for i in wave_starts.size():
-		_assert_offscreen(wave_starts[i], director_camera, "追加波%d-%dの開始点" % [i / 2, i % 2])
+	assert(wave_starts.size() == 8 and wave_state["checked"] == 8, "追加4波の開始位置が記録されていません")
 	await _screenshot("ed3_final_wave")
 	for i in 120:
 		if not director.get("_retreat_exit_positions").is_empty():
@@ -560,6 +563,18 @@ func _watch_showcases(director: Node, showcase_groups: Array, state: Dictionary)
 		assert(not actor.visible, "部品種類%dの提示後にNadeggが消えません" % i)
 		assert(director.get("_comic_labels").size() <= 4 and word_count <= 4, "部品提示で漫画文字が増えています: %d" % i)
 	state["done"] = true
+
+
+# 追加波の開始点が記録されるたびに、そのときのカメラで画面外にあるかを確かめる。
+func _watch_wave_starts(director: Node, state: Dictionary) -> void:
+	var camera := director.get("_camera") as Camera3D
+	while director.phase < 3 and state["checked"] < 8:
+		var starts: Array = director.get("_wave_start_positions")
+		while state["checked"] < starts.size():
+			var i: int = state["checked"]
+			_assert_offscreen(starts[i], camera, "追加波%d-%dの開始点" % [i / 2, i % 2])
+			state["checked"] = i + 1
+		await process_frame
 
 
 func _place(body: VehicleBody3D, bin: Node3D, director: Node, offset: Vector3) -> void:

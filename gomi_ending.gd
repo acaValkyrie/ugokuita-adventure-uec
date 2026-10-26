@@ -31,6 +31,8 @@ const OVERHEAD_DURATION := 1.5
 const GLINT_CAMERA_DISTANCE := 1.5
 const GLINT_CAMERA_ELEVATIONS := [10.0, 30.0, 50.0]
 const GLINT_CAMERA_TURNS := [0.0, 30.0, -30.0, 60.0, -60.0]
+# 群がってから BAD END までは、機体を中心にカメラの経度を ORBIT_SPEED_DEG [度/秒] で回し続ける。
+const ORBIT_SPEED_DEG := 15.0
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
 const NADEGG_HEAD_CENTER := Vector3(0, 0.12, 0)
@@ -66,6 +68,15 @@ var _tweens: Array[Tween] = []
 var _camera: Camera3D
 var _previous_camera: Camera3D
 var _camera_focus := Vector3.ZERO
+var _orbiting := false
+# 回る中心（箱の座標の機体の位置）と、カメラまでの距離・仰角・経度 [rad]
+var _orbit_center := Vector3.ZERO
+var _orbit_radius := 0.0
+var _orbit_elevation := 0.0
+var _orbit_azimuth := 0.0
+# 部品を見せている間、カメラに対して固定するNadeggと、カメラから見たその位置
+var _showcase_actor: Node3D
+var _showcase_offset := Transform3D.IDENTITY
 var _power_tool: AudioStreamPlayer3D
 var _screws: AudioStreamPlayer3D
 var _screws_timer := 0.0
@@ -115,7 +126,13 @@ func _physics_process(_delta: float) -> void:
 
 func _process(delta: float) -> void:
 	if is_instance_valid(_camera) and is_instance_valid(_bin):
+		if _orbiting:
+			_orbit_azimuth += deg_to_rad(ORBIT_SPEED_DEG) * delta
+			_camera.global_position = _bin.to_global(_orbit_center + _orbit_offset())
+			_camera_focus = _bin.to_global(_orbit_center)
 		_camera.look_at(_camera_focus)
+		if is_instance_valid(_showcase_actor):
+			_showcase_actor.global_transform = _camera.global_transform * _showcase_offset
 	if is_instance_valid(_smoke) and not _finishing_scuffle:
 		_update_smoke_puffs(delta)
 	_update_eye_pulse(delta)
@@ -314,7 +331,8 @@ func _glint() -> void:
 	second_glint.tween_method(_set_eye_scale.bind(second_eyes), 1.8, 1.5, 0.14)
 	await second_glint.finished
 	await get_tree().create_timer(0.40, false).timeout
-	_cut_camera(Vector3(1.45, 1.10, -1.45), Vector3(0, 0.10, 0), 52.0)
+	# 群がりのカットから注視点を機体にしておき、回り始めで視点が飛ばないようにする。
+	_cut_camera(Vector3(1.45, 1.10, -1.45), _bin.to_local(_vehicle.global_position), 52.0)
 	await get_tree().create_timer(0.08, false).timeout
 
 
@@ -361,6 +379,23 @@ func _orbit_overhead(azimuth: float, center_in_bin: Vector3) -> void:
 	_camera.global_position = _bin.to_global(center_in_bin + _overhead_offset(azimuth))
 
 
+# 今のカメラの位置から、機体を中心に回り始める。距離と仰角はそのまま保つ。
+func _start_orbit() -> void:
+	if not is_instance_valid(_camera) or not is_instance_valid(_vehicle):
+		return
+	_orbit_center = _bin.to_local(_vehicle.global_position)
+	var offset := _bin.to_local(_camera.global_position) - _orbit_center
+	_orbit_radius = offset.length()
+	_orbit_elevation = asin(clampf(offset.y / maxf(_orbit_radius, 0.001), -1.0, 1.0))
+	_orbit_azimuth = atan2(offset.x, offset.z)
+	_orbiting = true
+
+
+# 回っているカメラの、機体から見た位置（箱の座標）
+func _orbit_offset() -> Vector3:
+	return Vector3(sin(_orbit_azimuth) * cos(_orbit_elevation), sin(_orbit_elevation), cos(_orbit_azimuth) * cos(_orbit_elevation)) * _orbit_radius
+
+
 func _gather() -> void:
 	# 二つのカットで目を光らせた個体が順番に飛びかかり、その途中から残りが続く。
 	_eye_labels[2].show()
@@ -392,6 +427,7 @@ func _gather() -> void:
 	var camera_move := create_tween()
 	_tweens.append(camera_move)
 	camera_move.tween_property(_camera, "global_position", _bin.to_global(Vector3(1.6, 1.55, -1.75)), 1.15)
+	camera_move.finished.connect(_start_orbit)
 	# 各個体を飛び込み直前に画面外へ配置する。カメラ移動中も出現点が画面内へ入らない。
 	var launch_gaps := [0.0, 0.13, 0.17, 0.10, 0.20, 0.12, 0.18, 0.11, 0.16]
 	var last_arrival: Tween
@@ -798,7 +834,11 @@ func _dismantle() -> void:
 			actor.global_position = showcase_center - actor.global_basis * cargo.position
 			_face_toward(actor, _camera.global_position)
 		actor.global_position = showcase_center - actor.global_basis * cargo.position
+		# 回るカメラに合わせて、見せている間は画面の同じ位置に留める。
+		_showcase_actor = actor
+		_showcase_offset = _camera.global_transform.affine_inverse() * actor.global_transform
 		await get_tree().create_timer(1.05, false).timeout
+		_showcase_actor = null
 		if phase != Phase.DISMANTLING:
 			return
 		_complete_carrier_exit(actor, cargo)
@@ -934,18 +974,12 @@ func _finish_scuffle() -> void:
 	if is_instance_valid(_smoke):
 		clear.tween_property(_smoke, "scale", Vector3(0.05, 0.05, 0.05), 0.55)
 	_retreat_exit_positions.clear()
-	var camera_start := _camera.global_transform
-	var camera_end := _bin.to_global(Vector3(1.8, 1.75, -1.75))
-	_camera.global_position = camera_end
-	_camera.look_at(_camera_focus)
 	for i in _crowd.size():
 		if not _crowd[i].visible:
 			continue
 		var exit_point := _offscreen_position(_crowd[i].global_position, i)
 		_retreat_exit_positions.append(exit_point)
 		clear.tween_property(_crowd[i], "global_position", exit_point, 0.55)
-	_camera.global_transform = camera_start
-	clear.tween_property(_camera, "global_position", camera_end, 0.55)
 	await clear.finished
 	_clear_swarm()
 
@@ -985,6 +1019,7 @@ func skip_to_bad_end() -> void:
 	if phase != Phase.GATHERING and phase != Phase.DISMANTLING:
 		return
 	phase = Phase.COMPLETE
+	_showcase_actor = null
 	_finishing_scuffle = true
 	for tween in _tweens:
 		if tween.is_valid():
@@ -1015,8 +1050,9 @@ func skip_to_bad_end() -> void:
 		actor.hide()
 	_clear_swarm()
 	_camera.global_position = _bin.to_global(Vector3(1.8, 1.75, -1.75))
-	_camera_focus = _bin.to_global(Vector3(0, 0.10, 0))
 	_camera.fov = 52.0
+	_start_orbit()
+	_camera_focus = _bin.to_global(_orbit_center)
 	_camera.look_at(_camera_focus)
 	_vehicle.hide()
 	_vehicle.collision_layer = 0
@@ -1041,6 +1077,8 @@ func get_remaining_part_count() -> int:
 
 
 func restore_after_ending() -> void:
+	_orbiting = false
+	_showcase_actor = null
 	for tween in _tweens:
 		if tween.is_valid():
 			tween.kill()
