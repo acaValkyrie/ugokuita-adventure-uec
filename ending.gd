@@ -165,6 +165,11 @@ func is_controls_locked() -> bool:
     return is_instance_valid(_ending3_director)
 
 
+# ED3 の再生を一時停止しているか（メニューを閉じても止めたままにするため）
+func is_playback_paused() -> bool:
+    return is_instance_valid(_ending3_director) and _ending3_director.is_playback_paused()
+
+
 func begin_salvage_ending(director: Node) -> bool:
     if _shown or is_controls_locked():
         return false

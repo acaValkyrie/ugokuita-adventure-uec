@@ -18,6 +18,7 @@ const EYE_SPARKLE_SOUND := preload("res://assets/audio/salvage/eye_sparkle.ogg")
 # ED3 が始まってから Back to Start を押すまで流す BGM（ループしない）
 const BGM := preload("res://assets/audio/salvage/ed3_bgm.ogg")
 const BGM_VOLUME_DB := 0.0
+const PlaybackInput := preload("res://salvage_playback_input.gd")
 # 最初のカットでは、機体から OVERHEAD_DISTANCE [m]、仰角 OVERHEAD_ELEVATION_DEG [度] の位置から見下ろし、経度を OVERHEAD_ORBIT_DEG [度] 回す。
 const OVERHEAD_DISTANCE := 2.4
 const OVERHEAD_ELEVATION_DEG := 60.0
@@ -62,6 +63,8 @@ var _screws: AudioStreamPlayer3D
 var _screws_timer := 0.0
 var _eye_sparkle: AudioStreamPlayer
 var _bgm: AudioStreamPlayer
+var _playback_input: Node
+var _playback_paused := false
 var _leaving_tree := false
 var _crowd: Array[Node3D] = []
 var _smoke: Node3D
@@ -206,6 +209,9 @@ func _begin(body: Node3D, bin_id: StringName) -> void:
 	_bgm.volume_db = BGM_VOLUME_DB
 	add_child(_bgm)
 	_bgm.play()
+	_playback_input = PlaybackInput.new()
+	_playback_input.director = self
+	add_child(_playback_input)
 	await _glint()
 	if phase != Phase.GATHERING:
 		return
@@ -224,6 +230,7 @@ func _begin(body: Node3D, bin_id: StringName) -> void:
 	phase = Phase.COMPLETE
 	_power_tool.stop()
 	_screws.stop()
+	_end_playback_controls()
 	Ending.complete_salvage_ending(self)
 
 
@@ -268,7 +275,7 @@ func _glint() -> void:
 	first_glint.tween_method(_set_eye_scale.bind(first_eyes), 1.0, 1.35, 0.18).set_trans(Tween.TRANS_BACK)
 	first_glint.tween_method(_set_eye_scale.bind(first_eyes), 1.35, 1.15, 0.14)
 	await first_glint.finished
-	await get_tree().create_timer(0.33).timeout
+	await get_tree().create_timer(0.33, false).timeout
 	# 2カット目: 緑の棚の前の別個体に寄って、反対側から見る。
 	first_eyes.hide()
 	second_actor.global_position = _bin.to_global(Vector3(-0.91, 0.80, -0.27))
@@ -295,9 +302,9 @@ func _glint() -> void:
 	second_glint.tween_method(_set_eye_scale.bind(second_eyes), 1.0, 1.8, 0.20).set_trans(Tween.TRANS_BACK)
 	second_glint.tween_method(_set_eye_scale.bind(second_eyes), 1.8, 1.5, 0.14)
 	await second_glint.finished
-	await get_tree().create_timer(0.40).timeout
+	await get_tree().create_timer(0.40, false).timeout
 	_cut_camera(Vector3(1.45, 1.10, -1.45), Vector3(0, 0.10, 0), 52.0)
-	await get_tree().create_timer(0.08).timeout
+	await get_tree().create_timer(0.08, false).timeout
 
 
 func _cut_camera(position_in_bin: Vector3, focus_in_bin: Vector3, fov: float) -> void:
@@ -334,7 +341,7 @@ func _gather() -> void:
 	_tween_hop(first, _actors[2], _gather_position(2), 0.7, 0.46)
 	first.finished.connect(_start_carrier_idle.bind(_actors[2], 2))
 	first.finished.connect(_start_salvage_sounds)
-	await get_tree().create_timer(0.32).timeout
+	await get_tree().create_timer(0.32, false).timeout
 	if phase != Phase.GATHERING:
 		return
 	_actors[0].rotation.x = 0.0
@@ -343,7 +350,7 @@ func _gather() -> void:
 	_tweens.append(second)
 	_tween_hop(second, _actors[0], _gather_position(0), 0.62, 0.42)
 	second.finished.connect(_start_carrier_idle.bind(_actors[0], 0))
-	await get_tree().create_timer(0.13).timeout
+	await get_tree().create_timer(0.13, false).timeout
 	if phase != Phase.GATHERING:
 		return
 	var swarm := create_tween().set_parallel(true)
@@ -360,7 +367,7 @@ func _gather() -> void:
 	var last_arrival: Tween
 	for i in INITIAL_NADEGG_COUNT:
 		if launch_gaps[i] > 0.0:
-			await get_tree().create_timer(launch_gaps[i]).timeout
+			await get_tree().create_timer(launch_gaps[i], false).timeout
 		if phase != Phase.GATHERING:
 			return
 		var angle := float(i) * TAU / float(INITIAL_NADEGG_COUNT)
@@ -390,7 +397,7 @@ func _start_smoke_after_third_arrival() -> void:
 func _reinforce() -> void:
 	# 部品が運び出されている間も、別のNadeggが二体ずつ箱へ飛び込む。
 	for wave in REINFORCEMENT_WAVES:
-		await get_tree().create_timer(1.05).timeout
+		await get_tree().create_timer(1.05, false).timeout
 		if phase != Phase.DISMANTLING:
 			return
 		var arrivals := create_tween().set_parallel(true)
@@ -757,7 +764,7 @@ func _dismantle() -> void:
 		var back := _camera.global_basis.z.normalized()
 		var up := _camera.global_basis.y.normalized()
 		actor.global_position = _camera.global_position - back * 0.60 - up * 0.04
-		await get_tree().create_timer(1.05).timeout
+		await get_tree().create_timer(1.05, false).timeout
 		if phase != Phase.DISMANTLING:
 			return
 		_complete_carrier_exit(actor, cargo)
@@ -906,6 +913,11 @@ func _finish_scuffle() -> void:
 	_camera.global_transform = camera_start
 	clear.tween_property(_camera, "global_position", camera_end, 0.55)
 	await clear.finished
+	_clear_swarm()
+
+
+# 追加のNadegg・煙・漫画文字・目を片付ける。
+func _clear_swarm() -> void:
 	for actor in _crowd:
 		if is_instance_valid(actor):
 			actor.queue_free()
@@ -919,6 +931,74 @@ func _finish_scuffle() -> void:
 		if is_instance_valid(eyes):
 			eyes.queue_free()
 	_eye_labels.clear()
+
+
+func is_playback_paused() -> bool:
+	return _playback_paused
+
+
+# ED3 の再生を一時停止・再開する。ゲーム全体を止めるので、待ち時間・アニメーション・音も止まる。
+func toggle_playback_pause() -> void:
+	if phase != Phase.GATHERING and phase != Phase.DISMANTLING:
+		return
+	_playback_paused = not _playback_paused
+	get_tree().paused = _playback_paused
+
+
+# 再生中の演出を止めて片付け、最後の BAD END の表示まで飛ばす。BGM は流したままにする。
+# 待っている途中の処理は、phase が変わったのを見て抜けるか、止めたアニメーションの終わりを待ったまま進まない。
+func skip_to_bad_end() -> void:
+	if phase != Phase.GATHERING and phase != Phase.DISMANTLING:
+		return
+	phase = Phase.COMPLETE
+	_finishing_scuffle = true
+	for tween in _tweens:
+		if tween.is_valid():
+			tween.kill()
+	_tweens.clear()
+	for idle: Tween in _carrier_idle_tweens.values():
+		if idle.is_valid():
+			idle.kill()
+	_carrier_idle_tweens.clear()
+	_carrier_idle_states.clear()
+	for bounce in _crowd_bounce_tweens:
+		if bounce.is_valid():
+			bounce.kill()
+	_crowd_bounce_tweens.clear()
+	_crowd_scuffle_states.clear()
+	for player in [_power_tool, _screws, _eye_sparkle]:
+		if is_instance_valid(player):
+			player.stop()
+	for cargo in _cargos:
+		if is_instance_valid(cargo):
+			cargo.queue_free()
+	_cargos.clear()
+	for mesh in _source_meshes:
+		if is_instance_valid(mesh):
+			mesh.hide()
+	_taken_meshes = _source_meshes.duplicate()
+	for actor in _actors:
+		actor.hide()
+	_clear_swarm()
+	_camera.global_position = _bin.to_global(Vector3(1.8, 1.75, -1.75))
+	_camera_focus = _bin.to_global(Vector3(0, 0.10, 0))
+	_camera.fov = 52.0
+	_camera.look_at(_camera_focus)
+	_vehicle.hide()
+	_vehicle.collision_layer = 0
+	_vehicle.collision_mask = 0
+	_end_playback_controls()
+	Ending.complete_salvage_ending(self)
+
+
+# 一時停止とスキップの入力を片付け、一時停止していたら再開する。
+func _end_playback_controls() -> void:
+	if is_instance_valid(_playback_input):
+		_playback_input.queue_free()
+	_playback_input = null
+	if _playback_paused:
+		_playback_paused = false
+		get_tree().paused = false
 
 
 func get_remaining_part_count() -> int:
@@ -973,6 +1053,7 @@ func restore_after_ending() -> void:
 	for player in [_power_tool, _screws, _eye_sparkle, _bgm]:
 		if is_instance_valid(player):
 			player.queue_free()
+	_end_playback_controls()
 	phase = Phase.IDLE
 
 

@@ -410,7 +410,8 @@ func close() -> void:
     _stop_button_hold()
     _dimmer.visible = false
     _edit_bar.visible = false
-    get_tree().paused = false
+    # ED3 を一時停止しているときは、メニューを閉じても止めたままにする
+    get_tree().paused = Ending.is_playback_paused()
     _closed_physics_frame = Engine.get_physics_frames()
 
 
