@@ -30,7 +30,7 @@ const DriftTrailsScript := preload("res://drift_trails.gd")
 # ブーストの加速度 [m/s²] と、かける時間 [s]
 @export var BOOST_ACCEL = 20.0
 @export var BOOST_DURATION = 0.4
-# ブーストとドリフトのダッシュで押すのをやめる速さ（最高速度に対する倍率）。ダッシュを続けて速さが際限なく上がらないようにする
+# ブーストとドリフトのダッシュで押すのをやめる速さ（最高速度に対する倍率）。ダッシュを続けて速さが際限なく上がらないようにする（上限突破を取ると無くなる）
 @export var BOOST_MAX_SPEED_RATIO := 2.2
 # ブーストのゲージが満タンになるまでに走る距離 [m]
 @export var BOOST_CHARGE_DISTANCE = 40.0
@@ -269,7 +269,8 @@ func _physics_process(delta: float) -> void:
             _play_jump_sound()
 
     # ブーストとダッシュは、押す向きの速さが上限に達したら押さない（時間は減らし続ける）
-    var push_limit := get_max_speed() * BOOST_MAX_SPEED_RATIO
+    # 上限突破を取っていれば上限をなくし、続けて使うほど速くなる
+    var push_limit := INF if PowerUps.has("limit_break") else get_max_speed() * BOOST_MAX_SPEED_RATIO
     if _boost_time > 0.0:
         if linear_velocity.dot(global_basis.z) * _boost_dir < push_limit:
             apply_central_force(global_basis.z * _boost_dir * BOOST_ACCEL * mass)
