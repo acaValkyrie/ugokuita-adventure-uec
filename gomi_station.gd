@@ -11,6 +11,8 @@ const StairProximity = preload("res://stair_proximity.gd")
 # 新倉庫の中で流す環境音（ギャラリーのざわめき）。外では建物からの距離に応じて小さくし、この距離 [m] で聞こえなくなる。クレジットは assets/audio/CREDITS.md
 const CROWD_SOUND := preload("res://assets/audio/salvage/warehouse_crowd.ogg")
 const CROWD_FADE_OUT_DISTANCE := 2.5
+# 環境音の音量 [dB]（+6dB で振幅が倍）
+const CROWD_VOLUME_DB := 6.0
 
 @onready var _outside_stairs: MeshInstance3D = $OutsideStairs
 
@@ -121,7 +123,7 @@ func _update_crowd(player: Node3D) -> void:
 		weight = clampf(1.0 - local.distance_to(nearest) / CROWD_FADE_OUT_DISTANCE, 0.0, 1.0)
 	_crowd_player.stream_paused = weight <= 0.0
 	if weight > 0.0:
-		_crowd_player.volume_db = linear_to_db(weight)
+		_crowd_player.volume_db = CROWD_VOLUME_DB + linear_to_db(weight)
 
 
 func _set_outside_alpha(alpha: float) -> void:
