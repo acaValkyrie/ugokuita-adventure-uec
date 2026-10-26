@@ -25,6 +25,12 @@ const OVERHEAD_ELEVATION_DEG := 60.0
 const OVERHEAD_ORBIT_DEG := 20.0
 # 最初のカットの長さ [秒]
 const OVERHEAD_DURATION := 1.5
+# 目が光るカットのカメラは、頭から GLINT_CAMERA_DISTANCE [m] 離れた候補を順に試し、
+# 機体の中に入らず、頭までの視線が機体に遮られない最初の位置を使う。
+# 向きは箱の内側を基準に左右へ GLINT_CAMERA_TURNS [度] ずらし、見上げる角度は GLINT_CAMERA_ELEVATIONS [度]。
+const GLINT_CAMERA_DISTANCE := 1.5
+const GLINT_CAMERA_ELEVATIONS := [10.0, 30.0, 50.0]
+const GLINT_CAMERA_TURNS := [0.0, 30.0, -30.0, 60.0, -60.0]
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
 const NADEGG_HEAD_CENTER := Vector3(0, 0.12, 0)
@@ -263,12 +269,14 @@ func _glint() -> void:
 	var second_actor := _actors[0]
 	first_actor.global_position = _bin.to_global(Vector3(0.91, 0.70, -0.27))
 	first_actor.rotation.z = 0.0
-	first_actor.rotation.x = -0.75
+	first_actor.rotation.x = 0.0
 	var first_eyes := _eye_labels[2]
 	var second_eyes := _eye_labels[0]
 	_set_eye_scale(1.0, first_eyes)
 	# 1カット目: 機体の横から、縁のNadeggの目に寄って大きく見せる。
-	_cut_camera(Vector3(-0.58, 0.12, -0.25), Vector3(1.25, 0.62, 0.12), 52.0)
+	var first_pitch := _place_glint_camera(first_eyes, Vector3.LEFT, 24.0)
+	# 上から撮るカメラに顔を向ける。
+	first_actor.rotation.x = deg_to_rad(first_pitch)
 	_face_toward(first_actor, _camera.global_position)
 	_focus_on_eyes(first_eyes, 24.0)
 	_eye_sparkle.play()
@@ -283,7 +291,7 @@ func _glint() -> void:
 	second_actor.global_position = _bin.to_global(Vector3(-0.91, 0.80, -0.27))
 	second_actor.rotation.x = 0.0
 	second_eyes.show()
-	_cut_camera(Vector3(0.40, 0.45, 0.35), Vector3(-1.25, 0.30, -0.90), 62.0)
+	var second_pitch := _place_glint_camera(second_eyes, Vector3.RIGHT, 26.0)
 	_face_toward(second_actor, _camera.global_position)
 	var facing_camera := second_actor.rotation.y
 	# 緑の棚のPCなどを物色していた個体が、機体に気づいて振り向いてから目を光らせる。
@@ -294,7 +302,7 @@ func _glint() -> void:
 	_tweens.append(turn)
 	turn.tween_interval(0.35)
 	turn.tween_property(second_actor, "rotation:y", facing_camera, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	turn.parallel().tween_property(second_actor, "rotation:x", -0.75, 0.32)
+	turn.parallel().tween_property(second_actor, "rotation:x", deg_to_rad(second_pitch), 0.32)
 	await turn.finished
 	if phase != Phase.GATHERING:
 		return
@@ -321,6 +329,25 @@ func _focus_on_eyes(eyes: Node3D, fov: float) -> void:
 	_camera_focus = eyes.global_position
 	_camera.fov = fov
 	_camera.look_at(_camera_focus)
+
+
+# 目を光らせる個体の頭を、機体にめり込まず、機体に遮られない位置から撮る。toward は箱の座標で、頭から見て箱の内側の向き。使った見上げる角度 [度] を返す。
+func _place_glint_camera(eyes: Node3D, toward: Vector3, fov: float) -> float:
+	var head := _bin.to_local(eyes.global_position)
+	var vehicle: AABB = _body_bounds_in(_vehicle, _bin.global_transform.affine_inverse())
+	var base := atan2(toward.x, toward.z)
+	var camera := head
+	for elevation: float in GLINT_CAMERA_ELEVATIONS:
+		for turn: float in GLINT_CAMERA_TURNS:
+			var azimuth := base + deg_to_rad(turn)
+			var pitch := deg_to_rad(elevation)
+			camera = head + Vector3(sin(azimuth) * cos(pitch), sin(pitch), cos(azimuth) * cos(pitch)) * GLINT_CAMERA_DISTANCE
+			if not vehicle.grow(0.1).has_point(camera) and vehicle.grow(0.03).intersects_segment(camera, head) == null:
+				_cut_camera(camera, head, fov)
+				return elevation
+	# どの候補も遮られるときは、いちばん高い位置から撮る。
+	_cut_camera(camera, head, fov)
+	return GLINT_CAMERA_ELEVATIONS[-1]
 
 
 # 経度 azimuth [rad] での、機体から見た最初のカットのカメラの位置（箱の座標）。経度 0 は箱の +Z 側。
