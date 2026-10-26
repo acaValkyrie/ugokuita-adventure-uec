@@ -13,6 +13,12 @@ const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.
 const NADEGG_HEAD_CENTER := Vector3(0, 0.12, 0)
 const NADEGG_HEAD_RADIUS := 0.10
 const EYE_SURFACE_OFFSET := 0.0008
+# 目の画像は球面に沿わせず、頭部に接する平らな板にする。
+const EYE_SIZE := Vector2(1024.0 * 0.000100 * 0.80, 1024.0 * 0.000100 * 0.65)
+# 目はランダムに大きさを変え、ときどき一瞬消えてチラつく。
+const EYE_FLICKER_SCALE_MIN := 0.8
+const EYE_FLICKER_SCALE_MAX := 1.25
+const EYE_FLICKER_OFF_CHANCE := 0.2
 const INITIAL_NADEGG_COUNT := 9
 const REINFORCEMENT_WAVES := 4
 const EXTRA_NADEGG_COUNT := INITIAL_NADEGG_COUNT + REINFORCEMENT_WAVES * 2
@@ -83,6 +89,7 @@ func _process(delta: float) -> void:
 		_camera.look_at(_camera_focus)
 	if is_instance_valid(_smoke) and not _finishing_scuffle:
 		_update_smoke_puffs(delta)
+	_update_eye_flicker(delta)
 
 
 func get_fully_containing_bin(body: Node3D) -> StringName:
@@ -338,16 +345,22 @@ func _prepare_ambush() -> void:
 		actor.collision_mask = 0
 		actor.hide()
 		_crowd.append(actor)
+	var eye_quad := QuadMesh.new()
+	eye_quad.size = EYE_SIZE
 	for actor in _actors + _crowd:
 		var eyes := Node3D.new()
 		eyes.name = "MischievousEyes"
-		# 黄色い球面に星形画像を貼り、横からは頭部自身の深度で隠す。
+		# 黄色い頭部の前面に星形画像の板を接して置き、横からは頭部自身の深度で隠す。
 		eyes.position = NADEGG_HEAD_CENTER
 		actor.add_child(eyes)
 		for x in [-0.038, 0.038]:
 			var glint := MeshInstance3D.new()
 			glint.name = "LeftEye" if x < 0 else "RightEye"
-			glint.set_meta("eye_x", x)
+			glint.mesh = eye_quad
+			var forward := _eye_forward(x)
+			glint.transform = Transform3D(Basis.looking_at(-forward, Vector3.UP), forward * (NADEGG_HEAD_RADIUS + EYE_SURFACE_OFFSET))
+			glint.set_meta("flicker_scale", 1.0)
+			glint.set_meta("flicker_timer", 0.0)
 			var material := StandardMaterial3D.new()
 			material.albedo_texture = EYE_GLINT
 			material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
@@ -367,42 +380,27 @@ func _prepare_ambush() -> void:
 func _set_eye_scale(size: float, eyes: Node3D) -> void:
 	eyes.set_meta("eye_scale", size)
 	for glint in eyes.get_children():
-		(glint as MeshInstance3D).mesh = _make_eye_surface(glint.get_meta("eye_x"), size)
+		glint.scale = Vector3.ONE * size * float(glint.get_meta("flicker_scale"))
 
 
-func _make_eye_surface(x: float, size: float) -> ArrayMesh:
-	# 元Sprite3Dと同じ画像寸法。球面へ投影して拡大時も浮かせない。
-	var width := 1024.0 * 0.000100 * 0.80 * size
-	var height := 1024.0 * 0.000100 * 0.65 * size
-	var forward := Vector3(x, 0.055, -sqrt(NADEGG_HEAD_RADIUS * NADEGG_HEAD_RADIUS - x * x - 0.055 * 0.055)).normalized()
-	var tangent_x := (Vector3.RIGHT - forward * forward.x).normalized()
-	var tangent_y := tangent_x.cross(forward).normalized()
-	var vertices := PackedVector3Array()
-	var normals := PackedVector3Array()
-	var uvs := PackedVector2Array()
-	var indices := PackedInt32Array()
-	const GRID := 12
-	for row in GRID + 1:
-		for col in GRID + 1:
-			var u := float(col) / GRID
-			var v := float(row) / GRID
-			var radial := (forward * NADEGG_HEAD_RADIUS + tangent_x * ((u - 0.5) * width) + tangent_y * ((0.5 - v) * height)).normalized()
-			vertices.append(radial * (NADEGG_HEAD_RADIUS + EYE_SURFACE_OFFSET))
-			normals.append(radial)
-			uvs.append(Vector2(u, v))
-	for row in GRID:
-		for col in GRID:
-			var corner := row * (GRID + 1) + col
-			indices.append_array(PackedInt32Array([corner, corner + 1, corner + GRID + 1, corner + 1, corner + GRID + 2, corner + GRID + 1]))
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_NORMAL] = normals
-	arrays[Mesh.ARRAY_TEX_UV] = uvs
-	arrays[Mesh.ARRAY_INDEX] = indices
-	var surface := ArrayMesh.new()
-	surface.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	return surface
+func _eye_forward(x: float) -> Vector3:
+	return Vector3(x, 0.055, -sqrt(NADEGG_HEAD_RADIUS * NADEGG_HEAD_RADIUS - x * x - 0.055 * 0.055)).normalized()
+
+
+# 見えている目ごとに、短い間隔で大きさを選び直し、ときどき一瞬消す。
+func _update_eye_flicker(delta: float) -> void:
+	for eyes in _eye_labels:
+		if not is_instance_valid(eyes) or not eyes.is_visible_in_tree():
+			continue
+		for glint in eyes.get_children():
+			var timer := float(glint.get_meta("flicker_timer")) - delta
+			if timer <= 0.0:
+				var off := randf() < EYE_FLICKER_OFF_CHANCE
+				glint.visible = not off
+				glint.set_meta("flicker_scale", randf_range(EYE_FLICKER_SCALE_MIN, EYE_FLICKER_SCALE_MAX))
+				timer = randf_range(0.03, 0.07) if off else randf_range(0.05, 0.15)
+			glint.set_meta("flicker_timer", timer)
+		_set_eye_scale(float(eyes.get_meta("eye_scale")), eyes)
 
 
 func _face_toward(actor: Node3D, target: Vector3) -> void:

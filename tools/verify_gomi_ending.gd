@@ -154,22 +154,19 @@ func _verify() -> void:
 		assert(eyes.position == Vector3(0, 0.12, 0), "目の基点が黄色い頭部の中心ではありません")
 		var eye_centers: Array[Vector3] = []
 		for glint in eyes.get_children():
-			assert(glint is MeshInstance3D, "星形目が球面メッシュではありません")
+			assert(glint is MeshInstance3D and (glint as MeshInstance3D).mesh is QuadMesh, "星形目が平らな板ではありません")
 			var material := (glint as MeshInstance3D).material_override as StandardMaterial3D
 			assert(material.albedo_texture.resource_path == "res://assets/textures/gomi_station/nadegg_eye_glint.png" and material.albedo_color == Color.WHITE, "星形目の画像または白色が違います")
 			assert(not material.no_depth_test and material.billboard_mode == BaseMaterial3D.BILLBOARD_DISABLED and material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR, "星形目の深度設定が違います")
 			assert(material.texture_filter == BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS and material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "星形目の表示設定が違います")
-			var mesh := (glint as MeshInstance3D).mesh
-			var arrays := mesh.surface_get_arrays(0)
-			var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-			var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-			var center := vertices[vertices.size() / 2]
+			assert(((glint as MeshInstance3D).mesh as QuadMesh).size.x > 0.065, "星形目が従来より小さくなっています")
+			var center: Vector3 = glint.position
 			eye_centers.append(center)
 			assert(center.y > 0.03 and center.z < -0.06, "星形目が頭部の前面を向いていません")
-			for vertex_index in vertices.size():
-				assert(absf(vertices[vertex_index].length() - 0.1008) < 0.0001, "星形目が黄色い球面から浮いています")
-				assert(normals[vertex_index].dot(vertices[vertex_index].normalized()) > 0.999, "星形目の法線が球面を向いていません")
-			assert(vertices[12].distance_to(vertices[0]) > 0.065, "星形目が従来より小さくなっています")
+			assert(absf(center.length() - 0.1008) < 0.0001, "星形目が黄色い頭部に接していません")
+			assert(glint.basis.z.normalized().dot(center.normalized()) > 0.999, "星形目の板が頭部の外を向いていません")
+			var flicker: float = glint.scale.x / float(eyes.get_meta("eye_scale"))
+			assert(flicker > 0.79 and flicker < 1.26, "星形目のチラつきの大きさが範囲外です")
 		assert(absf(eye_centers[1].x - eye_centers[0].x - 0.0767) < 0.004, "二つの星形目が重なっています")
 		assert(eye_centers[1].normalized().dot(Vector3.LEFT) < 0.0, "横から見た右目が頭部に隠れません")
 	await _screenshot("ed3_glint_frame")
