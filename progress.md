@@ -1171,6 +1171,15 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 未確認: ED3 で外す部品（LiDAR・Jetson）を減らしたあとの ED3 の見た目。Classic の見た目。
 - 取り込み直しの計測は、取り込み設定を変えて `--headless --import`（1回約25秒）し、`.godot/imported/ugokuita-neo.glb-8670….scn` の大きさを見た。
 
+## Classic に切り替えると処理落ちする（2026-10-27）
+
+- ユーザーの報告: Classic に初めて切り替えるときに処理落ちする。ダウンロードではなかった（`classic.pck` は遊び始めて約 20 秒で受け取り済み）。
+- 原因: `PlayerSwitch._replace` が `load()` したシーンをどこにも持たないので、古い機体を消すと Classic のシーン（モデル・音・テクスチャ）がメモリから消え、切り替えのたびに読み直して GPU に送り直していた。Neo はメインシーンが置いているので消えない。あとから読むようにする前は、メニューがプレビュー用に Classic のモデルを `preload` していたので起きていなかった。
+- 対応: `PlayerSwitch` が読み込んだシーンを `_scenes` に持ち続け、`classic.pck` を受け取ったら先に読み込む（`_preload_classic`）。
+- 測り方: `web_bench.gd` に一時的に、`GameMenu._on_robot_model_pressed("classic")` を呼ぶ時間と、その後のフレーム時間・描画時間（`RenderingServer.frame_pre_draw`／`frame_post_draw`）を測る処理を足した（コミットしていない）。デスクトップでも同じ傾向で再現したので、Classic のシーンの要素を1つずつ外して切り分けた（ガタガタの音を外す → 1回目だけ軽くなる、モデルを外す → 毎回の重さは残る、読み込んだシーンを持ち続ける → 消える）。
+- 結果（Web 版）: 切り替えの呼び出し 62ms → 6.4ms、1回目の直後のフレーム 192ms → 134ms（描画 110ms）、2回目以降 175ms → 20ms（普段どおり）。
+- 残り: 1回目の切り替えの直後に 134ms 止まる。Classic のメッシュ・テクスチャを GPU に送り、シェーダーを作る分とみている（未確認）。`classic.pck` を受け取ったときに画面の外で一度描いておけば切り替えの瞬間からは消せるが、その時に同じくらい止まる。
+
 ## リアルタイムの影は機体だけにした（2026-10-27）
 
 - ユーザーの指摘: 機体の影が粗い。原因は dfffdc7（10/24）で、新倉庫もリアルタイムの影を落とすように `shadow_caster_mask` に描画レイヤー3を足し、`directional_shadow_max_distance` を 6m → 150m に広げたこと。同じ影の絵で 25 倍の範囲を描くので、機体の影の縁がギザギザになっていた。
