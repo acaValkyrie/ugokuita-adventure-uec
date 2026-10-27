@@ -1138,6 +1138,28 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 4. 実行: 内蔵ブラウザで開き、画面を1回クリックしてフォーカスを渡す。**ブラウザのペインを表示しておくこと**（隠れていると裏のページ扱いで描画が絞られ、起動に 41 秒以上かかり FPS も測れなかった）。事前の準備が終わると自動で5か所を回り、約2分で終わる。進み具合は右上の文字と `window.__benchPhase`、結果は `window.__bench.results`（終わると `window.__benchDone`）。
 5. 集計: 結果の各区間の `[場所, 状態, start_epoch_ms, end_epoch_ms]` を JSON の配列にして保存し、`tools/web_bench/aggregate.ps1 -Sys <sys.jsonl> -Phases <区間.json>` で区間ごとの平均を出す。いちばん CPU を使った renderer をゲームのページとみなす。CPU は論理コア全体に対する割合。
 
+## Web 版の最初の読み込みを短くする（2026-10-27）
+
+- 測り方: `tools/web_bench/serve_throttled.py --dir <書き出し先> --port <番号> --mbps <帯域>` で、GitHub Pages と同じく gzip で送り、帯域を絞って配信する（`Cache-Control: no-store` なので毎回ダウンロードし直す）。最初の要求で gzip に数秒かかるので、`curl -I -H "Accept-Encoding: gzip"` で先に圧縮させておく。内蔵ブラウザで開き、`window.__benchWarmupDone`（ページを開いてから事前の準備が終わるまでのミリ秒、`web_bench.gd` が入れる）を遊べるようになった時刻とした。GPU のシェーダーのキャッシュは消していない。
+- 結果（遊べるまで。50Mbps は2回以上測ってほぼ同じ）:
+
+  | 状態 | 送る量（圧縮後） | 50Mbps | 10Mbps |
+  |---|---|---|---|
+  | 元 | 103.6MB | 23.3 秒 | 89.8 秒 |
+  | 1: 使っていないモデルを外す | 92.3MB | 21.3 秒 | |
+  | 2: ライトマップを半分に | 84.3MB | 19.9 秒 | |
+  | 4: あとから読む | 58.5MB（ほかに裏で 25.6MB） | 14.7 秒 | 51.7 秒 |
+
+- 1: `exclude_filter` の `assets/uec-all.glb` が移動前の場所のままで効いていなかった。`assets/models/uec-all.glb`（5.3MB）と `assets/models/GOMI.obj`（15.4MB、tools のスクリプトだけが使う）を外した。
+- 2（コミットしていない）: `tools/downscale_lightmap.gd` で `main_scene.exr`（4096×8192）と `main_scene_shadow.png` を半分に縮めて取り込み直した。焼き直していない。圧縮前は 48MB → 12MB だが、gzip がもともとよく効いていて、送る量は 8MB しか減らない。噴水と新倉庫の前で見比べて、違いは分からなかった。
+- 4: `deferred_packs.gd`（自動読み込み `DeferredPacks`）が、ED の音（`ending_audio.pck`、街の鳥の声を含む）・新倉庫と ED3 一式（`gomi.pck`）・Classic（`classic.pck`）を、遊び始めてから順に読み込む。
+  - pck は書き出しのプリセット `WebPack_*`（`export_filter="resources"`）で `--export-pack` する。本体の `Web` の `exclude_filter` から、これらだけが使うファイルを外した（一覧は `tools/web_bench/pack_deps.gd` で出す。GDScript の `preload` は依存関係に出ないので、ED3 の音と目の光の絵は `WebPack_gomi` の `export_files` に直接書いた）。`pages.yml` と `export_bench.ps1` も3つを書き出す。
+  - 新倉庫はメインシーンから外し、`GomiStationSpawner` が読み込めたら同じ名前・位置で置き、ライトマップを付け直す（ライトマップは新倉庫を含めて焼いてある。起動時に `LightmapGI couldn't find previously baked nodes` の警告が1回出る）。読み込みの前と後で、新倉庫の壁の見た目が同じことを確かめた。
+  - Classic を選んでいた人は、Neo で始まり、読み込めたら Classic に切り替わる。メニューの Classic のプレビューも、読み込めるまでは出ない。
+  - 受け取りはブラウザの `fetch` で行う。`HTTPRequest` は、gzip で送られた物を Godot がもう一度ほどこうとして失敗し、`accept_gzip = false` にすると圧縮後の大きさで切れて pck が壊れた。
+  - 未確認・残り: 新倉庫のシェーダーは事前の準備で描いていないので、初めて見たときに引っかかるかもしれない。裏のダウンロードが事前の準備と重なると、遊べるまでが約 0.5 秒延びる。
+- 5（wasm を小さくする）はユーザーの判断でやめた。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
