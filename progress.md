@@ -1125,7 +1125,18 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 
   - Godot の値: ビデオメモリ 420MB（テクスチャ 167MB、バッファ 253MB）で場所によらず同じ。ページのメモリは、ページを描くプロセス（renderer）の private bytes。GPU プロセスの専用メモリは 420〜460MB。
   - アクセルの区間は、どこもすぐ何かに当たって止まり、5〜10m しか進んでいない。走り続けたときの値ではない。
-- 見つかった不具合: 新倉庫に近づくと、Web 版ではゲームが止まる。`gomi_station.gd` が環境音（`warehouse_crowd.ogg`、203.6 秒のステレオ）を `stream_paused = false` で再開するとき、Web の音声の仕組みが全体を複製しようとして `createBuffer(2, 9772415, 48000) failed` の例外を出し、Godot のループが止まる。ページにフォーカスがあってもなくても起きた。計測では環境音を外して避けた。直していない。
+- 見つかった不具合: 新倉庫に近づくと、Web 版ではゲームが止まる。`gomi_station.gd` が環境音（`warehouse_crowd.ogg`、203.6 秒のステレオ）を `stream_paused = false` で再開するとき、Web の音声の仕組みが全体を複製しようとして `createBuffer(2, 9772415, 48000) failed` の例外を出し、Godot のループが止まる。ページにフォーカスがあってもなくても起きた。
+  - 原因: 同じ大きさの音のバッファを作るだけなら20個作っても失敗しなかった。外の 2.5m の境目で機体が揺れて `stream_paused` が切り替わるたびに約 78MB の複製が作られ、メモリが足りなくなったとみている。
+  - 対応: 一時停止をやめ、ずっと再生したまま、聞こえない場所では音量を −80dB にする（`CROWD_SILENT_DB`）。音を短く作り直す案は、暗号化の鍵が手元に無いので取らなかった。
+  - 確認: 直したあとの Web 版で同じ計測を流し、メインストリートと新倉庫を通って最後まで止まらず、コンソールにエラーが出ないことを確かめた（環境音は外していない）。音の聞こえ方は聞いていない。
+
+### Web 版の重さの測り方（`tools/web_bench/`）
+
+1. 書き出し: `./tools/web_bench/export_bench.ps1 -Out <出力先>`。`web_bench.gd` を `web_bench_tmp.gd` として根に写し、自動読み込み `WebBench` と `tmp/*, .codex/*` の除外を一時的に足して `--export-release "Web"` で書き出し、終わったら `git checkout` で設定を戻して写しを消す。`export_presets.cfg` か `project.godot` に未コミットの変更があると中断する。
+2. 配信: `python -m http.server 8766 --bind 127.0.0.1 --directory <出力先>`（スレッドなしの書き出しなので COOP/COEP のヘッダーは要らない）。
+3. 記録: `pwsh -File tools/web_bench/sample_sys.ps1 -Seconds 300 -Out <sys.jsonl>` を裏で動かす。Claude アプリ（`claude.exe`）のプロセスごとの CPU・メモリと、GPU の 3D の使用率・専用メモリを1秒ごとに記録する。Chrome で測るときは、スクリプトのプロセス名を `chrome` に変える。
+4. 実行: 内蔵ブラウザで開き、画面を1回クリックしてフォーカスを渡す。**ブラウザのペインを表示しておくこと**（隠れていると裏のページ扱いで描画が絞られ、起動に 41 秒以上かかり FPS も測れなかった）。事前の準備が終わると自動で5か所を回り、約2分で終わる。進み具合は右上の文字と `window.__benchPhase`、結果は `window.__bench.results`（終わると `window.__benchDone`）。
+5. 集計: 結果の各区間の `[場所, 状態, start_epoch_ms, end_epoch_ms]` を JSON の配列にして保存し、`tools/web_bench/aggregate.ps1 -Sys <sys.jsonl> -Phases <区間.json>` で区間ごとの平均を出す。いちばん CPU を使った renderer をゲームのページとみなす。CPU は論理コア全体に対する割合。
 
 ## まだやっていないこと
 
