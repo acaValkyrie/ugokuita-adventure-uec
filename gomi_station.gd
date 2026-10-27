@@ -4,7 +4,6 @@ signal surplus_bin_entered(bin_id: StringName, body: Node3D)
 signal surplus_bin_exited(bin_id: StringName, body: Node3D)
 
 const GOMI_RENDER_LAYER := 1
-const GOMI_SHADOW_LAYER := 4
 const FADE_START_DISTANCE := 2.0
 const FADE_FULL_DISTANCE := 1.0
 const StairProximity = preload("res://stair_proximity.gd")
@@ -42,7 +41,7 @@ func _ready() -> void:
 	var mesh_instance := get_node_or_null("Mesh") as MeshInstance3D
 	if mesh_instance == null:
 		return
-	mesh_instance.layers = GOMI_RENDER_LAYER | GOMI_SHADOW_LAYER
+	mesh_instance.layers = GOMI_RENDER_LAYER
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_building_bounds = mesh_instance.transform * mesh_instance.get_aabb()
 	var crowd_stream := CROWD_SOUND as AudioStreamOggVorbis
