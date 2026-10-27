@@ -28,7 +28,7 @@ const RING_COLOR := UiStyle.TEXT_COLOR
 const FACE_COLOR := UiStyle.PANEL_COLOR
 const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
 # BGM の試聴に流す曲（エンディング1の曲。ending.gd の BGM と同じ）
-const BGM_PREVIEW_SOUND := preload("res://assets/audio/bgm/これにてお開き、また来週！.mp3")
+const BGM_PREVIEW_SOUND_PATH := "res://assets/audio/bgm/これにてお開き、また来週！.mp3"
 # 音量バーの埋まった部分の色（EDIT のカーソルがあるときは ACCENT_COLOR）
 const VOLUME_FILL_COLOR := Color(0.88, 0.88, 0.88)
 # 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
@@ -87,9 +87,9 @@ const CHILD_ITEMS := [1, 2, 6, 7, 8]
 # 子の行の字下げ（px）
 const CHILD_INDENT := 30
 # ROBOT_MODELS の順
-const ROBOT_SCENES := [
-	preload("res://assets/models/ugokuita-neo.glb"),
-	preload("res://assets/models/ugokuita-classic.fbx"),
+const ROBOT_MODEL_PATHS := [
+	"res://assets/models/ugokuita-neo.glb",
+	"res://assets/models/ugokuita-classic.fbx",
 ]
 # 左の項目（0: 音量、1: ボタンの表示形式、2: 決定とキャンセル、3: ロボットタイプ、4: 操作の設定、5: セーブデータ、6: カメラの操作、7: キーの割り当て、8: ボタンの割り当て）
 const ITEM_NAMES := ["音量", "ボタンの表示形式", "決定とキャンセル", "ロボットタイプ", CONTROLLER_HEADING, "セーブデータ", "カメラの操作", "キーの割り当て", "ボタンの割り当て"]
@@ -334,6 +334,7 @@ func _ready() -> void:
 	_apply_volume()
 	_build_button()
 	_build_menu()
+	DeferredPacks.pack_ready.connect(_on_deferred_pack_ready)
 	key_bindings_changed.connect(_refresh_keys)
 	# ボタンの行の絵は、ボタンの割り当てのほか、機種（PlayStation の世代も機種で決まる）が変わったときにも作り直す
 	pad_bindings_changed.connect(_refresh_buttons)
@@ -657,10 +658,6 @@ func _build_menu() -> void:
 	# BGM の試聴用（これも一時停止中に鳴らす）。最後まで流れたら印を再生に戻す
 	_preview_player = AudioStreamPlayer.new()
 	_preview_player.bus = "BGM"
-	# ファイルにループ設定があっても繰り返さない
-	var preview_stream := BGM_PREVIEW_SOUND.duplicate() as AudioStreamMP3
-	preview_stream.loop = false
-	_preview_player.stream = preview_stream
 	_preview_player.finished.connect(_refresh_preview_marks)
 	add_child(_preview_player)
 
@@ -1982,6 +1979,16 @@ func _step_se_volume(direction: int) -> void:
 
 # BGM の試聴。止まっていれば頭から再生、再生中なら止める
 func _toggle_bgm_preview() -> void:
+	if not DeferredPacks.is_ready(&"ending_audio"):
+		return
+	if _preview_player.stream == null:
+		var bgm := load(BGM_PREVIEW_SOUND_PATH) as AudioStreamMP3
+		if bgm == null:
+			return
+		# ファイルにループ設定があっても繰り返さない
+		var preview_stream := bgm.duplicate() as AudioStreamMP3
+		preview_stream.loop = false
+		_preview_player.stream = preview_stream
 	if _preview_player.playing:
 		_preview_player.stop()
 	else:
@@ -2396,13 +2403,18 @@ func _refresh_robot_names() -> void:
 # 名前・点を合わせ、3D に出している機体が違うときだけ作り直す（最初に見るときまで instantiate しない）
 func _refresh_robot() -> void:
 	_refresh_robot_names()
-	if _robot_shown == robot_model:
+	if _robot_shown == robot_model and _robot_model_node != null:
 		return
 	_robot_shown = robot_model
 	if _robot_model_node != null:
 		_robot_model_node.queue_free()
 		_robot_model_node = null
-	var scene: PackedScene = ROBOT_SCENES[ROBOT_MODELS.find(robot_model)]
+	var path: String = ROBOT_MODEL_PATHS[ROBOT_MODELS.find(robot_model)]
+	if not ResourceLoader.exists(path):
+		return
+	var scene := load(path) as PackedScene
+	if scene == null:
+		return
 	var model := scene.instantiate() as Node3D
 	# 機体シーン（car.tscn・car_classic.tscn）と同じ姿勢
 	var pose: Transform3D = str_to_var(ROBOT_MODEL_TRANSFORM)
@@ -2426,6 +2438,13 @@ func _refresh_robot() -> void:
 	var elevation := deg_to_rad(22.0)
 	var offset := Vector3(0.0, sin(elevation), cos(elevation)) * distance
 	_robot_camera.look_at_from_position(offset, Vector3.ZERO)
+
+
+# 後から読み込んだ Classic を、メニューで見ているなら出し直す
+func _on_deferred_pack_ready(pack_name: StringName) -> void:
+	if pack_name == &"classic" and is_open and _current_item == ITEM_ROBOT and robot_model == "classic":
+		_robot_shown = ""
+		_refresh_robot()
 
 
 func _collect_visuals(node: Node) -> Array[VisualInstance3D]:

@@ -14,7 +14,7 @@
 [ext_resource type="Texture2D" uid="uid://bh54cwbd7cfif" path="res://assets/boards/ugokuita_museum_poster.png" id="12_poster_museum"]
 [ext_resource type="Script" uid="uid://7rg4gk6wkpao" path="res://space_sky.gd" id="12_spacesky"]
 [ext_resource type="Script" uid="uid://bjs58wl1ufmm3" path="res://fountain_jet.gd" id="13_fountainjet"]
-[ext_resource type="PackedScene" uid="uid://mnii85ru8onp" path="res://gomi_station.tscn" id="14_gomistation"]
+[ext_resource type="Script" path="res://gomi_station_spawner.gd" id="14_gomispawner"]
 [ext_resource type="Script" uid="uid://7d2y3ueymqkw" path="res://gym_portal.gd" id="99_gymportal"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_spacesky"]
@@ -116,9 +116,9 @@ script = ExtResource("7_linkboard")
 url = "https://yae.wiki/2025/12/10/ugokuita_museum_hardware/"
 poster = ExtResource("12_poster_museum")
 
-[node name="GomiStation" parent="." unique_id=1500000010 instance=ExtResource("14_gomistation")]
+[node name="GomiStationSpawner" type="Node3D" parent="." unique_id=1500000010]
 transform = Transform3D(0.96813136, 0.25044295, 1.094721e-08, 0, -4.371139e-08, 1, 0.25044295, -0.96813136, -4.2318366e-08, 103.399, 0, 4.568)
-axis_lock_angular_z = true
+script = ExtResource("14_gomispawner")
 
 [node name="PoolRipples" type="Node" parent="." unique_id=275545926]
 script = ExtResource("7_poolrip")
