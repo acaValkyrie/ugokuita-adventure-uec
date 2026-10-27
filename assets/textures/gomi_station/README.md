@@ -11,7 +11,7 @@
 
 各画像は遠方でのちらつきを抑えるためミップマップを生成する。
 
-2026-10-27、Web 版を軽くするため、`surplus_equipment_atlas.png`（1536×1024 → 768×512）と `surplus_oscilloscope.png`（1774×887 → 887×444）を半分に縮めた。`AtlasTexture` の `region` はこの画像のピクセルの座標なので、画像の大きさを変えるときは `gomi_station_contents.tscn` の `region` と `tools/verify_gomi_contents.gd` のディスプレイとPCを分ける高さのしきい値も合わせて変える。`Sprite3D` の大きさは「切り出したピクセル数 × `pixel_size`」なので、各 `Sprite3D` の `pixel_size` も逆の倍率で変える（半分にしたときは 2 倍にした）。取り込み設定の `size_limit` で縮めると、`region` とずれて品物が切れる。新倉庫の元モデルはZ軸が上なので、配置用シーンのY軸が上の座標系を親ノードで変換している。
+2026-10-27、Web 版を軽くするため、`surplus_equipment_atlas.png`（1536×1024 → 768×512）と `surplus_oscilloscope.png`（1774×887 → 887×444）を半分に縮めた。`AtlasTexture` の `region` はこの画像のピクセルの座標なので、画像の大きさを変えるときは `gomi_station_contents.tscn` の `region` と `tools/verify_gomi_contents.gd` のディスプレイとPCを分ける高さのしきい値も合わせて変える。`Sprite3D` の大きさは「切り出したピクセル数 × `pixel_size`」なので、各 `Sprite3D` の `pixel_size` も逆の倍率で変える（半分にしたときは 2 倍にした）。品物の下端を棚に合わせる `offset`（ピクセル単位、`pixel_size` 倍される）も画像と同じ倍率で変える（半分にしたときは半分にした）。取り込み設定の `size_limit` で縮めると、`region` とずれて品物が切れる。新倉庫の元モデルはZ軸が上なので、配置用シーンのY軸が上の座標系を親ノードで変換している。
 
 ## Nadeggの大きさ
 
