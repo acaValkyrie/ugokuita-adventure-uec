@@ -38,10 +38,11 @@ try {
 	Copy-Item -LiteralPath $benchSource -Destination $tempScript
 
 	$presets = Get-Content -LiteralPath $presetPath -Raw
-	$oldExclude = 'tools/*, tests/*"'
-	$newExclude = 'tools/*, tests/*, tmp/*, .codex/*"'
-	if (-not $presets.Contains($oldExclude)) { throw 'export_presets.cfg の置換対象が見つかりません。' }
-	$presets = $presets.Replace($oldExclude, $newExclude)
+	$oldExclude = 'tools/*, tests/*'
+	$newExclude = 'tools/*, tests/*, tmp/*, .codex/*'
+	$excludeIndex = $presets.IndexOf($oldExclude)
+	if ($excludeIndex -lt 0) { throw 'export_presets.cfg の置換対象が見つかりません。' }
+	$presets = $presets.Remove($excludeIndex, $oldExclude.Length).Insert($excludeIndex, $newExclude)
 	Set-Content -LiteralPath $presetPath -Value $presets -NoNewline -Encoding utf8
 
 	$project = Get-Content -LiteralPath $projectPath -Raw
