@@ -70,23 +70,31 @@ func _download_remaining() -> void:
 func _download_pack(pack_name: StringName, base: String) -> void:
 	var file: String = PACKS[pack_name]["file"]
 	var path := "user://deferred_packs/" + file
-	var request := HTTPRequest.new()
-	# ブラウザが gzip をほどいて渡すので、Godot 側でもう一度ほどこうとすると失敗する
-	request.accept_gzip = false
-	request.download_file = path
-	add_child(request)
-	# 初回の失敗後、3回までやり直す
+	var key := JSON.stringify(str(pack_name))
+	var url := JSON.stringify(base + file)
+	# ブラウザの fetch で受け取る。HTTPRequest は gzip で送られた物を圧縮後の大きさで切ってしまい、pck が壊れる
 	for attempt in range(4):
-		var error := request.request(base + file)
-		if error == OK:
-			var response: Array = await request.request_completed
-			if response[0] == HTTPRequest.RESULT_SUCCESS and response[1] == 200:
+		var code := "(function(k, url){ window.__deferredPacks = window.__deferredPacks || {}; window.__deferredPacks[k] = {state: \"loading\"}; fetch(url).then(function(r){ if (!r.ok) throw new Error(\"HTTP \" + r.status); return r.arrayBuffer(); }).then(function(b){ window.__deferredPacks[k] = {state: \"done\", data: new Uint8Array(b)}; }).catch(function(e){ window.__deferredPacks[k] = {state: \"error\", message: String(e)}; }); })(%s, %s)" % [key, url]
+		JavaScriptBridge.eval(code, true)
+		var state := "loading"
+		while state == "loading":
+			await get_tree().create_timer(0.25, true, false, true).timeout
+			state = str(JavaScriptBridge.eval("window.__deferredPacks[%s].state" % key, true))
+		if state == "done":
+			var bytes: PackedByteArray = JavaScriptBridge.eval("window.__deferredPacks[%s].data" % key, true)
+			JavaScriptBridge.eval("delete window.__deferredPacks[%s]" % key, true)
+			var output := FileAccess.open(path, FileAccess.WRITE)
+			if output != null:
+				output.store_buffer(bytes)
+				output.close()
 				if ProjectSettings.load_resource_pack(path, false):
 					_ready_packs[pack_name] = true
 					_notify_ready(pack_name)
-					request.queue_free()
 					return
+		elif state == "error":
+			var message := str(JavaScriptBridge.eval("window.__deferredPacks[%s].message" % key, true))
+			push_warning(message)
+			JavaScriptBridge.eval("delete window.__deferredPacks[%s]" % key, true)
 		if attempt < 3:
 			await get_tree().create_timer(3.0, true, false, true).timeout
-	request.queue_free()
 	push_warning("リソースパックを読み込めない: %s" % pack_name)
