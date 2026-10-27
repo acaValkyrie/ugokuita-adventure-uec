@@ -1180,6 +1180,15 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 結果（Web 版）: 切り替えの呼び出し 62ms → 6.4ms、1回目の直後のフレーム 192ms → 134ms（描画 110ms）、2回目以降 175ms → 20ms（普段どおり）。
 - 残り: 1回目の切り替えの直後に 134ms 止まる。Classic のメッシュ・テクスチャを GPU に送り、シェーダーを作る分とみている（未確認）。`classic.pck` を受け取ったときに画面の外で一度描いておけば切り替えの瞬間からは消せるが、その時に同じくらい止まる。
 
+## あとから読む物を受け取った瞬間の処理落ち（2026-10-27）
+
+- 計測（Web 版、50Mbps）: `DeferredPacks.pack_ready` の時刻と、40ms を超えたフレーム（描画時間つき）を記録した。新倉庫を置くフレームが 830ms、ED の音を受け取った 0.5 秒後に 532ms（描画は 13.5ms だけ）止まっていた。Classic は先読みの 86ms。
+- 新倉庫の内訳（`gomi_station_spawner.gd` に一時的に時間の計測を入れた）: シーンを読む 304ms、作る 2.6ms、置く（`_ready`）312ms、ライトマップの付け直し 2.9ms、次のフレームの描画 193ms。
+- 置く 312ms と ED の音の 532ms は、長い環境音（新倉庫 203.6 秒、鳥の声 221 秒）の鳴らし始め。Web 版の既定（サンプル再生）は、鳴らし始めに音全体をまとめて準備する。`ending.gd` の `_ambient_player` と `gomi_station.gd` の `_crowd_player` を `playback_type = AudioServer.PLAYBACK_TYPE_STREAM`（少しずつ読みながら鳴らす）にした。
+- 結果: 置く 312ms → 16.5ms（新倉庫のフレームは 830ms → 540ms）。ED の音の後の 532ms のフレームは無くなり、事前の準備も約 0.5 秒早く終わった。どちらの音も再生位置が進んでいることは確かめたが、途切れずに聞こえるかは聞いていない。
+- 残り: 新倉庫を読む 313ms と最初の描画 191ms（合わせて約 0.5 秒）。
+- ついでに見つかった不具合: `classic.pck` に Classic の木目のテクスチャ（`oak_veneer_03_*.jpg`）が入っていなかった。`--export-pack` の `export_filter="resources"` は、指定したファイルの依存の依存（`.tres` が使う画像）までは入れないらしい。`WebPack_classic` の `export_files` に3枚を直接足した。あとから読む pck では、uid が見つからずパスで読む警告（`invalid UID ... using text path instead`）が出るが、読み込みはできている。
+
 ## リアルタイムの影は機体だけにした（2026-10-27）
 
 - ユーザーの指摘: 機体の影が粗い。原因は dfffdc7（10/24）で、新倉庫もリアルタイムの影を落とすように `shadow_caster_mask` に描画レイヤー3を足し、`directional_shadow_max_distance` を 6m → 150m に広げたこと。同じ影の絵で 25 倍の範囲を描くので、機体の影の縁がギザギザになっていた。
