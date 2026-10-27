@@ -11,11 +11,28 @@ const SCENES := {
 
 var _pending_model := ""
 var _waiting_for_classic := false
+# 読み込んだ機体のシーンを持っておく。持たないと入れ替えのたびに読み直しになり、Classic で処理落ちする
+var _scenes := {}
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	GameMenu.robot_model_changed.connect(_on_robot_model_changed)
+	DeferredPacks.when_ready(&"classic", _preload_classic)
+
+
+# Classic の pck を読み込めたら、先にシーンを読んでおく（切り替えの瞬間に読み込まないため）
+func _preload_classic() -> void:
+	_get_scene("classic")
+
+
+func _get_scene(model: String) -> PackedScene:
+	if _scenes.has(model):
+		return _scenes[model]
+	var packed := load(SCENES[model]) as PackedScene
+	if packed != null:
+		_scenes[model] = packed
+	return packed
 
 
 # プレイヤーの準備ができたときに呼ばれる。シーンに置いた機体が保存済みの機体と違えば入れ替える
@@ -42,7 +59,7 @@ func _replace(old: VehicleBody3D, model: String) -> void:
 			_waiting_for_classic = true
 			DeferredPacks.when_ready(&"classic", _on_classic_ready)
 		return
-	var packed := load(SCENES[model]) as PackedScene
+	var packed := _get_scene(model)
 	if packed == null:
 		push_warning("プレイヤーを読み込めない: %s" % SCENES[model])
 		return
