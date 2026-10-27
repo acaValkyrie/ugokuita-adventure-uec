@@ -37,140 +37,140 @@ var _top := TOP
 
 
 func _ready() -> void:
-    # 全体マップやメニューで一時停止している間も、表示の切り替えを行うため
-    process_mode = Node.PROCESS_MODE_ALWAYS
-    layer = 10
-    _view = Control.new()
-    _view.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-    _view.offset_right = -MARGIN
-    _view.offset_left = -MARGIN - _size
-    _view.offset_top = _top
-    _view.offset_bottom = _top + _size
-    _view.clip_contents = true
-    _view.mouse_filter = Control.MOUSE_FILTER_STOP
-    _view.draw.connect(_on_draw)
-    _view.gui_input.connect(_on_gui_input)
-    add_child(_view)
-    get_viewport().size_changed.connect(_update_layout)
-    _update_layout()
+	# 全体マップやメニューで一時停止している間も、表示の切り替えを行うため
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	layer = 10
+	_view = Control.new()
+	_view.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_view.offset_right = -MARGIN
+	_view.offset_left = -MARGIN - _size
+	_view.offset_top = _top
+	_view.offset_bottom = _top + _size
+	_view.clip_contents = true
+	_view.mouse_filter = Control.MOUSE_FILTER_STOP
+	_view.draw.connect(_on_draw)
+	_view.gui_input.connect(_on_gui_input)
+	add_child(_view)
+	get_viewport().size_changed.connect(_update_layout)
+	_update_layout()
 
 
 # タッチ端末では、リセットボタンの下から JUMP・DRIFT ボタンの上までに収まる大きさにする（PC は SIZE のまま）
 func _update_layout() -> void:
-    _top = TOP
-    _size = SIZE
-    if UiStyle.is_touch_device():
-        _top = MARGIN + TouchControls.get_reset_button_size() + BUTTON_GAP
-        _size = clampf(TouchControls.get_buttons_top() - BUTTON_GAP - _top, MIN_SIZE, SIZE)
-    _view.offset_left = -MARGIN - _size
-    _view.offset_top = _top
-    _view.offset_bottom = _top + _size
+	_top = TOP
+	_size = SIZE
+	if UiStyle.is_touch_device():
+		_top = MARGIN + TouchControls.get_reset_button_size() + BUTTON_GAP
+		_size = clampf(TouchControls.get_buttons_top() - BUTTON_GAP - _top, MIN_SIZE, SIZE)
+	_view.offset_left = -MARGIN - _size
+	_view.offset_top = _top
+	_view.offset_bottom = _top + _size
 
 
 # ミニマップの画面上の矩形（タッチ運転の除外領域に使う）。表示していなければ空
 func get_rect() -> Rect2:
-    if _view.visible:
-        return _view.get_global_rect()
-    return Rect2()
+	if _view.visible:
+		return _view.get_global_rect()
+	return Rect2()
 
 
 func _process(_delta: float) -> void:
-    var player := get_tree().get_first_node_in_group("player") as Node3D
-    _view.visible = player != null and not Map.is_open
-    if _view.visible:
-        # JUMP・DRIFT ボタンは車が出てから現れるので、大きさを毎フレーム確かめる
-        _update_layout()
-        _view.queue_redraw()
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	_view.visible = player != null and not Map.is_open
+	if _view.visible:
+		# JUMP・DRIFT ボタンは車が出てから現れるので、大きさを毎フレーム確かめる
+		_update_layout()
+		_view.queue_redraw()
 
 
 # 押したら全体マップを開く
 func _on_gui_input(event: InputEvent) -> void:
-    var pressed := false
-    if event is InputEventMouseButton:
-        pressed = event.button_index == MOUSE_BUTTON_LEFT and event.pressed
-    elif event is InputEventScreenTouch:
-        pressed = event.pressed
-    if pressed:
-        Map.open()
-        _view.accept_event()
+	var pressed := false
+	if event is InputEventMouseButton:
+		pressed = event.button_index == MOUSE_BUTTON_LEFT and event.pressed
+	elif event is InputEventScreenTouch:
+		pressed = event.pressed
+	if pressed:
+		Map.open()
+		_view.accept_event()
 
 
 # ワールドの xz を、ミニマップ上の点にする
 func _to_view(xz: Vector2) -> Vector2:
-    var player := get_tree().get_first_node_in_group("player") as Node3D
-    var p := Vector2(player.global_position.x, player.global_position.z)
-    return _view.size * 0.5 + (xz - p).rotated(_angle) * (_size / SPAN_M)
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	var p := Vector2(player.global_position.x, player.global_position.z)
+	return _view.size * 0.5 + (xz - p).rotated(_angle) * (_size / SPAN_M)
 
 
 func _on_draw() -> void:
-    var player := get_tree().get_first_node_in_group("player") as Node3D
-    if player == null:
-        return
-    var center := _view.size * 0.5
-    var k := _size / SPAN_M
-    var p := Vector2(player.global_position.x, player.global_position.z)
+	var player := get_tree().get_first_node_in_group("player") as Node3D
+	if player == null:
+		return
+	var center := _view.size * 0.5
+	var k := _size / SPAN_M
+	var p := Vector2(player.global_position.x, player.global_position.z)
 
-    # カメラの前方が画面の上を向く角度
-    _angle = 0.0
-    var camera := get_viewport().get_camera_3d()
-    if camera != null:
-        var f := -camera.global_basis.z
-        _angle = -PI / 2.0 - atan2(f.z, f.x)
+	# カメラの前方が画面の上を向く角度
+	_angle = 0.0
+	var camera := get_viewport().get_camera_3d()
+	if camera != null:
+		var f := -camera.global_basis.z
+		_angle = -PI / 2.0 - atan2(f.z, f.x)
 
-    _view.draw_rect(Rect2(Vector2.ZERO, _view.size), BACK_COLOR)
+	_view.draw_rect(Rect2(Vector2.ZERO, _view.size), BACK_COLOR)
 
-    # 地図の画像（自分の位置が中心に来るよう回して置く）
-    _view.draw_set_transform(center, _angle, Vector2(k, k))
-    _view.draw_texture_rect(MAP_TEXTURE, Rect2(Map.WORLD_RECT.position - p, Map.WORLD_RECT.size), false)
-    _view.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# 地図の画像（自分の位置が中心に来るよう回して置く）
+	_view.draw_set_transform(center, _angle, Vector2(k, k))
+	_view.draw_texture_rect(MAP_TEXTURE, Rect2(Map.WORLD_RECT.position - p, Map.WORLD_RECT.size), false)
+	_view.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-    # 看板（オレンジの丸）
-    for board in LinkBoard._boards:
-        var pos := _to_view(Vector2(board.global_position.x, board.global_position.z))
-        _view.draw_circle(pos, BOARD_RADIUS, Map.BOARD_COLOR, true, -1.0, true)
-        _view.draw_arc(pos, BOARD_RADIUS, 0.0, TAU, 24, Map.OUTLINE_COLOR, Map.OUTLINE_WIDTH, true)
+	# 看板（オレンジの丸）
+	for board in LinkBoard._boards:
+		var pos := _to_view(Vector2(board.global_position.x, board.global_position.z))
+		_view.draw_circle(pos, BOARD_RADIUS, Map.BOARD_COLOR, true, -1.0, true)
+		_view.draw_arc(pos, BOARD_RADIUS, 0.0, TAU, 24, Map.OUTLINE_COLOR, Map.OUTLINE_WIDTH, true)
 
-    # 目的地のマーカー（範囲の外なら、方向を保ったまま枠の内側に寄せる）
-    if Map.has_marker:
-        var pos := _to_view(Map.marker_xz)
-        var offset := pos - center
-        var limit := _size * 0.5 - MARKER_INSET
-        var over := maxf(absf(offset.x), absf(offset.y))
-        if over > limit:
-            pos = center + offset * (limit / over)
-        Map.draw_marker_pin(_view, pos, MARKER_SCALE)
+	# 目的地のマーカー（範囲の外なら、方向を保ったまま枠の内側に寄せる）
+	if Map.has_marker:
+		var pos := _to_view(Map.marker_xz)
+		var offset := pos - center
+		var limit := _size * 0.5 - MARKER_INSET
+		var over := maxf(absf(offset.x), absf(offset.y))
+		if over > limit:
+			pos = center + offset * (limit / over)
+		Map.draw_marker_pin(_view, pos, MARKER_SCALE)
 
-    # ヒントの印（範囲の外なら、目的地のマーカーと同じく方向を保って枠の内側に寄せる）
-    for hint_xz in Map.get_visible_hint_points():
-        var hint_pos := _to_view(hint_xz)
-        var hint_offset := hint_pos - center
-        var hint_limit := _size * 0.5 - HINT_MARK_INSET
-        var hint_over := maxf(absf(hint_offset.x), absf(hint_offset.y))
-        if hint_over > hint_limit:
-            hint_pos = center + hint_offset * (hint_limit / hint_over)
-        Map.draw_hint_mark(_view, hint_pos, HINT_MARK_RADIUS)
+	# ヒントの印（範囲の外なら、目的地のマーカーと同じく方向を保って枠の内側に寄せる）
+	for hint_xz in Map.get_visible_hint_points():
+		var hint_pos := _to_view(hint_xz)
+		var hint_offset := hint_pos - center
+		var hint_limit := _size * 0.5 - HINT_MARK_INSET
+		var hint_over := maxf(absf(hint_offset.x), absf(hint_offset.y))
+		if hint_over > hint_limit:
+			hint_pos = center + hint_offset * (hint_limit / hint_over)
+		Map.draw_hint_mark(_view, hint_pos, HINT_MARK_RADIUS)
 
-    # 自分（機体の前を指す赤い矢印）。機体の前は global_basis.z
-    var forward := Vector2(player.global_basis.z.x, player.global_basis.z.z).rotated(_angle)
-    var dir := forward.normalized() if forward.length() > 0.001 else Vector2.UP
-    var side := dir.orthogonal()
-    var points := PackedVector2Array([
-        center + dir * ARROW_LENGTH * 0.5,
-        center - dir * ARROW_LENGTH * 0.5 + side * ARROW_WIDTH * 0.5,
-        center - dir * ARROW_LENGTH * 0.5 - side * ARROW_WIDTH * 0.5,
-    ])
-    _view.draw_colored_polygon(points, Map.PLAYER_COLOR)
-    var outline := points.duplicate()
-    outline.append(points[0])
-    _view.draw_polyline(outline, Map.OUTLINE_COLOR, Map.OUTLINE_WIDTH, true)
+	# 自分（機体の前を指す赤い矢印）。機体の前は global_basis.z
+	var forward := Vector2(player.global_basis.z.x, player.global_basis.z.z).rotated(_angle)
+	var dir := forward.normalized() if forward.length() > 0.001 else Vector2.UP
+	var side := dir.orthogonal()
+	var points := PackedVector2Array([
+		center + dir * ARROW_LENGTH * 0.5,
+		center - dir * ARROW_LENGTH * 0.5 + side * ARROW_WIDTH * 0.5,
+		center - dir * ARROW_LENGTH * 0.5 - side * ARROW_WIDTH * 0.5,
+	])
+	_view.draw_colored_polygon(points, Map.PLAYER_COLOR)
+	var outline := points.duplicate()
+	outline.append(points[0])
+	_view.draw_polyline(outline, Map.OUTLINE_COLOR, Map.OUTLINE_WIDTH, true)
 
-    # 北の印（文字の中心が north_pos に来るようにベースラインをずらす）
-    var font := UiStyle.FONT
-    var north_pos := center + Vector2(0.0, -1.0).rotated(_angle) * (_size * 0.5 - NORTH_INSET)
-    var text_size := font.get_string_size("N", HORIZONTAL_ALIGNMENT_CENTER, -1.0, NORTH_FONT_SIZE)
-    var base := Vector2(north_pos.x - text_size.x * 0.5, north_pos.y + (font.get_ascent(NORTH_FONT_SIZE) - font.get_descent(NORTH_FONT_SIZE)) * 0.5)
-    _view.draw_string_outline(font, base, "N", HORIZONTAL_ALIGNMENT_LEFT, -1.0, NORTH_FONT_SIZE, NORTH_OUTLINE_SIZE, UiStyle.OUTLINE_COLOR)
-    _view.draw_string(font, base, "N", HORIZONTAL_ALIGNMENT_LEFT, -1.0, NORTH_FONT_SIZE, UiStyle.TEXT_COLOR)
+	# 北の印（文字の中心が north_pos に来るようにベースラインをずらす）
+	var font := UiStyle.FONT
+	var north_pos := center + Vector2(0.0, -1.0).rotated(_angle) * (_size * 0.5 - NORTH_INSET)
+	var text_size := font.get_string_size("N", HORIZONTAL_ALIGNMENT_CENTER, -1.0, NORTH_FONT_SIZE)
+	var base := Vector2(north_pos.x - text_size.x * 0.5, north_pos.y + (font.get_ascent(NORTH_FONT_SIZE) - font.get_descent(NORTH_FONT_SIZE)) * 0.5)
+	_view.draw_string_outline(font, base, "N", HORIZONTAL_ALIGNMENT_LEFT, -1.0, NORTH_FONT_SIZE, NORTH_OUTLINE_SIZE, UiStyle.OUTLINE_COLOR)
+	_view.draw_string(font, base, "N", HORIZONTAL_ALIGNMENT_LEFT, -1.0, NORTH_FONT_SIZE, UiStyle.TEXT_COLOR)
 
-    # 枠
-    _view.draw_rect(Rect2(Vector2.ZERO, _view.size), FRAME_COLOR, false, FRAME_WIDTH)
+	# 枠
+	_view.draw_rect(Rect2(Vector2.ZERO, _view.size), FRAME_COLOR, false, FRAME_WIDTH)
