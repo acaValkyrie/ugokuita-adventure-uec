@@ -13,6 +13,8 @@ const CROWD_SOUND := preload("res://assets/audio/salvage/warehouse_crowd.ogg")
 const CROWD_FADE_OUT_DISTANCE := 2.5
 # 環境音の音量 [dB]（+6dB で振幅が倍）
 const CROWD_VOLUME_DB := 6.0
+# 聞こえないときの音量 [dB]
+const CROWD_SILENT_DB := -80.0
 
 @onready var _outside_stairs: MeshInstance3D = $OutsideStairs
 
@@ -49,8 +51,8 @@ func _ready() -> void:
 	_crowd_player.stream = crowd_stream
 	_crowd_player.bus = "BGM"
 	add_child(_crowd_player)
+	_crowd_player.volume_db = CROWD_SILENT_DB
 	_crowd_player.play()
-	_crowd_player.stream_paused = true
 
 
 func _setup_surplus_bins() -> void:
@@ -112,7 +114,8 @@ func _process(_delta: float) -> void:
 	_set_outside_alpha(clampf((FADE_START_DISTANCE - distance) / (FADE_START_DISTANCE - FADE_FULL_DISTANCE), 0.0, 1.0))
 
 
-# 建物の中では最大の音量で、外では建物を囲む箱からの距離に応じて小さくする。エンディング中は止める。
+# 建物の中では最大の音量で、外では建物を囲む箱からの距離に応じて小さくする。エンディング中は聞こえなくする。
+# Web 版は一時停止から再開するたびに音全体を複製し、出入りを繰り返すとメモリが足りなくなって止まるので、止めずに音量だけ下げる。
 func _update_crowd(player: Node3D) -> void:
 	if not is_instance_valid(_crowd_player):
 		return
@@ -121,9 +124,10 @@ func _update_crowd(player: Node3D) -> void:
 		var local := global_transform.affine_inverse() * player.global_position
 		var nearest := local.clamp(_building_bounds.position, _building_bounds.end)
 		weight = clampf(1.0 - local.distance_to(nearest) / CROWD_FADE_OUT_DISTANCE, 0.0, 1.0)
-	_crowd_player.stream_paused = weight <= 0.0
 	if weight > 0.0:
 		_crowd_player.volume_db = CROWD_VOLUME_DB + linear_to_db(weight)
+	else:
+		_crowd_player.volume_db = CROWD_SILENT_DB
 
 
 func _set_outside_alpha(alpha: float) -> void:
