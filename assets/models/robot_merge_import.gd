@@ -279,7 +279,61 @@ func _post_import(scene: Node) -> Object:
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 
 	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、三角形 %d -> %d、差し替えたマテリアル %d 面、取り除いた部品 %d 個、色を変えた部品 %d 個、向きを直した面 %d 枚、取り除いた基板の部品 %d 個" % [sources.size(), merged_count, kept_count, lod_count, triangles_before, triangles_after, _override_count, removed_count, recolored_count, flipped_count, board_part_count])
+	if SIMPLIFY_MAX_ERROR.has(source_name):
+		_simplify_unmerged_meshes(scene, SIMPLIFY_MAX_ERROR[source_name])
 	return scene
+
+
+# まとめない部品（タイヤ・ED3 で外す部品）も、同じずれの上限で三角形を減らす。形・名前・位置は変えない
+func _simplify_unmerged_meshes(scene: Node, max_error: float) -> void:
+	var mesh_count := 0
+	var instance_count := 0
+	var cache: Dictionary = {}
+	var triangles_before := 0
+	var triangles_after := 0
+	var meshes := scene.find_children("*", "MeshInstance3D", true, false)
+	if scene is MeshInstance3D:
+		meshes.append(scene)
+	for mi in meshes:
+		if mi.name.begins_with("Merged_"):
+			continue
+		var mesh: Mesh = mi.mesh
+		if mesh == null or mesh.get_surface_count() == 0 or mesh.get_blend_shape_count() > 0:
+			continue
+		var xf := Transform3D()
+		var n: Node = mi
+		while n != scene and n is Node3D:
+			xf = (n as Node3D).transform * xf
+			n = n.get_parent()
+		var s := xf.basis.get_scale()
+		var scale := maxf(absf(s.x), maxf(absf(s.y), absf(s.z)))
+		if scale <= 0:
+			continue
+		var cache_key := str([mesh.get_instance_id(), snappedf(scale, 0.000001)])
+		if cache.has(cache_key):
+			mi.mesh = cache[cache_key]
+			instance_count += 1
+			continue
+		var final_mesh := ImporterMesh.new()
+		for surface in mesh.get_surface_count():
+			var importer_mesh := ImporterMesh.new()
+			importer_mesh.add_surface(Mesh.PRIMITIVE_TRIANGLES, mesh.surface_get_arrays(surface), [], {}, mesh.surface_get_material(surface), "", Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES)
+			importer_mesh.generate_lods(25.0, 60.0, [])
+			# LOD生成後の配列とインデックスを使う
+			var arrays := importer_mesh.get_surface_arrays(0)
+			triangles_before += _triangle_count(arrays)
+			# まとめない部品の頂点は元のファイルの単位のままで、親の拡大縮小で大きさが決まるので、ずれの上限をメッシュの単位に直す
+			var lod := _pick_lod(importer_mesh, max_error / scale, 0)
+			if lod >= 0:
+				arrays = _compact_arrays(arrays, importer_mesh.get_surface_lod_indices(0, lod))
+			triangles_after += _triangle_count(arrays)
+			final_mesh.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, mesh.surface_get_material(surface), "", Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES)
+		final_mesh.generate_lods(25.0, 60.0, [])
+		mi.mesh = final_mesh.get_mesh()
+		cache[cache_key] = mi.mesh
+		mesh_count += 1
+		instance_count += 1
+	print("robot_merge_import: まとめない部品の三角形 %d -> %d（メッシュ %d 個、部品 %d 個）" % [triangles_before, triangles_after, mesh_count, instance_count])
 
 
 # サーフェスの配列の三角形の数を返す（インデックスが無ければ頂点を3つずつ並べたものとして数える）
@@ -291,10 +345,10 @@ func _triangle_count(arrays: Array) -> int:
 
 
 # 形のずれ（lod_size）が上限以下のLODのうち、いちばん粗い（番号が大きい）ものの番号を返す。無ければ -1
-func _pick_lod(importer_mesh: ImporterMesh, max_error: float) -> int:
+func _pick_lod(importer_mesh: ImporterMesh, max_error: float, surface: int = 0) -> int:
 	var picked := -1
-	for lod in importer_mesh.get_surface_lod_count(0):
-		if importer_mesh.get_surface_lod_size(0, lod) <= max_error:
+	for lod in importer_mesh.get_surface_lod_count(surface):
+		if importer_mesh.get_surface_lod_size(surface, lod) <= max_error:
 			picked = lod
 	return picked
 
