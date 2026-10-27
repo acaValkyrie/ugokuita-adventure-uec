@@ -52,6 +52,7 @@ func _process(_delta: float) -> void:
 			_player = get_tree().get_first_node_in_group("player") as VehicleBody3D
 			if ShaderWarmup._done and is_instance_valid(_player):
 				_warmup_done_ms = Time.get_ticks_msec()
+				_js("window.__benchWarmupDone = performance.now();")
 				_state = State.WAIT
 				_phase_start_us = now
 		State.WAIT:
