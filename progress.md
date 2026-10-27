@@ -1195,6 +1195,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 本体のメッシュ: `tools/simplify_gomi_mesh.gd -- <ずれの上限[m]> [--write]` を足した。既存の頂点を消すだけで動かさないので、ライトマップが使う UV2 は変わらず、焼き直しは要らない（元の頂点と位置・UV2 が一致しない頂点の数を数えて 0 を確かめる）。メッシュの単位は 0.1m（`Mesh` ノードの拡大縮小）なので上限を換算する。試算は 1mm で 224,326、2mm で 114,776、5mm で 81,618 三角形。2mm にした（1.83MB）。`generate_gomi_split_meshes.gd` で作り直したら、これも流し直す。保存は元と同じく `FLAG_BUNDLE_RESOURCES | FLAG_COMPRESS`（付けないと 4.39MB に増えた）。
 - 画像: 3枚の取り込み設定 `process/size_limit` を 1024 にした（元の画像は変えない）。5.01MB → 1.96MB。
   - 追記: 棚のビルボードが半分で切れた（ユーザーの指摘）。`surplus_equipment_atlas.png` と `surplus_oscilloscope.png` は、`gomi_station_contents.tscn` の `AtlasTexture` がピクセルの座標（`region`）で切り出しているので、縮めると座標がずれる。この2枚は `size_limit=0` に戻した。縮めてよいのは平面に貼る `surplus_bin_contents.png` だけ（1.00MB → 0.40MB）。
+  - 続けて、ユーザーの指摘（ビルボードにそこまでの解像度は要らない）で、2枚の画像そのものを半分にした（1536×1024 → 768×512、1774×887 → 887×444。`uv run --with pillow` でアルファを掛けてから LANCZOS で縮小）。`region` も半分にし、`tools/verify_gomi_contents.gd` のディスプレイと PC を分けるしきい値も 500 → 250 にした。取り込み後は 2.00MB・2.01MB → 0.50MB・0.50MB。確認: `verify_gomi_contents.gd` が通る（ディスプレイ44・PC44・オシロ6）。新しい座標で5品を切り出して並べ、切れていないことを画像で確かめた。
 - 結果: `gomi.pck` 14.77MB → 9.49MB（送る量 11.8MB → 8.3MB）。新倉庫の西の壁の見た目は前と同じ。中身（画像を貼った品物）の見た目は、倉庫の中に機体を置けず確かめていない。
 - 新倉庫が出るときの処理落ちはほぼ変わらなかった（読む 309 → 283ms、そのフレーム全体は 530〜580ms）。読み込みの重さは、メッシュや画像より、当たり判定（23万面）の準備やシェーダーの準備が大きいとみている（未確認）。当たり判定は階段の上り下りに関わるので、まだ触っていない。
 
