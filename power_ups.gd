@@ -37,7 +37,7 @@ const ITEMS := {
     },
     "limit_break": {
         "name": "上限突破",
-        "description": "BOOSTとダッシュを重ねるほど、どこまでも速くなるぞ！！",
+        "description": "ダッシュの効果が重複するようになった！",
         "icon": preload("res://assets/ui/powerups/powerup_limit_break.png"),
     },
 }
