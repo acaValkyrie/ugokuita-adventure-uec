@@ -227,7 +227,7 @@ gi_mode = 0
 [node name="NorthLower1" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(2.438854, 0.499600, -6.895436)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000565878
+pixel_size = 0.001131756
 billboard = 2
 shaded = true
 double_sided = true
@@ -239,7 +239,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="NorthLower2" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(2.798854, 0.499600, -6.895436)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000734649
+pixel_size = 0.001469298
 billboard = 2
 shaded = true
 double_sided = true
@@ -251,7 +251,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="NorthLower3" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(3.158854, 0.499600, -6.895436)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000565878
+pixel_size = 0.001131756
 billboard = 2
 shaded = true
 double_sided = true
@@ -263,7 +263,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="NorthMiddle1" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(2.438854, 0.899100, -6.895436)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000734649
+pixel_size = 0.001469298
 billboard = 2
 shaded = true
 double_sided = true
@@ -275,7 +275,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="NorthMiddle2" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(2.798854, 0.899100, -6.895436)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000565878
+pixel_size = 0.001131756
 billboard = 2
 shaded = true
 double_sided = true
@@ -287,7 +287,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="NorthMiddle3" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(3.158854, 0.899100, -6.895436)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000734649
+pixel_size = 0.001469298
 billboard = 2
 shaded = true
 double_sided = true
@@ -299,7 +299,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="NorthTop1" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(2.498854, 1.818100, -6.895436)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000565878
+pixel_size = 0.001131756
 billboard = 2
 shaded = true
 double_sided = true
@@ -311,7 +311,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="NorthTop2" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(3.098854, 1.818100, -6.895436)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000734649
+pixel_size = 0.001469298
 billboard = 2
 shaded = true
 double_sided = true
@@ -323,7 +323,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="SouthLowerScope1" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(4.498854, 0.499600, -0.395436)
 offset = Vector2(0, 391.0)
-pixel_size = 0.000259036
+pixel_size = 0.000518072
 billboard = 2
 shaded = true
 double_sided = true
@@ -335,7 +335,7 @@ texture = SubResource("AtlasTexture_oscilloscope")
 [node name="SouthLowerScope2" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(5.098854, 0.499600, -0.395436)
 offset = Vector2(0, 391.0)
-pixel_size = 0.000259036
+pixel_size = 0.000518072
 billboard = 2
 shaded = true
 double_sided = true
@@ -347,7 +347,7 @@ texture = SubResource("AtlasTexture_oscilloscope")
 [node name="SouthMiddleScope1" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(4.498854, 0.899100, -0.395436)
 offset = Vector2(0, 391.0)
-pixel_size = 0.000259036
+pixel_size = 0.000518072
 billboard = 2
 shaded = true
 double_sided = true
@@ -359,7 +359,7 @@ texture = SubResource("AtlasTexture_oscilloscope")
 [node name="SouthMiddleScope2" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(5.098854, 0.899100, -0.395436)
 offset = Vector2(0, 391.0)
-pixel_size = 0.000259036
+pixel_size = 0.000518072
 billboard = 2
 shaded = true
 double_sided = true
@@ -371,7 +371,7 @@ texture = SubResource("AtlasTexture_oscilloscope")
 [node name="SouthTopScope1" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(4.498854, 1.818100, -0.395436)
 offset = Vector2(0, 391.0)
-pixel_size = 0.000259036
+pixel_size = 0.000518072
 billboard = 2
 shaded = true
 double_sided = true
@@ -383,7 +383,7 @@ texture = SubResource("AtlasTexture_oscilloscope")
 [node name="SouthTopScope2" type="Sprite3D" parent="ShelfEquipment"]
 position = Vector3(5.098854, 1.818100, -0.395436)
 offset = Vector2(0, 391.0)
-pixel_size = 0.000259036
+pixel_size = 0.000518072
 billboard = 2
 shaded = true
 double_sided = true
@@ -395,7 +395,7 @@ texture = SubResource("AtlasTexture_oscilloscope")
 [node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(-0.570000, 0.097000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -407,7 +407,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(-0.190000, 0.097000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -419,7 +419,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(0.190000, 0.097000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -431,7 +431,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Bottom4" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(0.570000, 0.097000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -443,7 +443,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(-0.570000, 0.602000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -455,7 +455,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(-0.190000, 0.602000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -467,7 +467,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(0.190000, 0.602000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -479,7 +479,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Middle4" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(0.570000, 0.602000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -491,7 +491,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(-0.500000, 1.122000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -503,7 +503,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(0.000000, 1.122000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -515,7 +515,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(0.500000, 1.122000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -527,7 +527,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Top1" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(-0.500000, 1.642000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -539,7 +539,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Top2" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(0.000000, 1.642000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -551,7 +551,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Top3" type="Sprite3D" parent="GreenRackEquipment/FrontWest"]
 position = Vector3(0.500000, 1.642000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -563,7 +563,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(-0.570000, 0.097000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -575,7 +575,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(-0.190000, 0.097000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -587,7 +587,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(0.190000, 0.097000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -599,7 +599,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Bottom4" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(0.570000, 0.097000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -611,7 +611,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(-0.570000, 0.602000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -623,7 +623,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(-0.190000, 0.602000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -635,7 +635,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(0.190000, 0.602000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -647,7 +647,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Middle4" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(0.570000, 0.602000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -659,7 +659,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(-0.570000, 1.122000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -671,7 +671,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(-0.190000, 1.122000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -683,7 +683,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(0.190000, 1.122000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -695,7 +695,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Upper4" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(0.570000, 1.122000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -707,7 +707,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Top1" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(-0.500000, 1.642000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -719,7 +719,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Top2" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(0.000000, 1.642000, 0.000000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -731,7 +731,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Top3" type="Sprite3D" parent="GreenRackEquipment/FrontEast"]
 position = Vector3(0.500000, 1.642000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -743,7 +743,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 0.097000, -0.570000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -755,7 +755,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 0.097000, -0.190000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -767,7 +767,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 0.097000, 0.190000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -779,7 +779,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Bottom4" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 0.097000, 0.570000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -791,7 +791,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 0.602000, -0.570000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -803,7 +803,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 0.602000, -0.190000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -815,7 +815,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 0.602000, 0.190000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -827,7 +827,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Middle4" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 0.602000, 0.570000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -839,7 +839,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 1.122000, -0.570000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -851,7 +851,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 1.122000, -0.190000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -863,7 +863,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 1.122000, 0.190000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -875,7 +875,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Upper4" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 1.122000, 0.570000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -887,7 +887,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Top1" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 1.642000, -0.500000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -899,7 +899,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Top2" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 1.642000, 0.000000)
 offset = Vector2(0, 237.0)
-pixel_size = 0.000844595
+pixel_size = 0.001689190
 billboard = 2
 shaded = true
 double_sided = true
@@ -911,7 +911,7 @@ texture = SubResource("AtlasTexture_black_pc")
 [node name="Top3" type="Sprite3D" parent="GreenRackEquipment/SideSouth"]
 position = Vector3(0.000000, 1.642000, 0.500000)
 offset = Vector2(0, 226.0)
-pixel_size = 0.000899281
+pixel_size = 0.001798562
 billboard = 2
 shaded = true
 double_sided = true
@@ -923,7 +923,7 @@ texture = SubResource("AtlasTexture_beige_pc")
 [node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 0.097000, -0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -935,7 +935,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 0.097000, 0.000000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -947,7 +947,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 0.097000, 0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -959,7 +959,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 0.602000, -0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -971,7 +971,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 0.602000, 0.000000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -983,7 +983,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 0.602000, 0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -995,7 +995,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 1.122000, -0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1007,7 +1007,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 1.122000, 0.000000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1019,7 +1019,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 1.122000, 0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1031,7 +1031,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Top1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 1.642000, -0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1043,7 +1043,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Top2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 1.642000, 0.000000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1055,7 +1055,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Top3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleSouth"]
 position = Vector3(0.000000, 1.642000, 0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1067,7 +1067,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 0.097000, -0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1079,7 +1079,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 0.097000, 0.000000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1091,7 +1091,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 0.097000, 0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1103,7 +1103,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 0.602000, -0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1115,7 +1115,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 0.602000, 0.000000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1127,7 +1127,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 0.602000, 0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1139,7 +1139,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 1.122000, -0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1151,7 +1151,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 1.122000, 0.000000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1163,7 +1163,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 1.122000, 0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1175,7 +1175,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Top1" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 1.642000, -0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1187,7 +1187,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Top2" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 1.642000, 0.000000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1199,7 +1199,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Top3" type="Sprite3D" parent="GreenRackEquipment/SideMiddleNorth"]
 position = Vector3(0.000000, 1.642000, 0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1211,7 +1211,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Bottom1" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 0.097000, -0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1223,7 +1223,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Bottom2" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 0.097000, 0.000000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1235,7 +1235,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Bottom3" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 0.097000, 0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1247,7 +1247,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Middle1" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 0.602000, -0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1259,7 +1259,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Middle2" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 0.602000, 0.000000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1271,7 +1271,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Middle3" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 0.602000, 0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1283,7 +1283,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Upper1" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 1.122000, -0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1295,7 +1295,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Upper2" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 1.122000, 0.000000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1307,7 +1307,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Upper3" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 1.122000, 0.500000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1319,7 +1319,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Top1" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 1.642000, -0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
@@ -1331,7 +1331,7 @@ texture = SubResource("AtlasTexture_beige_display")
 [node name="Top2" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 1.642000, 0.000000)
 offset = Vector2(0, 210.0)
-pixel_size = 0.000709459
+pixel_size = 0.001418918
 billboard = 2
 shaded = true
 double_sided = true
@@ -1343,7 +1343,7 @@ texture = SubResource("AtlasTexture_black_display")
 [node name="Top3" type="Sprite3D" parent="GreenRackEquipment/SideNorth"]
 position = Vector3(0.000000, 1.642000, 0.500000)
 offset = Vector2(0, 224.0)
-pixel_size = 0.000921053
+pixel_size = 0.001842106
 billboard = 2
 shaded = true
 double_sided = true
