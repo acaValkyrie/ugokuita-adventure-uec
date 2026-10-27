@@ -118,7 +118,7 @@ func _category(sprite: Sprite3D) -> String:
 	var texture := sprite.texture as AtlasTexture
 	if texture.atlas.resource_path.ends_with("surplus_oscilloscope.png"):
 		return "oscilloscope"
-	return "display" if texture.region.position.y < 500 else "pc"
+	return "display" if texture.region.position.y < 250 else "pc"
 
 
 func _verify_nadegg_size(contents: Node) -> bool:

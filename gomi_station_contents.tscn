@@ -8,27 +8,27 @@
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_black_display"]
 atlas = ExtResource("2_equipment")
-region = Rect2(130, 58, 592, 420)
+region = Rect2(65, 29, 296, 210)
 filter_clip = true
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_beige_display"]
 atlas = ExtResource("2_equipment")
-region = Rect2(894, 34, 456, 448)
+region = Rect2(447, 17, 228, 224)
 filter_clip = true
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_black_pc"]
 atlas = ExtResource("2_equipment")
-region = Rect2(300, 510, 296, 474)
+region = Rect2(150, 255, 148, 237)
 filter_clip = true
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_beige_pc"]
 atlas = ExtResource("2_equipment")
-region = Rect2(990, 530, 278, 452)
+region = Rect2(495, 265, 139, 226)
 filter_clip = true
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_oscilloscope"]
 atlas = ExtResource("4_oscilloscope")
-region = Rect2(58, 60, 1660, 782)
+region = Rect2(29, 30, 830, 391)
 filter_clip = true
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bin"]
