@@ -103,6 +103,9 @@ jobs:
         run: |
           mkdir -p build/web
           $HOME/godot/godot --headless --export-release "Web" build/web/index.html
+          $HOME/godot/godot --headless --path . --export-pack "WebPack_ending_audio" build/web/ending_audio.pck
+          $HOME/godot/godot --headless --path . --export-pack "WebPack_gomi" build/web/gomi.pck
+          $HOME/godot/godot --headless --path . --export-pack "WebPack_classic" build/web/classic.pck
           test -f build/web/index.html
           cp site/index.html build/index.html
           cp site/ugokuita.png build/ugokuita.png

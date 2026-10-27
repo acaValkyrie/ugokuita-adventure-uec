@@ -53,6 +53,11 @@ try {
 
 	& $Godot --headless --path . --export-release "Web" $indexHtml
 	if ($LASTEXITCODE -ne 0) { throw "Godot の書き出しに失敗しました (exit $LASTEXITCODE)。" }
+	foreach ($packName in @('ending_audio', 'gomi', 'classic')) {
+		$packPath = Join-Path $outPath "$packName.pck"
+		& $Godot --headless --path . --export-pack "WebPack_$packName" $packPath
+		if ($LASTEXITCODE -ne 0) { throw "Godot の $packName の書き出しに失敗しました (exit $LASTEXITCODE)。" }
+	}
 }
 finally {
 	if (Test-Path -LiteralPath $repoRoot) {
@@ -67,7 +72,7 @@ finally {
 
 $pckPath = Join-Path $outPath 'index.pck'
 $wasmPath = Join-Path $outPath 'index.wasm'
-foreach ($artifact in @($pckPath, $wasmPath)) {
+foreach ($artifact in @($pckPath, $wasmPath, (Join-Path $outPath 'ending_audio.pck'), (Join-Path $outPath 'gomi.pck'), (Join-Path $outPath 'classic.pck'))) {
 	if (Test-Path -LiteralPath $artifact) {
 		$sizeMb = (Get-Item -LiteralPath $artifact).Length / 1MB
 		'{0}: {1:N2} MB' -f (Split-Path -Leaf $artifact), $sizeMb
