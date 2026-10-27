@@ -71,6 +71,8 @@ func _download_pack(pack_name: StringName, base: String) -> void:
 	var file: String = PACKS[pack_name]["file"]
 	var path := "user://deferred_packs/" + file
 	var request := HTTPRequest.new()
+	# ブラウザが gzip をほどいて渡すので、Godot 側でもう一度ほどこうとすると失敗する
+	request.accept_gzip = false
 	request.download_file = path
 	add_child(request)
 	# 初回の失敗後、3回までやり直す
