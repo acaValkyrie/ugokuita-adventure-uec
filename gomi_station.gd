@@ -49,6 +49,8 @@ func _ready() -> void:
 	_crowd_player = AudioStreamPlayer.new()
 	_crowd_player.stream = crowd_stream
 	_crowd_player.bus = "BGM"
+	# Web 版の既定（サンプル再生）は鳴らし始めに音全体をまとめて準備して 0.5 秒ほど止まるので、少しずつ読みながら鳴らす
+	_crowd_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	add_child(_crowd_player)
 	_crowd_player.volume_db = CROWD_SILENT_DB
 	_crowd_player.play()

@@ -110,6 +110,8 @@ func _ready() -> void:
 	# 街の鳥の声はループして流し続ける
 	_ambient_player = AudioStreamPlayer.new()
 	_ambient_player.bus = "BGM"
+	# Web 版の既定（サンプル再生）は鳴らし始めに音全体をまとめて準備して 0.5 秒ほど止まるので、少しずつ読みながら鳴らす
+	_ambient_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	add_child(_ambient_player)
 	DeferredPacks.when_ready(&"ending_audio", _on_audio_ready)
 
