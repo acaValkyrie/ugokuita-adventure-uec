@@ -8,8 +8,10 @@ extends DirectionalLight3D
 @export_flags_3d_physics var occluder_mask: int = 1 | 4
 # 機体だけを置く表示レイヤー
 @export_flags_3d_render var robot_layer: int = 2
-# 機体の影を描く範囲 [m]
+# 太陽の影を描く範囲 [m]（新倉庫の影が遠くからも見えるように広くとる）
 @export var shadow_distance: float = 150.0
+# 機体の影を細かく描く範囲 [m]（この先 shadow_distance までは新倉庫の影を粗く描く）
+@export var near_shadow_distance: float = 6.0
 # 日なた・日陰の切り替えの速さ [1/s]
 @export var fade_speed: float = 4.0
 
@@ -49,8 +51,10 @@ func _ready() -> void:
     # エディタ上では変えない。ベイク時は静止物も影を落とす必要があるため
     _sun.light_cull_mask &= ~robot_layer
     _sun.shadow_caster_mask = robot_layer | GOMI_STATION_LAYER
-    _sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+    _sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
     _sun.directional_shadow_max_distance = shadow_distance
+    # 近くを細かく、遠くを粗く描く2段の影にする。1段だと 150m 全体を同じ細かさで描くので機体の影が粗くなる
+    _sun.directional_shadow_split_1 = near_shadow_distance / shadow_distance
 
     _lit = 1.0
     # 機体が入れ替わったら対象を付け替える
