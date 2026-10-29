@@ -1223,6 +1223,11 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 新倉庫の影はライトマップ（シャドウマスク、`shadowmask_mode = 2`）にも焼き込んであるので、リアルタイムの影は機体だけにした（ユーザーの判断）。`robot_sun.gd` は 6m・`SHADOW_ORTHOGONAL`・`shadow_caster_mask = robot_layer` に戻し、`gomi_station.gd` は描画レイヤー3に入れるのをやめた。途中で2段の影（近く 6m を細かく、150m まで粗く）も試したが、新倉庫のリアルタイムの影が要らなくなったのでやめた。
 - 確認（Web 版）: 新倉庫の東 (140, −5) で、直す前と後とも地面が同じように日陰になる。機体の影は縁がくっきりした。
 
+## 検索に出るように Google Search Console に登録（2026-10-29）
+
+- 「動く板アドベンチャー」で検索しても出てこなかった。公開ページは 200 で `noindex` もなく、robots.txt もないので締め出されてはいない。10/01 に公開してから外からのリンクがほぼなく、まだインデックスされていなかった。
+- Search Console の所有確認ファイル `site/googled616ffc76f43ecf9.html` を置き、`pages.yml` で `build/` に写すようにした。所有確認のあと、URL検査からインデックス登録をリクエストする。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
