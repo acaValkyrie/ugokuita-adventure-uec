@@ -151,7 +151,7 @@ func _verify() -> void:
 	for actor in director.get("_actors") + director.get("_crowd"):
 		var eyes := actor.get_node("MischievousEyes") as Node3D
 		assert(eyes.get_child_count() == 2, "Nadeggに左右の目がありません")
-		assert(eyes.position == Vector3(0, 0.12, 0), "目の基点が黄色い頭部の中心ではありません")
+		assert(eyes.position == Vector3(0, 0.135, 0), "目の基点が黄色い頭部の中心ではありません")
 		var eye_centers: Array[Vector3] = []
 		for glint in eyes.get_children():
 			assert(glint is MeshInstance3D and (glint as MeshInstance3D).mesh is QuadMesh, "星形目が平らな板ではありません")
@@ -159,15 +159,15 @@ func _verify() -> void:
 			assert(material.albedo_texture.resource_path == "res://assets/textures/gomi_station/nadegg_eye_glint.png" and material.albedo_color == Color.WHITE, "星形目の画像または白色が違います")
 			assert(not material.no_depth_test and material.billboard_mode == BaseMaterial3D.BILLBOARD_DISABLED and material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR, "星形目の深度設定が違います")
 			assert(material.texture_filter == BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS and material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "星形目の表示設定が違います")
-			assert(((glint as MeshInstance3D).mesh as QuadMesh).size.x > 0.065, "星形目が従来より小さくなっています")
+			assert(((glint as MeshInstance3D).mesh as QuadMesh).size.x > 0.055, "星形目が従来より小さくなっています")
 			var center: Vector3 = glint.position
 			eye_centers.append(center)
-			assert(center.y > 0.03 and center.z < -0.06, "星形目が頭部の前面を向いていません")
-			assert(absf(center.z + 0.1008) < 0.0001, "星形目が黄色い頭部の一番前の面にありません")
+			assert(center.y > 0.01 and center.z < -0.06, "星形目が頭部の前面を向いていません")
+			assert(absf(center.z + 0.0828) < 0.0001, "星形目が黄色い頭部の一番前の面にありません")
 			assert(glint.basis.z.normalized().dot(Vector3.FORWARD) > 0.999 and absf(glint.basis.y.normalized().dot(Vector3.UP)) > 0.999, "星形目の板が正面を向いて地面に垂直に立っていません")
 			var eye_scale := float(eyes.get_meta("eye_scale"))
 			assert(is_equal_approx(glint.scale.x, glint.scale.y) and glint.scale.x / eye_scale > 0.89 and glint.scale.x / eye_scale < 1.11, "星形目の拡大縮小が縦横でそろっていません")
-		assert(absf(eye_centers[1].x - eye_centers[0].x - 0.0767) < 0.004, "二つの星形目が重なっています")
+		assert(absf(eye_centers[1].x - eye_centers[0].x - 0.0553) < 0.004, "二つの星形目が重なっています")
 		assert(eye_centers[1].normalized().dot(Vector3.LEFT) < 0.0, "横から見た右目が頭部に隠れません")
 	await _screenshot("ed3_glint_frame")
 	await create_timer(0.75).timeout

@@ -38,11 +38,11 @@ const ORBIT_RADIUS := 1.8
 const ORBIT_RADIUS_SPEED := 1.0
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
-const NADEGG_HEAD_CENTER := Vector3(0, 0.12, 0)
-const NADEGG_HEAD_RADIUS := 0.10
+const NADEGG_HEAD_CENTER := Vector3(0, 0.135, 0)
+const NADEGG_HEAD_RADIUS := 0.082
 const EYE_SURFACE_OFFSET := 0.0008
 # 目の画像は球面に沿わせず、頭部に接する平らな板にする。
-const EYE_SIZE := Vector2(1024.0 * 0.000100 * 0.80, 1024.0 * 0.000100 * 0.65)
+const EYE_SIZE := Vector2(1024.0 * 0.000100 * 0.80, 1024.0 * 0.000100 * 0.65) * 0.72
 # 目は光がまたたくように、全体が大きくなったり小さくなったりする。
 const EYE_PULSE_AMOUNT := 0.10
 const EYE_PULSE_PERIOD := 0.6
@@ -514,7 +514,7 @@ func _prepare_ambush() -> void:
 		# 黄色い頭部の前面に星形画像の板を接して置き、横からは頭部自身の深度で隠す。
 		eyes.position = NADEGG_HEAD_CENTER
 		actor.add_child(eyes)
-		for x in [-0.038, 0.038]:
+		for x in [-0.0274, 0.0274]:
 			var glint := MeshInstance3D.new()
 			glint.name = "LeftEye" if x < 0 else "RightEye"
 			glint.mesh = eye_quad
@@ -546,7 +546,7 @@ func _set_eye_scale(size: float, eyes: Node3D) -> void:
 
 
 func _eye_forward(x: float) -> Vector3:
-	return Vector3(x, 0.055, -sqrt(NADEGG_HEAD_RADIUS * NADEGG_HEAD_RADIUS - x * x - 0.055 * 0.055)).normalized()
+	return Vector3(x, 0.015, -sqrt(NADEGG_HEAD_RADIUS * NADEGG_HEAD_RADIUS - x * x - 0.015 * 0.015)).normalized()
 
 
 # 見えている目を、全体が大きくなったり小さくなったりするように動かす。
