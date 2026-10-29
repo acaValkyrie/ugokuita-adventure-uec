@@ -130,8 +130,11 @@ func _verify_nadegg_size(contents: Node) -> bool:
 		return false
 	for browser in contents.get_node("Browsers").get_children():
 		var bounds := _bounds(browser.get_node("Model"))
-		var radius: float = (browser.get_node("CollisionShape3D").shape as SphereShape3D).radius
-		if not bounds.size.is_equal_approx(reference.size) or not is_equal_approx(radius, 0.115):
+		var collision := browser.get_node("CollisionShape3D") as CollisionShape3D
+		var capsule := collision.shape as CapsuleShape3D
+		if not bounds.size.is_equal_approx(reference.size) or capsule == null \
+				or not is_equal_approx(capsule.radius, 0.087) or not is_equal_approx(capsule.height, 0.22) \
+				or not collision.position.is_equal_approx(Vector3(0, 0.11, 0)):
 			push_error("体育館のNadeggと寸法または衝突サイズが不一致")
 			gym.free()
 			return false
