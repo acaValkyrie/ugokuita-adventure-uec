@@ -18,9 +18,11 @@ const COLLIDABLE_SOURCES := ["Gym.fbx"]
 const MATERIAL_OVERRIDES := {
 	"Oak": "res://assets/textures/wooden_floor_01/wooden_floor_01.tres",
 }
-# NadeggMini.obj は MTL に依存せず、Top/Bottom の名前で旧モデルの色を付ける
+# NadeggMini.obj は MTL に依存せず、Top/Shell/Eyes/Bottom の名前で頭を黄色、殻と底を白、目を黒にする
 const NADEGG_MATERIAL_COLORS := {
 	"Top": Color(0.9482, 0.9482, 0.2503),
+	"Shell": Color(0.9843, 0.9843, 0.979),
+	"Eyes": Color(0.05, 0.05, 0.05),
 	"Bottom": Color(0.9843, 0.9843, 0.979),
 }
 
