@@ -10,6 +10,9 @@
 [ext_resource type="PackedScene" path="res://gomi_station_contents.tscn" id="7_contents"]
 [ext_resource type="Script" path="res://gomi_ending.gd" id="8_ending"]
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_stairs_ramp"]
+size = Vector3(36.028336, 1.3, 0.2)
+
 [node name="GomiStation" type="StaticBody3D" unique_id=1597494071]
 script = ExtResource("4_gomi_station")
 
@@ -32,6 +35,11 @@ mesh = ExtResource("6_outside_stairs")
 
 [node name="Collision" type="CollisionShape3D" parent="." unique_id=1523891973]
 shape = ExtResource("2_gomi_collision")
+
+; 中から外へ伸びる長い階段を、タイヤで上れるように段の角を結ぶ坂（34.5°）にする。見た目は階段のまま
+[node name="StairsRamp" type="CollisionShape3D" parent="."]
+transform = Transform3D(-0.82404194, 0, -0.566528799, 0, 1, 0, 0.566528799, 0, -0.82404194, -10.7610829, 7.85, 10.1331408)
+shape = SubResource("BoxShape3D_stairs_ramp")
 
 [node name="SurplusContents" parent="." instance=ExtResource("7_contents")]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
