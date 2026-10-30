@@ -19,6 +19,7 @@ var _gomi_added_ms: int = -1
 var _mat_warmup_logged: bool = false
 var _mat_gomi_logged: bool = false
 var _mat_run: int = 0
+var _mat_default: StandardMaterial3D = StandardMaterial3D.new()
 var _warmup_started: bool = false
 var _warmup_view: int = -1
 var _first_scene: bool = false
@@ -235,30 +236,35 @@ func _log_materials() -> void:
 		var a_count: int = groups[a]["objects"].size()
 		var b_count: int = groups[b]["objects"].size()
 		return a_count > b_count if a_count != b_count else a < b)
+	var index: int = 0
 	for key: String in keys:
+		index += 1
 		var group: Dictionary = groups[key]
-		_log("mat %d n=%d uniq=%d key=%s ex=%s res=%s" % [
-			_mat_run, group["instances"], group["objects"].size(), key,
-			";".join(group["paths"]), group["resource_path"]])
+		var stats: String = ""
+		if group["base_material"]:
+			stats = " tex_albedo=%d tex_normal=%d emis=%d emis_max=%.3f" % [
+				group["tex_albedo"], group["tex_normal"], group["emis"], group["emis_max"]]
+		_log("mat %d #%d n=%d uniq=%d key=%s%s" % [
+			_mat_run, index, group["instances"], group["objects"].size(), key, stats])
+		for path: String in group["paths"]:
+			_log("matex %d #%d %s" % [_mat_run, index, path])
+		for resource_path: String in group["resource_paths"]:
+			_log("matres %d #%d %s" % [_mat_run, index, resource_path])
 	_log("mat %d groups=%d" % [_mat_run, keys.size()])
 
 func _scan_materials(node: Node, groups: Dictionary) -> void:
 	if node is GeometryInstance3D:
-		_record_material_chain(node.material_override, node, groups)
-		if node is MeshInstance3D and node.mesh != null:
+		if node.material_override != null:
+			_record_material_chain(node.material_override, node, groups)
+		elif node is MeshInstance3D and node.mesh != null:
 			for surface: int in range(node.mesh.get_surface_count()):
-				# 同じ面を複数のAPIから得た場合だけ重複を除く。
-				var materials: Array[Material] = [node.get_surface_override_material(surface),
-					node.mesh.surface_get_material(surface), node.get_active_material(surface)]
-				var seen: Dictionary = {}
-				for material: Material in materials:
-					if material != null and not seen.has(material.get_instance_id()):
-						seen[material.get_instance_id()] = true
-						_record_material_chain(material, node, groups)
+				_record_material_chain(node.get_active_material(surface), node, groups)
 		elif node is MultiMeshInstance3D and node.multimesh != null and node.multimesh.mesh != null:
 			var mesh: Mesh = node.multimesh.mesh
 			for surface: int in range(mesh.get_surface_count()):
 				_record_material_chain(mesh.surface_get_material(surface), node, groups)
+		if node.material_overlay != null:
+			_record_material_chain(node.material_overlay, node, groups)
 		if node is SpriteBase3D or node is Label3D:
 			var key: String = "SpriteBase3D alpha_cut=%s billboard=%s shaded=%s double_sided=%s transparent=%s texture_filter=%s" % [
 				node.get("alpha_cut"), node.get("billboard"), node.get("shaded"),
@@ -275,23 +281,36 @@ func _record_material_chain(material: Material, node: Node, groups: Dictionary) 
 		if seen.has(object_id):
 			break
 		seen[object_id] = true
-		_record_material_key(_material_key(material), object_id, node, material.resource_path, groups)
+		_record_material_key(_material_key(material), object_id, node, material.resource_path, groups, material)
 		material = material.next_pass
 
-func _record_material_key(key: String, object_id: int, node: Node, resource_path: String, groups: Dictionary) -> void:
+func _record_material_key(key: String, object_id: int, node: Node, resource_path: String, groups: Dictionary, material: Material = null) -> void:
 	if not groups.has(key):
-		groups[key] = {"instances": 0, "objects": {}, "paths": PackedStringArray(), "resource_path": ""}
+		groups[key] = {"instances": 0, "objects": {}, "paths": PackedStringArray(), "resource_paths": PackedStringArray(),
+			"base_material": material is BaseMaterial3D, "tex_albedo": 0, "tex_normal": 0, "emis": 0, "emis_max": 0.0}
 	var group: Dictionary = groups[key]
 	group["instances"] += 1
-	if object_id != 0:
+	if object_id != 0 and not group["objects"].has(object_id):
 		group["objects"][object_id] = true
+		if material is BaseMaterial3D:
+			if material.get_texture(BaseMaterial3D.TEXTURE_ALBEDO) != null:
+				group["tex_albedo"] += 1
+			if material.get_texture(BaseMaterial3D.TEXTURE_NORMAL) != null:
+				group["tex_normal"] += 1
+			if material.get_feature(BaseMaterial3D.FEATURE_EMISSION):
+				group["emis"] += 1
+				var emission: Color = material.emission
+				var intensity: float = maxf(emission.r, maxf(emission.g, emission.b)) * material.emission_energy_multiplier
+				group["emis_max"] = maxf(group["emis_max"], intensity)
 	var paths: PackedStringArray = group["paths"]
 	var path: String = str(get_tree().root.get_path_to(node))
-	if paths.size() < 3 and not paths.has(path):
+	if paths.size() < 8 and not paths.has(path):
 		paths.append(path)
 		group["paths"] = paths
-	if group["resource_path"] == "" and resource_path != "":
-		group["resource_path"] = resource_path
+	var resource_paths: PackedStringArray = group["resource_paths"]
+	if resource_path != "" and resource_paths.size() < 5 and not resource_paths.has(resource_path):
+		resource_paths.append(resource_path)
+		group["resource_paths"] = resource_paths
 
 func _material_key(material: Material) -> String:
 	if material is ShaderMaterial:
@@ -302,26 +321,35 @@ func _material_key(material: Material) -> String:
 	if not material is BaseMaterial3D:
 		return material.get_class()
 	var parts: PackedStringArray = [material.get_class()]
-	var properties: Array[StringName] = [&"shading_mode", &"diffuse_mode", &"specular_mode", &"transparency",
-		&"blend_mode", &"cull_mode", &"depth_draw_mode", &"no_depth_test", &"vertex_color_use_as_albedo",
-		&"vertex_color_is_srgb", &"texture_filter", &"texture_repeat", &"billboard_mode", &"use_point_size",
-		&"fixed_size", &"disable_ambient_light", &"disable_fog", &"disable_receive_shadows", &"shadow_to_opacity"]
-	for property_name: StringName in properties:
-		parts.append("%s=%s" % [property_name, material.get(property_name)])
+	if material is ORMMaterial3D:
+		parts.append("orm")
+	var properties: Array[StringName] = [&"texture_filter", &"detail_uv_layer", &"transparency", &"alpha_antialiasing_mode",
+		&"shading_mode", &"blend_mode", &"depth_draw_mode", &"depth_test", &"cull_mode", &"diffuse_mode",
+		&"specular_mode", &"billboard_mode", &"detail_blend_mode", &"roughness_texture_channel", &"emission_operator",
+		&"distance_fade_mode", &"stencil_mode", &"heightmap_deep_parallax", &"grow", &"proximity_fade_enabled"]
+	var names: PackedStringArray = ["tf", "duv", "tr", "aa", "sh", "bl", "dd", "dt", "cu", "di",
+		"sp", "bi", "db", "rc", "eo", "df", "st", "hp", "gr", "pf"]
+	for index: int in range(properties.size()):
+		var property_name: StringName = properties[index]
+		var value: Variant
+		var default_value: Variant
+		if property_name == &"depth_test":
+			value = _property(material, &"depth_test", "n/a")
+			default_value = _property(_mat_default, &"depth_test", "n/a")
+		elif property_name == &"stencil_mode":
+			value = _property(material, &"stencil_mode", "n/a")
+			default_value = _property(_mat_default, &"stencil_mode", "n/a")
+		else:
+			value = material.get(property_name)
+			default_value = _mat_default.get(property_name)
+		if value != default_value:
+			parts.append("%s=%s" % [names[index], value])
 	for feature: int in range(BaseMaterial3D.FEATURE_MAX):
-		if material.get_feature(feature):
+		if material.get_feature(feature) and not _mat_default.get_feature(feature):
 			parts.append("f%d" % feature)
 	for flag: int in range(BaseMaterial3D.FLAG_MAX):
-		if material.get_flag(flag):
+		if material.get_flag(flag) and not _mat_default.get_flag(flag):
 			parts.append("g%d" % flag)
-	var textures: Dictionary = {"albedo": BaseMaterial3D.TEXTURE_ALBEDO, "normal": BaseMaterial3D.TEXTURE_NORMAL,
-		"roughness": BaseMaterial3D.TEXTURE_ROUGHNESS, "metallic": BaseMaterial3D.TEXTURE_METALLIC,
-		"emission": BaseMaterial3D.TEXTURE_EMISSION, "ao": BaseMaterial3D.TEXTURE_AMBIENT_OCCLUSION}
-	for texture_name: String in textures:
-		if material.get_texture(textures[texture_name]) != null:
-			parts.append("t:" + texture_name)
-	parts.append("roughness_texture_channel=%s" % material.roughness_texture_channel)
-	parts.append("metallic_texture_channel=%s" % material.metallic_texture_channel)
 	return " ".join(parts)
 
 func _try_start(now: int) -> void:

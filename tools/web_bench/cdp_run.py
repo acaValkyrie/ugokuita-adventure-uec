@@ -154,7 +154,7 @@ INSTRUMENT = r"""(() => {
  } catch (_) {}
  const record = (level, args) => {
    if (log.console.length < 3000) log.console.push([Math.round(performance.now()), level,
-     args.map(x => { try { return String(x); } catch (_) { return '[unprintable]'; } }).join(' ').slice(0,500)]);
+     args.map(x => { try { return String(x); } catch (_) { return '[unprintable]'; } }).join(' ').slice(0,4000)]);
  };
  for (const level of ['log','info','warn','error']) {
    const original = console[level];
