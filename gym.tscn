@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://assets/models/Gym.fbx" id="1_gym"]
-[ext_resource type="PackedScene" uid="uid://2vy4s7wyledn" path="res://assets/models/NadeggMini.glb" id="2_nadegg"]
+[ext_resource type="PackedScene" uid="uid://d3nvfc6odb3mn" path="res://gomi_nadegg.tscn" id="2_nadegg"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_doorway"]
 size = Vector3(1, 1.6, 1.9)
@@ -107,5 +107,7 @@ collision_mask = 1
 shape = SubResource("BoxShape3D_doorway")
 
 [node name="Nadegg" parent="." instance=ExtResource("2_nadegg")]
-position = Vector3(11.5, 0.2965, -17.5)
-scale = Vector3(3.86, 3.86, 3.86)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 11.5, 0.2, -17.5)
+
+[node name="NadeggMini" parent="Nadegg/Model" index="0"]
+layers = 1024
