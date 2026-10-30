@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://d3nvfc6odb3mn"]
 
-[ext_resource type="PackedScene" uid="uid://ybwns6fubdgl" path="res://assets/models/NadeggMini.obj" id="1_nadegg"]
+[ext_resource type="PackedScene" uid="uid://2vy4s7wyledn" path="res://assets/models/NadeggMini.glb" id="1_nadegg"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.087
@@ -10,18 +10,9 @@ height = 0.22
 collision_mask = 0
 
 [node name="Model" parent="." unique_id=994303801 instance=ExtResource("1_nadegg")]
-transform = Transform3D(3.86, 0, 0, 0, -1.6872596e-07, 3.86, 0, -3.86, -1.6872596e-07, 0, 0.0965, 0)
+transform = Transform3D(3.86, 0, 0, 0, 3.86, 0, 0, 0, 3.86, 0, 0.0965, 0)
 
-[node name="Top" parent="Model" index="0" unique_id=1955034904]
-layers = 1
-
-[node name="Shell" parent="Model" index="1" unique_id=227438217]
-layers = 1
-
-[node name="Eyes" parent="Model" index="2" unique_id=660788711]
-layers = 1
-
-[node name="Bottom" parent="Model" index="3" unique_id=1394657002]
+[node name="NadeggMini" parent="Model" index="0" unique_id=5318490]
 layers = 1
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=937798547]

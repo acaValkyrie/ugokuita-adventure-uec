@@ -1,7 +1,7 @@
 @tool
 extends EditorScenePostImport
 
-# 体育館（Gym.fbx）と、中に置く物（NadeggMini.obj）の取り込み時に、向きと見た目と当たり判定を整える
+# 体育館（Gym.fbx）と、中に置く物（NadeggMini.glb）の取り込み時に、向きと見た目と当たり判定を整える
 # Fusion から書き出したデータは Z が上なので、Godot の Y が上に合わせて向きを直す
 
 # 木の日なた判定の光線を遮る物理レイヤー（レイヤー3）
@@ -18,18 +18,12 @@ const COLLIDABLE_SOURCES := ["Gym.fbx"]
 const MATERIAL_OVERRIDES := {
 	"Oak": "res://assets/textures/wooden_floor_01/wooden_floor_01.tres",
 }
-# NadeggMini.obj は MTL に依存せず、Top/Shell/Eyes/Bottom の名前で頭を黄色、殻と底を白、目を黒にする
-const NADEGG_MATERIAL_COLORS := {
-	"Top": Color(0.9482, 0.9482, 0.2503),
-	"Shell": Color(0.9843, 0.9843, 0.979),
-	"Eyes": Color(0.05, 0.05, 0.05),
-	"Bottom": Color(0.9843, 0.9843, 0.979),
-}
 
 
 func _post_import(scene: Node) -> Object:
-	# Fusion の (x, y, z) を Godot の (x, z, -y) へ。X 軸まわりに -90°回す
-	if scene is Node3D:
+	# glb は Blender から Y が上の設定で書き出すため回さない
+	# それ以外は Fusion の (x, y, z) を Godot の (x, z, -y) へ。X 軸まわりに -90°回す
+	if scene is Node3D and get_source_file().get_extension() != "glb":
 		scene.transform.basis = Basis(Vector3.RIGHT, -PI / 2.0)
 
 	var overrides := {}
@@ -41,17 +35,9 @@ func _post_import(scene: Node) -> Object:
 		overrides[material_name] = loaded
 
 	var collidable: bool = get_source_file().get_file() in COLLIDABLE_SOURCES
-	var is_nadegg: bool = get_source_file().get_file() == "NadeggMini.obj"
 	var meshes: Array[MeshInstance3D] = []
 	_collect_meshes(scene, meshes)
 	for mi in meshes:
-		if is_nadegg and NADEGG_MATERIAL_COLORS.has(String(mi.name)):
-			var material := StandardMaterial3D.new()
-			material.albedo_color = NADEGG_MATERIAL_COLORS[String(mi.name)]
-			material.roughness = 1.0
-			material.metallic = 0.0
-			material.metallic_specular = 0.5
-			mi.material_override = material
 		for i in mi.mesh.get_surface_count():
 			var material := mi.get_active_material(i)
 			if material != null and overrides.has(material.resource_name):
