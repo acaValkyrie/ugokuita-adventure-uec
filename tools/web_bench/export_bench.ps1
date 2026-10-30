@@ -2,6 +2,7 @@
 param(
 	[Parameter(Mandatory = $true)]
 	[string]$Out,
+	[string]$Script = 'web_bench.gd',
 	[string]$Godot = 'D:\Downloads\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64_console.exe'
 )
 
@@ -10,7 +11,7 @@ $originalLocation = Get-Location
 $outPath = [System.IO.Path]::GetFullPath($Out)
 $presetPath = Join-Path $repoRoot 'export_presets.cfg'
 $projectPath = Join-Path $repoRoot 'project.godot'
-$benchSource = Join-Path $PSScriptRoot 'web_bench.gd'
+$benchSource = Join-Path $PSScriptRoot $Script
 $tempScript = Join-Path $repoRoot 'web_bench_tmp.gd'
 $tempUid = "$tempScript.uid"
 $indexHtml = Join-Path $outPath 'index.html'
