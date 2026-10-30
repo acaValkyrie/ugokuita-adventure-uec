@@ -5,6 +5,8 @@ extends CanvasLayer
 # 前のカメラの視点で、プレイヤーの効果（ドリフトの帯、火花、ジェット、集中線）も一度描く。
 # 看板の白枠とヒント（近づくまで隠れている）も、先読みの間だけ出して描かせる。
 # 後から読み込む階段・倉庫・Classic の材質も、代わりの小さな物体で先に描く。
+# シーンにある材質も種類ごとに小さな板で描き、隠れている物体のシェーダーも先に作る。
+# 読み込み画面を先に出すため、先読みを始めるまではルートの3D描画を止める。
 
 # タイルに分ける範囲は Map.WORLD_RECT（x / z の範囲）を使う
 # 1辺のタイルの数
@@ -21,6 +23,8 @@ const EFFECT_FRAMES := 4
 const START_WAIT_FRAMES := 3
 # シーンはあるのにプレイヤーが居ないまま、このフレーム数たったら先読みをやめて画面を消す
 const NO_PLAYER_GIVE_UP_FRAMES := 30
+# ウォームアップ用の板だけを描くレンダーレイヤー20
+const KIND_LAYER := 1 << 19
 
 # 読み込み画面の見た目（DOS のような黒い画面に文字が並ぶ）
 const TERM_FONT := preload("res://assets/fonts/vt323/VT323-Regular.ttf")
@@ -42,6 +46,11 @@ var _prev_camera: Camera3D
 var _views: Array[Transform3D] = []
 var _view_index := 0
 var _view_frames := 0
+# シーンの材質を描く視点の開始番号（無ければ -1）
+var _kind_view_index := -1
+var _tile_view_index := 0
+var _kind_materials: Array[Material] = []
+var _kind_mesh: MeshInstance3D
 # 効果の視点の番号（無ければ -1）
 var _effects_view_index := -1
 # 代わりの物体を描く視点の開始番号（無ければ -1）
@@ -62,6 +71,10 @@ var _term: RichTextLabel
 
 
 func _ready() -> void:
+	# Web の Compatibility では、最初のキャンパスの3D描画でシェーダーを作る間、
+	# ブラウザの再描画が約22秒止まり、2DのDOS読み込み画面も出せなくなる。
+	# 先に読み込み画面を出せるよう、先読みを始めるまでは3D描画を止める。
+	get_tree().root.disable_3d = true
 	layer = 100
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_screen()
@@ -87,6 +100,7 @@ func _process(_delta: float) -> void:
 				else:
 					_wait_frames += 1
 					if _wait_frames >= NO_PLAYER_GIVE_UP_FRAMES:
+						get_tree().root.disable_3d = false
 						_screen.visible = false
 						_done = true
 						set_process(false)
@@ -127,10 +141,11 @@ func _setup_screen() -> void:
 
 # 始まった段階だけ、コマンドと進み具合の棒を並べる。最後の行はまたたくカーソル
 func _render_term() -> void:
-	var phases: Array = [
-		["LOAD CAMPUS.DAT", 0, GRID * GRID],
-		["SCAN GROUND.DAT", GRID * GRID, 4],
-	]
+	var phases: Array = []
+	if _kind_view_index >= 0:
+		phases.append(["COMPILE SHADERS.SYS", _kind_view_index, _kind_materials.size()])
+	phases.append(["LOAD CAMPUS.DAT", _tile_view_index, GRID * GRID])
+	phases.append(["SCAN GROUND.DAT", _tile_view_index + GRID * GRID, 4])
 	if _effects_view_index >= 0:
 		phases.append(["INIT EFFECTS.SYS", _effects_view_index, 1])
 	if _standin_view_index >= 0:
@@ -156,6 +171,7 @@ func _render_term() -> void:
 
 
 func _start() -> void:
+	get_tree().root.disable_3d = false
 	_screen.visible = true
 	get_tree().paused = true
 	_prev_camera = get_viewport().get_camera_3d()
@@ -178,9 +194,26 @@ func _start() -> void:
 	_state = State.RUNNING
 
 
-# 視点の一覧を先に作る（上空のタイル、地上の4方向、効果、代わりの物体）
+# 視点の一覧を先に作る（材質の種類、上空のタイル、地上の4方向、効果、代わりの物体）
 func _build_views() -> void:
 	_views.clear()
+	_kind_materials.clear()
+	_collect_scene_materials(get_tree().current_scene, {})
+	var ground_pos: Vector3
+	var kind_transform: Transform3D
+	if is_instance_valid(_prev_camera):
+		ground_pos = _prev_camera.global_position
+		kind_transform = _prev_camera.global_transform
+	else:
+		var player := get_tree().get_first_node_in_group("player") as Node3D
+		ground_pos = player.global_position + Vector3.UP * GROUND_VIEW_HEIGHT
+		kind_transform = Transform3D(Basis.IDENTITY, ground_pos)
+	_kind_view_index = -1
+	if not _kind_materials.is_empty():
+		_kind_view_index = 0
+		for _material in _kind_materials:
+			_views.append(kind_transform)
+	_tile_view_index = _views.size()
 	var rect: Rect2 = Map.WORLD_RECT
 	var tile := rect.size / float(GRID)
 	for iz in GRID:
@@ -189,12 +222,6 @@ func _build_views() -> void:
 			var pos := Vector3(center.x, TILE_HEIGHT, center.y)
 			# X 軸まわりに -90 度回して、-Z を真下に向ける
 			_views.append(Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), pos))
-	var ground_pos: Vector3
-	if is_instance_valid(_prev_camera):
-		ground_pos = _prev_camera.global_position
-	else:
-		var player := get_tree().get_first_node_in_group("player") as Node3D
-		ground_pos = player.global_position + Vector3.UP * GROUND_VIEW_HEIGHT
 	for yaw in [0.0, 90.0, 180.0, 270.0]:
 		_views.append(Transform3D(Basis(Vector3.UP, deg_to_rad(yaw)), ground_pos))
 	# 前のカメラそのものの視点で効果を描き、その後に代わりの物体を描く
@@ -219,6 +246,11 @@ func _build_views() -> void:
 func _apply_view() -> void:
 	_camera.global_transform = _views[_view_index]
 	_render_term()
+	if _kind_view_index >= 0 and _view_index < _tile_view_index:
+		_camera.cull_mask = KIND_LAYER
+		_show_kind_material(_kind_materials[_view_index - _kind_view_index])
+	else:
+		_camera.cull_mask = 0xFFFFF
 	if _view_index == _effects_view_index:
 		_begin_effects()
 	if _standin_view_index >= 0 and _view_index >= _standin_view_index:
@@ -232,6 +264,7 @@ func _step() -> void:
 	if _view_frames < frames:
 		return
 	_view_frames = 0
+	_hide_kind_material()
 	if _view_index == _effects_view_index:
 		_end_effects()
 	if _standin_view_index >= 0 and _view_index >= _standin_view_index:
@@ -244,6 +277,8 @@ func _step() -> void:
 
 
 func _finish() -> void:
+	_hide_kind_material()
+	_kind_materials.clear()
 	_hide_standins()
 	if _effects_active:
 		_end_effects()
@@ -259,6 +294,86 @@ func _finish() -> void:
 	_screen.visible = false
 	_done = true
 	set_process(false)
+
+
+# 見えているかどうかにかかわらず、シーンの材質を種類ごとに集める
+func _collect_scene_materials(node: Node, kinds: Dictionary) -> void:
+	if node is GeometryInstance3D and not (node is SpriteBase3D or node is Label3D or node is GPUParticles3D or node is CPUParticles3D):
+		var geometry := node as GeometryInstance3D
+		if geometry.material_override != null:
+			_collect_material_chain(geometry.material_override, kinds)
+		elif node is MeshInstance3D:
+			var mesh_instance := node as MeshInstance3D
+			if mesh_instance.mesh != null:
+				for surface in mesh_instance.mesh.get_surface_count():
+					_collect_material_chain(mesh_instance.get_active_material(surface), kinds)
+		_collect_material_chain(geometry.material_overlay, kinds)
+	for child in node.get_children():
+		_collect_scene_materials(child, kinds)
+
+
+# next_pass も描かれるので、同じ材質に戻るまで種類を調べる
+func _collect_material_chain(material: Material, kinds: Dictionary) -> void:
+	var visited := {}
+	while material != null:
+		var instance_id := material.get_instance_id()
+		if visited.has(instance_id):
+			break
+		visited[instance_id] = true
+		var key := _material_kind_key(material)
+		if not key.is_empty() and not kinds.has(key):
+			kinds[key] = true
+			_kind_materials.append(material)
+		material = material.next_pass
+
+
+# 色やテクスチャの違いはまとめて、シェーダーを変える設定だけで種類を分ける
+func _material_kind_key(material: Material) -> String:
+	if material is ShaderMaterial:
+		var shader_material := material as ShaderMaterial
+		if shader_material.shader == null:
+			return ""
+		return "S" + str(shader_material.shader.get_instance_id())
+	if material is BaseMaterial3D:
+		var base := material as BaseMaterial3D
+		var settings: Array = []
+		for property in [
+			"texture_filter", "detail_uv_layer", "transparency", "alpha_antialiasing_mode",
+			"shading_mode", "blend_mode", "depth_draw_mode", "cull_mode", "diffuse_mode",
+			"specular_mode", "billboard_mode", "detail_blend_mode", "roughness_texture_channel",
+			"emission_operator", "distance_fade_mode", "heightmap_deep_parallax", "grow",
+			"proximity_fade_enabled",
+		]:
+			settings.append(base.get(property))
+		for feature in BaseMaterial3D.FEATURE_MAX:
+			settings.append(base.get_feature(feature))
+		for flag in BaseMaterial3D.FLAG_MAX:
+			settings.append(base.get_flag(flag))
+		settings.append(base.get("no_depth_test"))
+		return "B:%s:%s" % [base.get_class(), str(settings)]
+	return ""
+
+
+# 実際の材質を小さな板に貼り、カメラのすぐ前で一度描かせる
+func _show_kind_material(material: Material) -> void:
+	_hide_kind_material()
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.5, 0.5)
+	_kind_mesh = MeshInstance3D.new()
+	_kind_mesh.mesh = quad
+	_kind_mesh.layers = KIND_LAYER
+	_kind_mesh.material_override = material
+	_kind_mesh.process_mode = Node.PROCESS_MODE_ALWAYS
+	_kind_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	get_tree().current_scene.add_child(_kind_mesh)
+	_kind_mesh.global_transform = Transform3D(_camera.global_basis, _camera.to_global(Vector3(0.0, 0.0, -2.0)))
+
+
+# 材質の視点を離れたら板を消す
+func _hide_kind_material() -> void:
+	if is_instance_valid(_kind_mesh):
+		_kind_mesh.queue_free()
+	_kind_mesh = null
 
 
 # プレイヤーの効果を一度描かせる（粒を出し、帯の材質に三角形を足し、集中線を出す）
