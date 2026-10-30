@@ -1252,6 +1252,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - 確認: 新倉庫の Nadegg を斜め前から撮って向きと色を見た。体育館の Nadegg は向きが立っていてレイヤー11 のままなのを値で見た。ED3 の中ではまだ見ていない。
 - ED3 を書き出して見たら、Nadegg が背中を向けていて、星形の目が後ろの殻に出ていた。ED3 は顔が -Z 向きの前提だが、NadeggMini は（OBJ のときから）顔が +Z 向きだった。`gomi_nadegg.tscn` の Model を Y 軸まわりに 180°回した（新倉庫の普段の3体も向きが変わる）。体育館の Nadegg は回していない。
 - ED3 の目は、目のくぼみの開口部（左右 ±0.0264m、高さ 0.183m、縁が前へ 0.052m。分割した OBJ の Eyes から測った）に合わせて、`NADEGG_HEAD_CENTER` を (0, 0.168, 0)、`NADEGG_HEAD_RADIUS` を 0.052、左右を ±0.0264 にした。`verify_gomi_ending.gd` の期待値も合わせ、通った。書き出した動画のコマで、星形の目が目のくぼみに重なるのを見た。
+- ユーザーの希望で星形の目を 1.5 倍にした（`EYE_SIZE` の倍率 0.72 → 1.08）。大きくすると光の筋が頭の丸みに隠れるので、`assets/shaders/eye_glint.gdshader` で深度だけカメラ側へ 4cm 寄せ、自分の頭には隠れず、それより手前の物とは前後で判定するようにした。このゲームは Compatibility 描画なので、奥行き（-1〜1）を 0〜1 に直して DEPTH に書く。確認: 目の 10cm 手前に赤い棒を置いた画像で、棒には隠れ、頭には隠れないのを見た。`verify_gomi_ending.gd` も通った。
 
 ## まだやっていないこと
 
