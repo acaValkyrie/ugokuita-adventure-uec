@@ -1,7 +1,9 @@
 import argparse
 import asyncio
+import base64
 import json
 import math
+import re
 import subprocess
 import time
 import urllib.error
@@ -329,7 +331,7 @@ async def run(args):
     if args.cold:
         flags.append("--disable-gpu-shader-disk-cache")
     process = subprocess.Popen(flags + ["about:blank"])
-    ws, cdp, jobs, profile_jobs = None, None, [], []
+    ws, cdp, jobs, profile_jobs, screenshot_jobs = None, None, [], [], []
     try:
         deadline = time.monotonic() + 30
         while True:
@@ -408,13 +410,42 @@ async def run(args):
             raise RuntimeError(navigation["errorText"])
         jobs = [asyncio.create_task(act(i, *action)) for i, action in enumerate(actions)]
         profile_jobs = [asyncio.create_task(profile_cpu(*profile)) for profile in profiles]
-        await asyncio.sleep(max(0, t_nav + args.seconds - time.monotonic()))
+        deadline = t_nav + args.seconds
+        if args.screenshot_on:
+            console_index, screenshot_count = 0, 0
+
+            async def capture_screenshot(number, message, due):
+                await asyncio.sleep(max(0, due - time.monotonic()))
+                screenshot = await cdp.send("Page.captureScreenshot", {"format": "png"})
+                out = Path(args.out)
+                slug = re.sub(r"[^A-Za-z0-9_]", "_", message)[:40]
+                screenshot_path = out.with_name(f"{out.stem}_shot_{number:02d}_{slug}.png")
+                screenshot_path.parent.mkdir(parents=True, exist_ok=True)
+                screenshot_path.write_bytes(base64.b64decode(screenshot["data"]))
+                print(f"Screenshot: {screenshot_path}")
+
+            while True:
+                entries = await evaluate(cdp, f"(window.__log?.console || []).slice({console_index})")
+                console_index += len(entries)
+                for entry in entries:
+                    message = entry[-1]
+                    if any(re.search(pattern, message) for pattern in args.screenshot_on):
+                        screenshot_count += 1
+                        screenshot_jobs.append(asyncio.create_task(capture_screenshot(
+                            screenshot_count, message, time.monotonic() + args.screenshot_delay)))
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                await asyncio.sleep(min(0.25, remaining))
+        else:
+            await asyncio.sleep(max(0, deadline - time.monotonic()))
         for job in jobs:
             if not job.done():
                 job.cancel()
         await asyncio.gather(*jobs)
         await asyncio.gather(*profile_jobs)
         page = json.loads(await evaluate(cdp, SNAPSHOT))
+        await asyncio.gather(*screenshot_jobs)
         output = {"args": vars(args), "settings": settings, "actions": results, "page": page,
                   "cpu_profiles": cpu_profiles}
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
@@ -435,11 +466,11 @@ async def run(args):
             if "[probe]" in line[2]:
                 print(*line)
     finally:
-        for job in jobs + profile_jobs:
+        for job in jobs + profile_jobs + screenshot_jobs:
             if not job.done():
                 job.cancel()
-        if jobs or profile_jobs:
-            await asyncio.gather(*jobs, *profile_jobs, return_exceptions=True)
+        if jobs or profile_jobs or screenshot_jobs:
+            await asyncio.gather(*jobs, *profile_jobs, *screenshot_jobs, return_exceptions=True)
         if cdp:
             try:
                 await asyncio.wait_for(cdp.send("Browser.close"), 3)
@@ -463,6 +494,8 @@ if __name__ == "__main__":
     parser.add_argument("--cold", action="store_true")
     parser.add_argument("--robot", choices=("keep", "neo", "classic"), default="keep")
     parser.add_argument("--seconds", type=float, default=60)
+    parser.add_argument("--screenshot-on", action="append", default=[])
+    parser.add_argument("--screenshot-delay", type=float, default=0.5)
     parser.add_argument("--out", required=True)
     parser.add_argument("--port", type=int, default=9333)
     parser.add_argument("--chrome", default=r"C:\Program Files\Google\Chrome\Application\chrome.exe")
