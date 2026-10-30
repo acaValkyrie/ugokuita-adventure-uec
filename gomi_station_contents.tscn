@@ -34,7 +34,6 @@ filter_clip = true
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bin"]
 albedo_texture = ExtResource("3_bin")
 roughness = 1.0
-cull_mode = 2
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_bin"]
 material = SubResource("StandardMaterial3D_bin")

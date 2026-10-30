@@ -12,6 +12,8 @@ const GYM_VISUAL_LAYER := 1 << 10
 # 当たり判定を付けるファイル名（それ以外は見た目だけ）
 const COLLIDABLE_SOURCES := ["Gym.fbx"]
 
+const MaterialSimplify := preload("res://assets/models/material_simplify.gd")
+
 # 差し替えるマテリアルの名前 → 差し替え先のマテリアルのパス
 # Fusion から書き出すと木目などの外観の画像が含まれず、色も黒になるため
 # 体育館の床には Poly Haven の wooden_floor_01（CC0）のフローリングを使う
@@ -52,6 +54,8 @@ func _post_import(scene: Node) -> Object:
 				# 機体・カメラとぶつかり（レイヤー1）、太陽の光線も遮る（レイヤー3）
 				body.collision_layer = 1 | SUN_OCCLUDER_LAYER
 				body.collision_mask = 0
+	var material_counts := MaterialSimplify.simplify(scene, true)
+	print("gym_import: %s: マテリアル %d 個のうち、発光を外した %d、頂点カラーを外した %d、片面にした %d" % [get_source_file().get_file(), material_counts.materials, material_counts.emission, material_counts.vertex_color, material_counts.cull])
 	return scene
 
 

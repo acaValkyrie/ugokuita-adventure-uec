@@ -92,6 +92,7 @@ const SIMPLIFY_MAX_ERROR := {
 
 # 基板の部品の取り除きと、基板に貼る画像の設定（bake_board_textures.gd と共有）
 const BoardParts := preload("res://assets/models/board_parts.gd")
+const MaterialSimplify := preload("res://assets/models/material_simplify.gd")
 
 # 残すノード（サブツリー全体と、その祖先）
 var _keep := {}
@@ -191,6 +192,7 @@ func _post_import(scene: Node) -> Object:
 		for i in mi.mesh.get_surface_count():
 			mi.set_surface_override_material(i, color_materials[color])
 		recolored_count += 1
+	var material_counts := MaterialSimplify.simplify(scene, true)
 	# 残すノードのパスが取り込み後のシーンに存在するか確かめる。1つでも無ければ何も変えない
 	for path in KEEP_SUBTREES[source_name] + SALVAGE_KEEP_SUBTREES.get(source_name, []):
 		var node := scene.get_node_or_null(NodePath(path))
@@ -278,7 +280,7 @@ func _post_import(scene: Node) -> Object:
 	for mi in scene.find_children("*", "MeshInstance3D", true, false):
 		mi.gi_mode = GeometryInstance3D.GI_MODE_DYNAMIC
 
-	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、三角形 %d -> %d、差し替えたマテリアル %d 面、取り除いた部品 %d 個、色を変えた部品 %d 個、向きを直した面 %d 枚、取り除いた基板の部品 %d 個" % [sources.size(), merged_count, kept_count, lod_count, triangles_before, triangles_after, _override_count, removed_count, recolored_count, flipped_count, board_part_count])
+	print("robot_merge_import: まとめた元メッシュ %d 個 -> %d 個、残したメッシュ %d 個、LOD合計 %d 段、三角形 %d -> %d、差し替えたマテリアル %d 面、取り除いた部品 %d 個、色を変えた部品 %d 個、向きを直した面 %d 枚、取り除いた基板の部品 %d 個、発光を外したマテリアル %d 個、頂点カラーを外したマテリアル %d 個、裏面カリングを有効にしたマテリアル %d 個" % [sources.size(), merged_count, kept_count, lod_count, triangles_before, triangles_after, _override_count, removed_count, recolored_count, flipped_count, board_part_count, material_counts.emission, material_counts.vertex_color, material_counts.cull])
 	if SIMPLIFY_MAX_ERROR.has(source_name):
 		_simplify_unmerged_meshes(scene, SIMPLIFY_MAX_ERROR[source_name])
 	return scene
