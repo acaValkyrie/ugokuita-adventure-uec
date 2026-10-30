@@ -1300,6 +1300,12 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - ロゴ（HTML の読み込みの棒が一杯）のまま止まるのを直した: 棒が一杯になってから約 28 秒、ブラウザは一度も描き直せていなかった（エンジンの起動とシーンの読み込み約 6 秒＋メインシーンの最初の1フレームでのシェーダー作り約 22 秒。Web 版はシングルスレッドで、シェーダーの完成待ちはメインスレッドで行うので、スレッドを増やしても縮まない）。
     - `shader_warmup.gd`: 先読みを始めるまで `get_tree().root.disable_3d` で3Dを描かず、最初のフレームでは DOS 画面だけを描く。先読みの最初に「COMPILE SHADERS.SYS」の段階を足し、シーンのマテリアルをシェーダーが変わる設定ごとに1つ選んで、カメラの前の小さな板に貼って1種類ずつ描く（カメラは描画レイヤー20だけを映し、板もレイヤー20に置くので、後ろのキャンパスは描かない）。
     - 効果（キャッシュ無し・Classic・50Mbps）: DOS 画面が出るのが 36.9 → 14.8 秒。ロゴのまま止まるのはエンジンの起動とシーンの読み込みの約 6 秒だけになった。DOS 画面の間は1回の停止が最大 3.9 秒で、そのたびに棒が進む（11 種類）。先読みの終わりは約 44 秒で、合計はほぼ変わらない。
+  - Godot の書き出しテンプレートを自前でビルドした（候補4）: `tools/web_template/skip_default_shader_variant.patch` で、Web のビルドだけ `ShaderGLES3::_initialize_version` が既定の組み合わせを作らないようにした（描画に要る組み合わせは `_version_bind_shader` がその場で作る。既定に頼る経路は `if (false)` で無効）。`tools/web_template/build_web_template.ps1` が Godot 4.7.1-stable の取得・改造の適用・ビルド（`platform=web target=template_release threads=no arch=wasm32 production=yes`、Emscripten 4.0.20＝公式と同じ）をして、`tools/web_template/web_nothreads_release.zip`（約 10MB、git に入れた）に置く。ビルドの置き場は `D:\document\Program\Godot\godot-web-build`（emsdk と Godot のソース）、所要 13 分。
+    - `export_presets.cfg` の「Web」の `custom_template/release` をこの zip にした。公開版の CI（`pages.yml`）の Godot も 4.7.1 にそろえた（前は 4.7）。
+    - 効果（キャッシュ無し・Classic・50Mbps、起動から100秒）: 作ったプログラム 137 → 54 個、完成待ちの合計 39.0 → 5.2 秒、1秒近くかかるもの 24 → 1 個、先読みの終わり（エンジンの起動から）43.9 → 9.2 秒。
+    - 見た目: `cdp_run.py --screenshot-on` で、先読みの直後・新倉庫の外・中の3場面を公式と自作のテンプレートで撮って比べ、約190万画素のうち15階調を超えて違うのは1画素だった。
+    - Godot を上げるときは、`build_web_template.ps1` の `-GodotTag` を変えて作り直し、パッチが当たるか確かめる。
+  - プロジェクト設定で光源の上限を下げる案（候補A）も測った: `limits/opengl/max_lights_per_object` 8 → 2、`max_renderable_lights` 32 → 8 で、遅いプログラム1個 1.41 → 1.21 秒、先読みの終わり 43.9 → 38.0 秒。体育館（点光源6個）の見た目が変わる恐れがあるので入れていない。自作のテンプレートのあとでは効く余地が小さい。
   - 残っている種類のうち、まとめると見た目が変わるもの（ユーザーの判断で保留）: ドリフトの帯（加算）とタイヤの跡（普通の半透明）の2種類、看板の選択中の白枠（光の影響を受けない）、屋外階段のフェード（半透明）、メダルの文字（Label3D）と絵（Sprite3D）。専用のシェーダー（木の葉・建物・プール・金網・水面）と、Classic の板（法線マップ付きの3方向投影）、新倉庫の棚の絵（ビルボード）はまとめられない。
 
 ## まだやっていないこと
