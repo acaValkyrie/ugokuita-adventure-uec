@@ -81,6 +81,18 @@ const REMOVED_WALL_EXPECTED_TRIS := 24
 
 # 建物の屋根・外壁の色（もとの外壁テクスチャの地の色）
 const BUILDING_COLOR := Color(0.77, 0.703, 0.621)
+# 専用のテクスチャで塗る建物（ノード名 → テクスチャの種類）。モデルの名前は入れ替わっていて、
+# hi_東図書館A が東3号館の高層棟、hi_東3号館 と hi_東図書館B が図書館にあたる
+const BUILDING_TEXTURE_KIND_BY_NODE := {
+	"hi_東図書館A": "e3",
+	"hi_東3号館": "library",
+	"hi_東図書館B": "library",
+}
+# テクスチャの種類ごとの、屋上のテクスチャ1枚の大きさ（m）と外壁のテクスチャ1枚の大きさ（m、横・縦）
+const BUILDING_TEXTURE_TILE_SIZES := {
+	"e3": [16.0, Vector2(3.6, 3.9)],
+	"library": [16.0, Vector2(4.0, 4.0)],
+}
 # 窓ガラスの色
 const WINDOW_COLOR := Color(0.32, 0.38, 0.45)
 # 窓とみなす面の条件: 周りの外壁からの奥行き（メートル）と、面の最大の幅・高さ（メートル）
@@ -617,7 +629,7 @@ func _assign_materials(node: Node, scene: Node) -> void:
 	elif node_name == "UEC壁":
 		_set_override_recursive(node, _get_ground_material("wall_top_concrete"))
 	elif node_name.begins_with("hi_") or node_name.begins_with("本館B"):
-		_set_override_recursive(node, _get_building_material())
+		_set_override_recursive(node, _get_building_material(BUILDING_TEXTURE_KIND_BY_NODE.get(node_name, "")))
 		_mark_windows(node, scene)
 
 
@@ -738,14 +750,20 @@ func _get_ground_material(kind: String) -> ShaderMaterial:
 	return material
 
 
-# 建物の屋根・外壁をまとめて塗る単色のマテリアルを返す（なければ作る）
-func _get_building_material() -> ShaderMaterial:
-	if not _material_cache.has("building"):
-		var material := _make_color_material(BUILDING_COLOR)
+# 建物の種類に応じた屋根・外壁のマテリアルを返す（空なら単色。なければ作る）
+func _get_building_material(kind: String = "") -> ShaderMaterial:
+	var key := "building" if kind.is_empty() else "building_" + kind
+	if not _material_cache.has(key):
+		var material: ShaderMaterial
+		if kind.is_empty():
+			material = _make_color_material(BUILDING_COLOR)
+		else:
+			var tile_sizes: Array = BUILDING_TEXTURE_TILE_SIZES[kind]
+			material = _make_material("roof_" + kind, "wall_" + kind, tile_sizes[0], tile_sizes[1])
 		material.set_shader_parameter("use_window_mask", true)
 		material.set_shader_parameter("window_color", WINDOW_COLOR)
-		_material_cache["building"] = material
-	return _material_cache["building"]
+		_material_cache[key] = material
+	return _material_cache[key]
 
 
 # 外壁より奥にへこんだ小さな鉛直の面を窓とみなし、その頂点カラーを黒にしたメッシュへ差し替える
