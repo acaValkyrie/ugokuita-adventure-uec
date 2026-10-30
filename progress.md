@@ -1243,6 +1243,14 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - `gym_import.gd` で `Shell` を `Bottom` と同じ白、`Eyes` を黒（0.05）にし、`gomi_nadegg.tscn` に `Shell`・`Eyes` の `layers = 1` を足した。
 - 確認: 斜め前から撮って、殻が白・頭が黄色・目が黒になったことを見た。作業中にエディタが固まったので落として、ヘッドレスで取り込み直した。
 
+## Nadegg をユーザーが Blender で塗った glb にした（2026-10-30）
+
+- ユーザーが自分で面をクリックして色を塗りたいとのことで、Blender 4.4 で塗る形にした。元データは `blender/NadeggMini.blend`（`.gdignore` 付きのフォルダ。Godot は取り込まない）。OBJ を Z が上のまま m 単位で読み、4部品を1つのオブジェクトにまとめ、Yellow・White・Black・Orange のマテリアルを用意して前の色を割り当てた状態で渡した。
+- ポリゴン数: Decimate（Collapse）で 30%（26564 → 7968 面）にした（ユーザーの判断）。15% だと殻にムラが出る。試して使わなかった方法: 外から光線を当てて見えない面を消す（殻の横の細いすき間の奥まで消えて中が抜けて見えた）、減らす前の法線を写す（くちばしや縁の角まで丸まった）。遠くの分は Godot の自動 LOD が効いている。
+- ユーザーが塗った結果（頭とくちばしと目のくぼみが黄、目の細い線が黒、殻と底が白）を glTF（Y が上）で `assets/models/NadeggMini.glb` に書き出した。`gym_import.gd` は glb を回さないようにし、Nadegg の色の上書きを消した。`gomi_nadegg.tscn` の Model に OBJ のときの回転が保存されていたので外した。OBJ と `tools/split_nadegg_obj.py` は消した。
+- Blender で塗り直したら、File → Export → glTF 2.0 で `assets/models/NadeggMini.glb` に上書きする（Format は glb、+Y Up のまま）。
+- 確認: 新倉庫の Nadegg を斜め前から撮って向きと色を見た。体育館の Nadegg は向きが立っていてレイヤー11 のままなのを値で見た。ED3 の中ではまだ見ていない。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
