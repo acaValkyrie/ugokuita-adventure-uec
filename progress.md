@@ -1250,6 +1250,8 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - ユーザーが塗った結果（頭とくちばしと目のくぼみが黄、目の細い線が黒、殻と底が白）を glTF（Y が上）で `assets/models/NadeggMini.glb` に書き出した。`gym_import.gd` は glb を回さないようにし、Nadegg の色の上書きを消した。`gomi_nadegg.tscn` の Model に OBJ のときの回転が保存されていたので外した。OBJ と `tools/split_nadegg_obj.py` は消した。
 - Blender で塗り直したら、File → Export → glTF 2.0 で `assets/models/NadeggMini.glb` に上書きする（Format は glb、+Y Up のまま）。
 - 確認: 新倉庫の Nadegg を斜め前から撮って向きと色を見た。体育館の Nadegg は向きが立っていてレイヤー11 のままなのを値で見た。ED3 の中ではまだ見ていない。
+- ED3 を書き出して見たら、Nadegg が背中を向けていて、星形の目が後ろの殻に出ていた。ED3 は顔が -Z 向きの前提だが、NadeggMini は（OBJ のときから）顔が +Z 向きだった。`gomi_nadegg.tscn` の Model を Y 軸まわりに 180°回した（新倉庫の普段の3体も向きが変わる）。体育館の Nadegg は回していない。
+- ED3 の目は、目のくぼみの開口部（左右 ±0.0264m、高さ 0.183m、縁が前へ 0.052m。分割した OBJ の Eyes から測った）に合わせて、`NADEGG_HEAD_CENTER` を (0, 0.168, 0)、`NADEGG_HEAD_RADIUS` を 0.052、左右を ±0.0264 にした。`verify_gomi_ending.gd` の期待値も合わせ、通った。書き出した動画のコマで、星形の目が目のくぼみに重なるのを見た。
 
 ## まだやっていないこと
 
