@@ -282,6 +282,12 @@ func _finish() -> void:
 	_hide_standins()
 	if _effects_active:
 		_end_effects()
+	for entry in _saved_particles:
+		var p := entry[0] as CPUParticles3D
+		if is_instance_valid(p):
+			p.process_mode = entry[1]
+			p.emitting = entry[2]
+	_saved_particles.clear()
 	for entry in _saved_world_particles:
 		if is_instance_valid(entry[0]):
 			entry[0].process_mode = entry[1]
@@ -405,18 +411,18 @@ func _begin_effects() -> void:
 	_effects_active = true
 
 
-# 効果を元に戻す
+# 効果を止め、残りの視点を描く間に粒を消す
 func _end_effects() -> void:
+	if not _effects_active:
+		return
 	for entry in _saved_particles:
 		var p := entry[0] as CPUParticles3D
 		if not is_instance_valid(p):
 			continue
 		p.emitting = false
-		p.restart()
-		p.emitting = false
-		p.process_mode = entry[1]
-		p.emitting = entry[2]
-	_saved_particles.clear()
+		# restart() は Godot 4.7.1 で一度更新して新しい粒を出すため使わない
+		p.amount = p.amount
+		# PROCESS_MODE_ALWAYS は先読みの終了まで保ち、停止中も粒を更新する
 	for mi in _warm_meshes:
 		if is_instance_valid(mi):
 			(mi.mesh as ImmediateMesh).clear_surfaces()
