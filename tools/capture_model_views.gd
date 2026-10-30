@@ -27,6 +27,8 @@ func _capture_all() -> void:
 			(layer as CanvasLayer).visible = false
 		for item: Node in child.find_children("*", "CanvasItem", true, false):
 			(item as CanvasItem).visible = false
+	# 撮影用の 3D 描画を有効にする。
+	root.disable_3d = false
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	if args.is_empty():
 		push_error("出力フォルダを指定してください。")
