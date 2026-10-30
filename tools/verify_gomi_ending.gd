@@ -155,10 +155,8 @@ func _verify() -> void:
 		var eye_centers: Array[Vector3] = []
 		for glint in eyes.get_children():
 			assert(glint is MeshInstance3D and (glint as MeshInstance3D).mesh is QuadMesh, "星形目が平らな板ではありません")
-			var material := (glint as MeshInstance3D).material_override as StandardMaterial3D
-			assert(material.albedo_texture.resource_path == "res://assets/textures/gomi_station/nadegg_eye_glint.png" and material.albedo_color == Color.WHITE, "星形目の画像または白色が違います")
-			assert(not material.no_depth_test and material.billboard_mode == BaseMaterial3D.BILLBOARD_DISABLED and material.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR, "星形目の深度設定が違います")
-			assert(material.texture_filter == BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS and material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "星形目の表示設定が違います")
+			var material := (glint as MeshInstance3D).material_override as ShaderMaterial
+			assert(material != null and material.shader.resource_path == "res://assets/shaders/eye_glint.gdshader" and (material.get_shader_parameter("glint_texture") as Texture2D).resource_path == "res://assets/textures/gomi_station/nadegg_eye_glint.png", "星形目のシェーダーまたは画像が違います")
 			assert(((glint as MeshInstance3D).mesh as QuadMesh).size.x > 0.055, "星形目が従来より小さくなっています")
 			var center: Vector3 = glint.position
 			eye_centers.append(center)

@@ -38,6 +38,7 @@ const ORBIT_RADIUS := 1.8
 const ORBIT_RADIUS_SPEED := 1.0
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
+const EYE_GLINT_SHADER := preload("res://assets/shaders/eye_glint.gdshader")
 # 目のくぼみの縁（高さ0.183m、前へ0.052m）に合わせる。
 const NADEGG_HEAD_CENTER := Vector3(0, 0.168, 0)
 const NADEGG_HEAD_RADIUS := 0.052
@@ -512,7 +513,7 @@ func _prepare_ambush() -> void:
 	for actor in _actors + _crowd:
 		var eyes := Node3D.new()
 		eyes.name = "MischievousEyes"
-		# 黄色い頭部の前面に星形画像の板を接して置き、横からは頭部自身の深度で隠す。
+		# 黄色い頭部の前面に星形画像の板を接して置き、前後の判定だけカメラ側へ寄せる。
 		eyes.position = NADEGG_HEAD_CENTER
 		actor.add_child(eyes)
 		for x in [-0.0264, 0.0264]:
@@ -523,14 +524,10 @@ func _prepare_ambush() -> void:
 			# 頭の一番前に接する面に置き、板の角が頭にめり込まないようにする。
 			var surface := _eye_forward(x) * (NADEGG_HEAD_RADIUS + EYE_SURFACE_OFFSET)
 			glint.transform = Transform3D(Basis(Vector3.UP, PI), Vector3(surface.x, surface.y, -(NADEGG_HEAD_RADIUS + EYE_SURFACE_OFFSET)))
-			var material := StandardMaterial3D.new()
-			material.albedo_texture = EYE_GLINT
-			material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-			material.alpha_scissor_threshold = 0.2
-			material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			material.cull_mode = BaseMaterial3D.CULL_DISABLED
-			material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-			material.no_depth_test = false
+			# 自分の頭には隠れず、手前の物とは前後で判定させるため、深度をずらすシェーダーを使う。
+			var material := ShaderMaterial.new()
+			material.shader = EYE_GLINT_SHADER
+			material.set_shader_parameter("glint_texture", EYE_GLINT)
 			glint.material_override = material
 			eyes.add_child(glint)
 		_set_eye_scale(1.0, eyes)
