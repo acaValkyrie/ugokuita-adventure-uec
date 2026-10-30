@@ -10,7 +10,7 @@ height = 0.22
 collision_mask = 0
 
 [node name="Model" parent="." unique_id=994303801 instance=ExtResource("1_nadegg")]
-transform = Transform3D(3.86, 0, 0, 0, 3.86, 0, 0, 0, 3.86, 0, 0.0965, 0)
+transform = Transform3D(-3.86, 0, 0, 0, 3.86, 0, 0, 0, -3.86, 0, 0.0965, 0)
 
 [node name="NadeggMini" parent="Model" index="0" unique_id=5318490]
 layers = 1
