@@ -27,6 +27,12 @@ jobs:
         with:
           lfs: true
 
+      # Web ビルドには OS フォントがなく、サブセットフォントの欠字が四角になるのでデプロイを止める
+      - name: Check font glyphs
+        run: |
+          pip install --quiet fonttools
+          python tools/check_font_glyphs.py
+
       # エンディングBGMは規約で公開できないので、暗号化して置いたものをシークレットの鍵で戻す
       - name: Decrypt ending BGM
         env:
