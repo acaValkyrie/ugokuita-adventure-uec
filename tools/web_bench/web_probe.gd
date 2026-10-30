@@ -15,6 +15,7 @@ var _last_mirror_ms: int = 0
 var _previous_us: int = 0
 var _previous_physics_frames: int = 0
 var _warmup_done_ms: int = -1
+var _particle_frame: int = -1
 var _gomi_added_ms: int = -1
 var _mat_warmup_logged: bool = false
 var _mat_gomi_logged: bool = false
@@ -80,6 +81,7 @@ func _process(_delta: float) -> void:
 	var physics_frames_delta: int = physics_frames - _previous_physics_frames
 	_previous_physics_frames = physics_frames
 	_observe_startup()
+	_observe_particles()
 	_observe_materials()
 	if elapsed_us > 50000:
 		_log("long %.1f proc=%.1f phys=%.1f rcpu=%.1f warm=%s/%s paused=%s dphys=%d" % [
@@ -205,6 +207,7 @@ func _observe_startup() -> void:
 	if _warmup_done_ms < 0 and is_instance_valid(_warmup) and bool(_warmup.get("_done")):
 		_warmup_done_ms = Time.get_ticks_msec()
 		_log("warmup_done")
+		_particle_frame = 0
 	var scene: Node = get_tree().current_scene
 	if is_instance_valid(scene):
 		if not _first_scene:
@@ -214,6 +217,24 @@ func _observe_startup() -> void:
 		if _gomi_added_ms < 0 and scene.find_child("GomiStation", false, false) != null:
 			_gomi_added_ms = Time.get_ticks_msec()
 			_log("gomi_added")
+
+func _observe_particles() -> void:
+	if _particle_frame < 0 or _particle_frame > 5:
+		return
+	var player: Node3D = get_tree().get_first_node_in_group("player") as Node3D
+	if is_instance_valid(player):
+		_scan_particles(get_tree().root, player.global_position)
+	_particle_frame += 1
+
+func _scan_particles(node: Node, player_position: Vector3) -> void:
+	if node is CPUParticles3D or node is GPUParticles3D:
+		var distance: float = node.global_position.distance_to(player_position)
+		if distance <= 15.0:
+			_log("ptc %d %s emitting=%s visible=%s pmode=%s can_process=%s amount=%s lifetime=%s local=%s dist=%.1f" % [
+				_particle_frame, get_tree().root.get_path_to(node), node.emitting, node.is_visible_in_tree(),
+				node.process_mode, node.can_process(), node.amount, node.lifetime, node.local_coords, distance])
+	for child: Node in node.get_children(true):
+		_scan_particles(child, player_position)
 
 func _observe_materials() -> void:
 	var now_ms: int = Time.get_ticks_msec()
