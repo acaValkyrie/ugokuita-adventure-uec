@@ -38,8 +38,9 @@ const ORBIT_RADIUS := 1.8
 const ORBIT_RADIUS_SPEED := 1.0
 const COMIC_FONT := preload("res://assets/fonts/noto_sans_jp_bold_ending.otf")
 const EYE_GLINT := preload("res://assets/textures/gomi_station/nadegg_eye_glint.png")
-const NADEGG_HEAD_CENTER := Vector3(0, 0.135, 0)
-const NADEGG_HEAD_RADIUS := 0.082
+# 目のくぼみの縁（高さ0.183m、前へ0.052m）に合わせる。
+const NADEGG_HEAD_CENTER := Vector3(0, 0.168, 0)
+const NADEGG_HEAD_RADIUS := 0.052
 const EYE_SURFACE_OFFSET := 0.0008
 # 目の画像は球面に沿わせず、頭部に接する平らな板にする。
 const EYE_SIZE := Vector2(1024.0 * 0.000100 * 0.80, 1024.0 * 0.000100 * 0.65) * 0.72
@@ -514,7 +515,7 @@ func _prepare_ambush() -> void:
 		# 黄色い頭部の前面に星形画像の板を接して置き、横からは頭部自身の深度で隠す。
 		eyes.position = NADEGG_HEAD_CENTER
 		actor.add_child(eyes)
-		for x in [-0.0274, 0.0274]:
+		for x in [-0.0264, 0.0264]:
 			var glint := MeshInstance3D.new()
 			glint.name = "LeftEye" if x < 0 else "RightEye"
 			glint.mesh = eye_quad
