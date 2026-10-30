@@ -1254,6 +1254,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 - ED3 の目は、目のくぼみの開口部（左右 ±0.0264m、高さ 0.183m、縁が前へ 0.052m。分割した OBJ の Eyes から測った）に合わせて、`NADEGG_HEAD_CENTER` を (0, 0.168, 0)、`NADEGG_HEAD_RADIUS` を 0.052、左右を ±0.0264 にした。`verify_gomi_ending.gd` の期待値も合わせ、通った。書き出した動画のコマで、星形の目が目のくぼみに重なるのを見た。
 - ユーザーの希望で星形の目を 1.5 倍にした（`EYE_SIZE` の倍率 0.72 → 1.08）。大きくすると光の筋が頭の丸みに隠れるので、`assets/shaders/eye_glint.gdshader` で深度だけカメラ側へ 4cm 寄せ、自分の頭には隠れず、それより手前の物とは前後で判定するようにした。このゲームは Compatibility 描画なので、奥行き（-1〜1）を 0〜1 に直して DEPTH に書く。確認: 目の 10cm 手前に赤い棒を置いた画像で、棒には隠れ、頭には隠れないのを見た。`verify_gomi_ending.gd` も通った。
 - 体育館の Nadegg には（Nadegg.fbx のときから）当たり判定が無かったので、glb を直接置くのをやめて `gomi_nadegg.tscn`（カプセルの当たり判定付き）を置いた。顔は今までどおり +Z の入口側に向けるため 180°回し、床の高さ 0.2 に置いた。見た目は体育館の中のレイヤー11（外の太陽を当てない）に上書きした。確認: 値で、底が床（0.2m）に接し、上からの光線が当たり判定の上端 0.42m に当たり、顔が +Z、レイヤーが 1024 なのを見た。ゲームの中で機体をぶつけてはいない。
+- これを main に push したら、公開版が起動中に落ちた（`Cannot open file 'res://gomi_nadegg.tscn'` のあと `RuntimeError: null function`）。`gomi_nadegg.tscn` は Web 版の本体（`Web` の `exclude_filter`）から外して `gomi.pck` に入れていたのに、本体に入る `gym.tscn` が使うようになったため。`exclude_filter` から `gomi_nadegg.tscn` を抜いて push し直し、公開版が起動すること、メニュー（音量・操作の設定の各項目・ロボットタイプ・セーブデータ）と地図に文字化けがないことを見た。本体に入るシーンから別 pck のファイルを使うようにするときは、`exclude_filter` も直す。
 
 ## まだやっていないこと
 
