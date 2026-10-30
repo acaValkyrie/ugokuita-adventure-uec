@@ -2,8 +2,9 @@ extends CanvasLayer
 # 起動直後に、読み込み中の画面の裏でキャンパス全体を一度描いて、シェーダーを先に作らせる。
 # Compatibility では初めて描いた瞬間にシェーダーを作るので、走り出してから止まるのを防ぐ。
 # 一時的なカメラを上空のタイルごとと、地上の4方向に向けて、各視点を数フレームずつ見せる。
-# 最後に前のカメラの視点で、プレイヤーの効果（ドリフトの帯、火花、ジェット、集中線）も一度描く。
+# 前のカメラの視点で、プレイヤーの効果（ドリフトの帯、火花、ジェット、集中線）も一度描く。
 # 看板の白枠とヒント（近づくまで隠れている）も、先読みの間だけ出して描かせる。
+# 後から読み込む階段・倉庫・Classic の材質も、代わりの小さな物体で先に描く。
 
 # タイルに分ける範囲は Map.WORLD_RECT（x / z の範囲）を使う
 # 1辺のタイルの数
@@ -43,11 +44,19 @@ var _view_index := 0
 var _view_frames := 0
 # 効果の視点の番号（無ければ -1）
 var _effects_view_index := -1
+# 代わりの物体を描く視点の開始番号（無ければ -1）
+var _standin_view_index := -1
+var _standin_kinds: Array[int] = []
 var _effects_active := false
 var _saved_particles: Array = []
 # シーンに置いた効果（噴水など）の粒の、元の process_mode
 var _saved_world_particles: Array = []
 var _warm_meshes: Array[MeshInstance3D] = []
+var _standin_nodes: Array[Node3D] = []
+# 最後の同設定の材質を解放するとシェーダーが再生成されるため、終了後も保持する。
+var _standin_resources: Array[Resource] = []
+var _standin_box: BoxMesh
+var _standin_texture: ImageTexture
 var _screen: ColorRect
 var _term: RichTextLabel
 
@@ -124,6 +133,8 @@ func _render_term() -> void:
 	]
 	if _effects_view_index >= 0:
 		phases.append(["INIT EFFECTS.SYS", _effects_view_index, 1])
+	if _standin_view_index >= 0:
+		phases.append(["LOAD EXTRA.DAT", _standin_view_index, _standin_kinds.size()])
 	var text := "UGOKUITA-OS v1.0\n(C) Ugokuita Project\n\n"
 	for phase in phases:
 		var start: int = phase[1]
@@ -167,7 +178,7 @@ func _start() -> void:
 	_state = State.RUNNING
 
 
-# 視点の一覧を先に作る（上空のタイルと、地上の4方向）
+# 視点の一覧を先に作る（上空のタイル、地上の4方向、効果、代わりの物体）
 func _build_views() -> void:
 	_views.clear()
 	var rect: Rect2 = Map.WORLD_RECT
@@ -186,11 +197,23 @@ func _build_views() -> void:
 		ground_pos = player.global_position + Vector3.UP * GROUND_VIEW_HEIGHT
 	for yaw in [0.0, 90.0, 180.0, 270.0]:
 		_views.append(Transform3D(Basis(Vector3.UP, deg_to_rad(yaw)), ground_pos))
-	# 最後に、前のカメラそのものの視点（効果を描く）
+	# 前のカメラそのものの視点で効果を描き、その後に代わりの物体を描く
 	_effects_view_index = -1
+	var standin_transform: Transform3D = _views.back()
 	if is_instance_valid(_prev_camera):
 		_effects_view_index = _views.size()
-		_views.append(_prev_camera.global_transform)
+		standin_transform = _prev_camera.global_transform
+		_views.append(standin_transform)
+	_standin_kinds.clear()
+	_standin_kinds.append(0)
+	_standin_kinds.append(1)
+	if GameMenu.robot_model == "classic":
+		_standin_kinds.append(2)
+	_standin_view_index = -1
+	if not _standin_kinds.is_empty():
+		_standin_view_index = _views.size()
+		for _kind in _standin_kinds:
+			_views.append(standin_transform)
 
 
 func _apply_view() -> void:
@@ -198,6 +221,8 @@ func _apply_view() -> void:
 	_render_term()
 	if _view_index == _effects_view_index:
 		_begin_effects()
+	if _standin_view_index >= 0 and _view_index >= _standin_view_index:
+		_show_standin(_standin_kinds[_view_index - _standin_view_index])
 
 
 # 各視点を FRAMES_PER_VIEW フレーム見せてから次へ進む
@@ -209,6 +234,8 @@ func _step() -> void:
 	_view_frames = 0
 	if _view_index == _effects_view_index:
 		_end_effects()
+	if _standin_view_index >= 0 and _view_index >= _standin_view_index:
+		_hide_standins()
 	_view_index += 1
 	if _view_index >= _views.size():
 		_finish()
@@ -217,6 +244,7 @@ func _step() -> void:
 
 
 func _finish() -> void:
+	_hide_standins()
 	if _effects_active:
 		_end_effects()
 	for entry in _saved_world_particles:
@@ -280,3 +308,67 @@ func _end_effects() -> void:
 	_warm_meshes.clear()
 	SpeedLines._rect.visible = false
 	_effects_active = false
+
+
+# 後から読み込む材質を、種類ごとに代わりの物体で一度描かせる
+func _show_standin(kind: int) -> void:
+	_hide_standins()
+	# 4x4 のテクスチャと BoxMesh は種類をまたいで共有する。
+	if _standin_box == null:
+		_standin_box = BoxMesh.new()
+		_standin_box.size = Vector3.ONE * 0.3
+		_standin_resources.append(_standin_box)
+	if _standin_texture == null:
+		var image := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+		image.fill(Color.WHITE)
+		_standin_texture = ImageTexture.create_from_image(image)
+		_standin_resources.append(_standin_texture)
+	var node: Node3D
+	match kind:
+		0:
+			# gomi.pck は読み込み画面の後にダウンロードされる。
+			# Compatibility のシェーダーは材質の設定で決まる。
+			var stair_material := StandardMaterial3D.new()
+			stair_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			stair_material.albedo_color = Color(1.0, 1.0, 1.0, 0.5)
+			_standin_resources.append(stair_material)
+			var stair := MeshInstance3D.new()
+			stair.mesh = _standin_box
+			stair.material_override = stair_material
+			node = stair
+		1:
+			var warehouse := Sprite3D.new()
+			warehouse.texture = _standin_texture
+			warehouse.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+			warehouse.shaded = true
+			warehouse.double_sided = true
+			warehouse.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+			warehouse.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			warehouse.pixel_size = 0.01
+			warehouse.scale = Vector3.ONE * 7.5
+			node = warehouse
+		2:
+			# classic.pck は読み込み画面の後にダウンロードされる。
+			var wood_material := StandardMaterial3D.new()
+			wood_material.roughness = 1.0
+			wood_material.normal_enabled = true
+			wood_material.uv1_triplanar = true
+			_standin_resources.append(wood_material)
+			var wood := MeshInstance3D.new()
+			wood.mesh = _standin_box
+			wood.material_override = wood_material
+			node = wood
+	if node == null:
+		return
+	node.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().current_scene.add_child(node)
+	node.global_position = _camera.to_global(Vector3(0.0, 0.0, -2.0))
+	_standin_nodes.append(node)
+
+
+# 現在の代わりの物体を消す。材質や共有リソースは保持する。
+func _hide_standins() -> void:
+	for node in _standin_nodes:
+		if is_instance_valid(node):
+			node.queue_free()
+	_standin_nodes.clear()
