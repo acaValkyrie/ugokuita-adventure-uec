@@ -1333,6 +1333,22 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - 案1（窓入りの外壁を窓の間隔に合わせる）: へこみのない面にも窓が並んで写真に近くなるが、へこみのある面ではモデルの窓とずれて二重になり、図書館は特に乱れた。
   - 案2（窓なしで腰壁の帯と縦の目地をはっきり描く）: ずれはないが、遠くでは無地との差が小さい。
 
+## ディレクトリの整理と疎結合化のリファクタリング（2026-11-02）
+
+- ユーザーの依頼。設計を Claude、実装を Codex、レビューと動作確認を Claude で分担した。ゲームの挙動と保存データの形式は変えていない。
+- ルート直下の .gd・.tscn を `src/` の下の機能別フォルダに移した: `core`（DeferredPacks・RenderQuality・ShaderWarmup・ScreenOrientation・TreeLook・GameSettings・InputGuard）、`ui`、`map`、`vehicle`（car.tscn・car_classic.tscn も）、`camera`、`world`（uec.tscn も）、`gym`、`gomi_station`、`progression`（PowerUps・Ending）。
+  - `main_scene.tscn` とライトマップ（.exr・.lmbake・_shadow.png）はルートに残した。.lmbake がバイナリの中に `res://main_scene.exr` などのパスを持っているため。焼き直すときに移せる。`main_scene.gdshader` はどこからも参照されていない。
+  - ルートのテスト用シーンは `tests/` へ。`test_stage.tscn` → `tests/vehicle_test_stage.tscn`（`tests/test_stage.tscn` と名前がぶつかるため）、`test.tscn` → `tests/flat_test.tscn`。
+  - `export_presets.cfg` の除外と分割 pck、CI が使うツール（`check_font_glyphs.py` など）のパスも付け替えた。`tools/web_bench/pack_deps.gd` で、本体から参照されるのに除外されているファイルがないことを確かめた。
+- 疎結合化:
+  - 機体の移動（体育館の出入り・リセット・デバッグの移動）と機体の切り替えが car.gd・respawn.gd の内部変数を外から書き換えていたのを、`Car.teleport()`・`reset_motion()`・`inherit_state_from()`・`get_respawn()` と `Respawn.reset_points()`・`copy_points_from()` にした（car.gd に `class_name Car`、respawn.gd に `class_name Respawn`）。体育館の出入りでも `_prev_velocity` が0になる。
+  - 「UI を閉じた直後は入力を無視する」判定を、GameMenu・Map・PowerUps の3か所から静的クラス `InputGuard` にまとめた。
+  - 設定（ボタン表記・決定とキャンセル・カメラの反転・機体・音量）と `user://settings.cfg` の読み書きを、GameMenu から新しい autoload の `GameSettings` に分けた。設定の変更シグナル（`robot_model_changed` など）も GameSettings から出る。
+  - ShaderWarmup が SpeedLines の `_rect` を直接触っていたのを `set_overlay_visible()` にした。ED3 の後始末の重複を関数にまとめた。
+- 確認: 全スクリプトとシーンの読み込み検査（`src/`・`tests/` の57個）、フォントの欠字検査、ED3 の検証ツール、エディタから起動して、メニューの開閉・走行・ジャンプ・Classic への切り替え・リセット・体育館の移動処理でエラーが出ないことを確かめた。
+  - これで ControlsHelp は GameMenu を見なくなり、GameMenu ⇄ ControlsHelp の相互参照がなくなった（GameMenu → ControlsHelp のアイコンの関数の呼び出しだけが残る）。
+- 残した候補: game_menu.gd（2431行）のキーとボタンの長押しの割り当て処理は、ほぼ同じ形が2つある。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
