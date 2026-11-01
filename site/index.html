@@ -58,12 +58,6 @@ a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
   .compare figure { flex: var(--ratio) 1 0; min-width: 0; }
 }
 h2 { font-size: 1.3rem; margin: 40px 0 16px; }
-.cards { display: grid; grid-template-columns: 1fr; gap: 12px; text-align: left; }
-@media (min-width: 640px) { .cards { grid-template-columns: repeat(3, 1fr); } }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
-.card h3 { margin: 0 0 6px; font-size: 1rem; color: var(--accent); }
-.card ul { margin: 0; padding: 0; list-style: none; font-size: 0.9rem; }
-.card li { padding: 2px 0; }
 footer { text-align: center; padding-top: 24px; padding-bottom: 40px; font-size: 0.9rem; }
 footer a { color: var(--accent); }
 .credits { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; text-align: left; font-size: 0.9rem; }
@@ -94,33 +88,6 @@ footer a { color: var(--accent); }
       <img src="./campus_game.webp" width="1149" height="643" loading="lazy" alt="ゲームの中で、同じ場所を動く板で走っている画面">
       <figcaption>ゲームの中</figcaption>
     </figure>
-  </div>
-
-  <h2>操作方法</h2>
-  <div class="cards">
-    <section class="card">
-      <h3>キーボード</h3>
-      <ul>
-        <li>W / S：前進 / 後退</li>
-        <li>A / D：ハンドル</li>
-        <li>矢印キー：視点移動</li>
-      </ul>
-    </section>
-    <section class="card">
-      <h3>コントローラ</h3>
-      <ul>
-        <li>RT / LT：前進 / 後退</li>
-        <li>左スティック：運転・ハンドル</li>
-        <li>右スティック：視点移動</li>
-      </ul>
-    </section>
-    <section class="card">
-      <h3>スマホ（タッチ）</h3>
-      <ul>
-        <li>1本指スワイプ：運転</li>
-        <li>2本指スワイプ：視点移動</li>
-      </ul>
-    </section>
   </div>
 
   <h2>クレジット</h2>
