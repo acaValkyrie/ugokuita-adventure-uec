@@ -961,16 +961,7 @@ func _add_real_part(cargo: Node3D, display_parts: Array) -> void:
 
 func _finish_scuffle() -> void:
 	_finishing_scuffle = true
-	for idle: Tween in _carrier_idle_tweens.values():
-		if idle.is_valid():
-			idle.kill()
-	_carrier_idle_tweens.clear()
-	_carrier_idle_states.clear()
-	for bounce in _crowd_bounce_tweens:
-		if bounce.is_valid():
-			bounce.kill()
-	_crowd_bounce_tweens.clear()
-	_crowd_scuffle_states.clear()
+	_stop_scuffle_tweens()
 	var clear := create_tween().set_parallel(true)
 	_tweens.append(clear)
 	if is_instance_valid(_smoke):
@@ -986,12 +977,29 @@ func _finish_scuffle() -> void:
 	_clear_swarm()
 
 
-# 追加のNadegg・煙・漫画文字・目を片付ける。
-func _clear_swarm() -> void:
+# 群衆と運搬役の動きを止め、アニメーションの状態を片付ける。
+func _stop_scuffle_tweens() -> void:
+	for idle: Tween in _carrier_idle_tweens.values():
+		if idle.is_valid():
+			idle.kill()
+	_carrier_idle_tweens.clear()
+	_carrier_idle_states.clear()
+	for bounce in _crowd_bounce_tweens:
+		if bounce.is_valid():
+			bounce.kill()
+	_crowd_bounce_tweens.clear()
+	_crowd_scuffle_states.clear()
+
+
+# 追加のNadegg・煙・漫画文字・目を片付け、復帰時は増援の記録も戻す。
+func _clear_swarm(reset_reinforcements: bool = false) -> void:
 	for actor in _crowd:
 		if is_instance_valid(actor):
 			actor.queue_free()
 	_crowd.clear()
+	if reset_reinforcements:
+		_departed_carriers.clear()
+		_reinforcement_waves = 0
 	if is_instance_valid(_smoke):
 		_smoke.queue_free()
 	_smoke_puffs.clear()
@@ -1027,16 +1035,7 @@ func skip_to_bad_end() -> void:
 		if tween.is_valid():
 			tween.kill()
 	_tweens.clear()
-	for idle: Tween in _carrier_idle_tweens.values():
-		if idle.is_valid():
-			idle.kill()
-	_carrier_idle_tweens.clear()
-	_carrier_idle_states.clear()
-	for bounce in _crowd_bounce_tweens:
-		if bounce.is_valid():
-			bounce.kill()
-	_crowd_bounce_tweens.clear()
-	_crowd_scuffle_states.clear()
+	_stop_scuffle_tweens()
 	for player in [_power_tool, _screws, _eye_sparkle]:
 		if is_instance_valid(player):
 			player.stop()
@@ -1094,21 +1093,7 @@ func restore_after_ending() -> void:
 		if is_instance_valid(cargo):
 			cargo.queue_free()
 	_cargos.clear()
-	for actor in _crowd:
-		if is_instance_valid(actor):
-			actor.queue_free()
-	_crowd.clear()
-	_departed_carriers.clear()
-	_reinforcement_waves = 0
-	if is_instance_valid(_smoke):
-		_smoke.queue_free()
-	_smoke_puffs.clear()
-	_smoke_base_scales.clear()
-	_clear_comic_words()
-	for eyes in _eye_labels:
-		if is_instance_valid(eyes):
-			eyes.queue_free()
-	_eye_labels.clear()
+	_clear_swarm(true)
 	for mesh in _taken_meshes:
 		if is_instance_valid(mesh):
 			mesh.show()
