@@ -428,17 +428,11 @@ func _spawn_debug_items() -> void:
 
 # 機体を start の位置に移し、リセットの戻り先もそこにする（デバッグ用）
 func _move_player_to(player: Node3D, start: Transform3D) -> void:
-	var rid := (player as VehicleBody3D).get_rid()
-	PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, start)
-	PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
-	PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
-	player.global_transform = start
-	player._prev_velocity = Vector3.ZERO
-	var respawn := player.get_node_or_null("Respawn")
+	var car := player as Car
+	car.teleport(start)
+	var respawn := car.get_respawn()
 	if respawn != null:
-		# _points は型付き配列なので、置き換えずに中身を入れ替える
-		respawn._points.clear()
-		respawn._points.append(start)
+		respawn.reset_points(start)
 
 
 func _open_next() -> void:

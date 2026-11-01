@@ -1,3 +1,4 @@
+class_name Respawn
 extends Node
 # 動けなくなったとき、最後に安全だった地点に戻す（時間では判定せず、手動で呼ぶ）
 # 動けなくなっていそうかも判定する（操作説明の Recover に縁取りを付けるため。自動では戻さない）
@@ -43,6 +44,19 @@ func _ready() -> void:
 
 func point_count() -> int:
     return _points.size()
+
+
+# リスポーン地点を1つにし、連続復帰用カーソルを戻す
+func reset_points(point: Transform3D) -> void:
+    _points.clear()
+    _points.append(point)
+    _cursor = -1
+
+
+# 別の機体のリスポーン地点を複製する
+func copy_points_from(other: Respawn) -> void:
+    _points = other._points.duplicate()
+
 
 func _is_safe(vehicle: VehicleBody3D) -> bool:
     for node in vehicle.get_children():
@@ -116,7 +130,7 @@ func _physics_process(delta: float) -> void:
 func respawn() -> void:
     if _points.is_empty():
         return
-    var vehicle := get_parent() as VehicleBody3D
+    var vehicle := get_parent() as Car
     var now := Time.get_ticks_msec() / 1000.0
     var start := _points.size() - 1
     # 続けて押したときは、前回より古い地点に戻る
@@ -131,16 +145,9 @@ func respawn() -> void:
             break
     var point := _points[index]
     var target := Transform3D(point.basis.orthonormalized(), point.origin + Vector3.UP * lift)
-    var rid := vehicle.get_rid()
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, target)
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
-    vehicle.global_transform = target
-    vehicle._motor_speed = 0.0
-    vehicle._boost_time = 0.0
-    vehicle.cancel_drift()
     # 速度が0になるので、激突と誤検出しないようにする
-    vehicle._prev_velocity = Vector3.ZERO
+    vehicle.teleport(target)
+    vehicle.reset_motion()
     _cursor = index
     _last_time = now
     _safe_since_respawn = false

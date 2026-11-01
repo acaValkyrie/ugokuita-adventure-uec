@@ -92,13 +92,9 @@ func _measure_boost(boost_charge: bool) -> void:
 
 # 機体を +Z 向き・速度0で置き直し、機体側の状態も初期化する
 func _place_car(pos: Vector3) -> void:
+    _car.teleport(Transform3D(Basis.IDENTITY, pos))
     var rid := _car.get_rid()
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, Transform3D(Basis.IDENTITY, pos))
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
     PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_SLEEPING, false)
-    _car._prev_velocity = Vector3.ZERO
-    _car._motor_speed = 0.0
     _car.boost_gauge = 0.0
 
 

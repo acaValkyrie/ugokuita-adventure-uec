@@ -223,8 +223,8 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
     var stuck := false
     var player := get_tree().get_first_node_in_group("player")
-    if player != null:
-        var respawn := player.get_node_or_null("Respawn")
+    if player is Car:
+        var respawn := (player as Car).get_respawn()
         if respawn != null:
             stuck = respawn.is_stuck()
     if stuck != _stuck:

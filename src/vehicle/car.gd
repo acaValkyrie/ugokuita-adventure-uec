@@ -1,3 +1,4 @@
+class_name Car
 extends VehicleBody3D
 
 const JetExhaustScript := preload("res://src/vehicle/jet_exhaust.gd")
@@ -371,6 +372,39 @@ func _assist_turn_speed(delta: float, throttle: float, steer_input: float, forwa
 			apply_central_impulse(horizontal / speed * gain * mass)
 			speed += gain
 	_turn_prev_speed = speed
+
+
+# 機体を指定位置へ移し、速度に関係する状態を初期化する
+func teleport(target: Transform3D) -> void:
+	var rid := get_rid()
+	PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, target)
+	PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
+	PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
+	global_transform = target
+	_motor_speed = 0.0
+	_prev_velocity = Vector3.ZERO
+
+
+# ブーストとドリフトの状態を初期化する
+func reset_motion() -> void:
+	_boost_time = 0.0
+	cancel_drift()
+
+
+# 機体切り替え時に走行状態を順番どおり引き継ぐ
+func inherit_state_from(old: Car) -> void:
+	transform = old.transform
+	linear_velocity = old.linear_velocity
+	angular_velocity = old.angular_velocity
+	boost_gauge = old.boost_gauge
+	_motor_speed = old._motor_speed
+	_air_jump_used = old._air_jump_used
+	_prev_velocity = old.linear_velocity
+
+
+# リスポーン用ノードを取得する
+func get_respawn() -> Respawn:
+	return get_node_or_null("Respawn") as Respawn
 
 
 # ドリフトとダッシュを打ち切る。リスポーンやエンディングで使う

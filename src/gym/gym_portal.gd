@@ -59,7 +59,7 @@ func _start(body: Node3D, target: Transform3D, inside: bool) -> void:
     tween.tween_property(_fade, "modulate:a", 1.0, FADE_TIME)
     await tween.finished
     # 暗転している間に機体が入れ替わっていることがあるので、移動の直前に探し直す
-    var vehicle := get_tree().get_first_node_in_group("player") as VehicleBody3D
+    var vehicle := get_tree().get_first_node_in_group("player") as Car
     if vehicle != null:
         _set_inside(inside)
         _teleport(vehicle, target)
@@ -98,19 +98,12 @@ func _set_inside(inside: bool) -> void:
         _hidden_outside.clear()
 
 # 機体を target へ移す。戻り先の記録も付け替えて、体育館の中で戻ると中に、外で戻ると外になるようにする
-func _teleport(vehicle: VehicleBody3D, target: Transform3D) -> void:
+func _teleport(vehicle: Car, target: Transform3D) -> void:
     target = Transform3D(target.basis.orthonormalized(), target.origin)
-    var rid := vehicle.get_rid()
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM, target)
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_LINEAR_VELOCITY, Vector3.ZERO)
-    PhysicsServer3D.body_set_state(rid, PhysicsServer3D.BODY_STATE_ANGULAR_VELOCITY, Vector3.ZERO)
-    vehicle.global_transform = target
-    vehicle._motor_speed = 0.0
-    var respawn := vehicle.get_node_or_null("Respawn")
+    vehicle.teleport(target)
+    var respawn := vehicle.get_respawn()
     if respawn != null:
-        respawn._points.clear()
-        respawn._points.append(target)
-        respawn._cursor = -1
+        respawn.reset_points(target)
     var camera := get_viewport().get_camera_3d()
     if camera != null and camera.has_method("snap_behind_vehicle"):
         camera.snap_behind_vehicle()
