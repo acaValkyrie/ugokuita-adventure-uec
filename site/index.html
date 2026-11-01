@@ -49,6 +49,14 @@ h1 { font-size: clamp(1.7rem, 7vw, 2.4rem); line-height: 1.25; margin: 8px 0 16p
 a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .btn:focus-visible { outline-color: var(--text); }
 .note { color: var(--muted); font-size: 0.85rem; margin: 10px 0 0; }
+.compare { display: flex; flex-direction: column; gap: 12px; }
+.compare figure { margin: 0; }
+.compare img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border); }
+.compare figcaption { margin-top: 6px; font-size: 0.9rem; font-weight: 700; color: var(--muted); }
+@media (min-width: 640px) {
+  .compare { flex-direction: row; align-items: flex-start; }
+  .compare figure { flex: var(--ratio) 1 0; min-width: 0; }
+}
 h2 { font-size: 1.3rem; margin: 40px 0 16px; }
 .cards { display: grid; grid-template-columns: 1fr; gap: 12px; text-align: left; }
 @media (min-width: 640px) { .cards { grid-template-columns: repeat(3, 1fr); } }
@@ -75,6 +83,18 @@ footer a { color: var(--accent); }
   </ul>
   <a class="btn" href="./web/">ブラウザで遊ぶ ▶</a>
   <p class="note">※ 初回は読み込みに少し時間がかかります。</p>
+
+  <h2>電通大のキャンパスを再現</h2>
+  <div class="compare">
+    <figure style="--ratio: 1.327">
+      <img src="./campus_photo.webp" width="1200" height="904" loading="lazy" alt="夕方の電気通信大学のキャンパス。白い高層の建物が夕日に照らされている">
+      <figcaption>実際の電通大</figcaption>
+    </figure>
+    <figure style="--ratio: 1.787">
+      <img src="./campus_game.webp" width="1149" height="643" loading="lazy" alt="ゲームの中で、同じ場所を動く板で走っている画面">
+      <figcaption>ゲームの中</figcaption>
+    </figure>
+  </div>
 
   <h2>操作方法</h2>
   <div class="cards">
