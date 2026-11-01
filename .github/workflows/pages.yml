@@ -117,6 +117,7 @@ jobs:
           cp site/ugokuita.png build/ugokuita.png
           cp site/campus_photo.webp build/campus_photo.webp
           cp site/campus_game.webp build/campus_game.webp
+          cp site/hero.webp build/hero.webp
           cp site/googled616ffc76f43ecf9.html build/googled616ffc76f43ecf9.html
 
       - name: Upload Pages artifact

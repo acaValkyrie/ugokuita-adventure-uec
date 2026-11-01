@@ -36,19 +36,39 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
   line-height: 1.7;
 }
-main, footer { max-width: 720px; margin: 0 auto; padding: 0 16px; }
-main { padding-top: 32px; padding-bottom: 16px; text-align: center; }
-.art { width: 100%; max-width: 360px; height: auto; margin: 0 auto 8px; display: block; }
-@media (prefers-color-scheme: dark) { .art { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18)); } }
-h1 { font-size: clamp(1.7rem, 7vw, 2.4rem); line-height: 1.25; margin: 8px 0 16px; }
+header.hero {
+  background: linear-gradient(to bottom, rgba(10,15,30,0) 35%, rgba(10,15,30,0.85) 100%), url('./hero.webp');
+  background-color: #1b2438;
+  background-size: cover;
+  background-position: 60% 30%;
+  min-height: min(78vh, 640px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0 16px 40px;
+  color: #ffffff;
+  text-align: center;
+}
+@media (max-width: 639px) { header.hero { min-height: 70vh; } }
+main { max-width: 960px; margin: 0 auto; padding: 8px 16px 16px; text-align: center; }
+footer { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 12px; }
+.hero h1, .hero .badges, .hero .note { text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
 .badges { display: flex; flex-wrap: wrap; gap: 4px 20px; justify-content: center; margin: 0 0 28px; padding: 0; list-style: none; }
-.badges li { color: var(--text); font-weight: 700; font-size: 1rem; }
-.badges li::before { content: "✓ "; color: var(--accent); }
+.badges li { color: #ffffff; font-weight: 700; font-size: 1rem; }
+.badges li::before { content: "✓ "; color: #93c5fd; }
 .btn { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 700; font-size: 1.3rem; padding: 16px 36px; border-radius: 12px; transition: background 0.15s, transform 0.15s; max-width: 100%; }
 .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.hero .btn { box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
 a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .btn:focus-visible { outline-color: var(--text); }
-.note { color: var(--muted); font-size: 0.85rem; margin: 10px 0 0; }
+.note { color: rgba(255,255,255,0.85); font-size: 0.85rem; margin: 10px 0 0; }
+div.about img { width: 100%; max-width: 360px; height: auto; margin: 0 auto; display: block; }
+@media (prefers-color-scheme: dark) { div.about img { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18)); } }
+@media (min-width: 640px) {
+  div.about { display: grid; grid-template-columns: 2fr 3fr; gap: 24px; align-items: center; text-align: left; }
+}
 .compare { display: flex; flex-direction: column; gap: 12px; }
 .compare figure { margin: 0; }
 .compare img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border); }
@@ -68,8 +88,7 @@ footer a { color: var(--accent); }
 </style>
 </head>
 <body>
-<main>
-  <img class="art" src="./ugokuita.png" width="820" height="484" alt="動く板の機体">
+<header class="hero">
   <h1>動く板アドベンチャー in UEC</h1>
   <ul class="badges">
     <li>ブラウザでそのまま遊べる！</li>
@@ -77,7 +96,8 @@ footer a { color: var(--accent); }
   </ul>
   <a class="btn" href="./web/">ブラウザで遊ぶ ▶</a>
   <p class="note">※ 初回は読み込みに少し時間がかかります。</p>
-
+</header>
+<main>
   <h2>電通大のキャンパスを再現</h2>
   <div class="compare">
     <figure style="--ratio: 1.327">
@@ -89,6 +109,14 @@ footer a { color: var(--accent); }
       <figcaption>ゲームの中</figcaption>
     </figure>
   </div>
+
+  <section class="about">
+    <h2>動く板とは</h2>
+    <div class="about">
+      <img src="./ugokuita.png" width="820" height="484" loading="lazy" alt="動く板の機体">
+      <p>動く板は、電気通信大学の有志の学生が開発している自動運転AGVです。このゲームでは、その動く板を操作して電通大のキャンパスを自由に走り回れます。</p>
+    </div>
+  </section>
 
   <h2>クレジット</h2>
   <div class="credits">
