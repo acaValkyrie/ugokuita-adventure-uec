@@ -234,14 +234,14 @@ func _open() -> void:
     if _opening:
         return
     _opening = true
-    GameMenu.mute_all()
+    GameSettings.mute_all()
     await get_tree().create_timer(OPEN_DELAY_SEC, true).timeout
     OS.shell_open(url)
-    # 開いたあともゲームにフォーカスがある（開けなかったなど）ときは音を戻す。別のタブやブラウザが前に出ていれば、戻ったときに GameMenu._notification で戻る
+    # 開いたあともゲームにフォーカスがある（開けなかったなど）ときは音を戻す。別のタブやブラウザが前に出ていれば、戻ったときに GameSettings._notification で戻る
     await get_tree().create_timer(RESTORE_CHECK_SEC, true).timeout
     _opening = false
     if DisplayServer.window_is_focused():
-        GameMenu.restore_volume()
+        GameSettings.restore_volume()
 
 
 func _exit_tree() -> void:

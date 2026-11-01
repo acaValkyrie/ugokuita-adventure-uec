@@ -10,15 +10,6 @@ extends CanvasLayer
 # 操作は階層で進める。TOP（親の項目を上下で選ぶ）→ SUB（操作の設定の中の項目を選ぶ）→ EDIT（右の列を左右で切り替える）。決定で入り、キャンセルで戻る。キーボードは Esc で1つ戻る（TOP では閉じる）。
 # 中分類（ボタンの表示形式・決定とキャンセル・カメラの操作・キーの割り当て・ボタンの割り当て）の行は、操作の設定に入ったときだけ開き、それ以外ではたたんでおく。
 
-signal pad_layout_changed(layout: String)
-signal robot_model_changed(model: String)
-signal swap_confirm_changed(swapped: bool)
-signal key_bindings_changed
-signal pad_bindings_changed
-
-# Master バスの既定音量（default_bus_layout.tres）
-const BASE_DB := -6.0206
-const SETTINGS_PATH := "user://settings.cfg"
 const BUTTON_SIZE := 40
 # ボタンの角丸の半径
 const BUTTON_RADIUS := 10
@@ -31,13 +22,7 @@ const BUMP_SOUND := preload("res://assets/audio/bump/bump_a.ogg")
 const BGM_PREVIEW_SOUND_PATH := "res://assets/audio/bgm/これにてお開き、また来週！.mp3"
 # 音量バーの埋まった部分の色（EDIT のカーソルがあるときは ACCENT_COLOR）
 const VOLUME_FILL_COLOR := Color(0.88, 0.88, 0.88)
-# 操作説明に出すコントローラのボタン表記（設定ファイルに保存する値）
-const PAD_LAYOUTS := ["nintendo", "xbox", "ds3", "ds4", "dualsense"]
 const PAD_LAYOUT_NAMES := ["Nintendo", "Xbox", "DualShock 3", "DualShock 4", "DualSense"]
-# PlayStation の機種と、SELECT・START などの表記の世代の対応
-const PS_LAYOUT_GENERATIONS := {"ds3": "ps3", "ds4": "ps4", "dualsense": "ps5"}
-# 操作する機体（設定ファイルに保存する値）
-const ROBOT_MODELS := ["neo", "classic"]
 const ROBOT_MODEL_NAMES := ["Ugokuita Neo", "Ugokuita Classic"]
 # デバッグ欄に出すパワーアップの名前
 const DEBUG_POWER_UP_NAMES := {
@@ -60,7 +45,7 @@ const SHOW_DEBUG_PANEL := false
 const MENU_FONT := preload("res://assets/fonts/noto_sans_cjk_jp_bold_ui.otf")
 const LOGO_ROBOT := preload("res://assets/ui/menu/logo_robot.png")
 const LOGO_TEXT := preload("res://assets/ui/menu/logo_text.png")
-# PAD_LAYOUTS の順
+# GameSettings.PAD_LAYOUTS の順
 const PAD_TEXTURES := [
 	preload("res://assets/ui/menu/controller_nintendo.png"),
 	preload("res://assets/ui/menu/controller_xbox.png"),
@@ -86,7 +71,7 @@ const CONTROLLER_HEADING_ICON := preload("res://assets/ui/menu/icon_controller.p
 const CHILD_ITEMS := [1, 2, 6, 7, 8]
 # 子の行の字下げ（px）
 const CHILD_INDENT := 30
-# ROBOT_MODELS の順
+# GameSettings.ROBOT_MODELS の順
 const ROBOT_MODEL_PATHS := [
 	"res://assets/models/ugokuita-neo.glb",
 	"res://assets/models/ugokuita-classic.fbx",
@@ -158,16 +143,6 @@ const ROBOT_ROT_SPEED := 35.0
 const ROBOT_MODEL_TRANSFORM := "Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, 0, 0)"
 
 var is_open: bool = false
-var pad_layout: String = "nintendo"
-var robot_model: String = "neo"
-# true なら決定とキャンセルのボタンを標準から入れ替える
-var swap_confirm: bool = false
-# カメラ操作の左右・上下を反転するか。キーボード・ゲームパッド・タッチのどれにも効く
-var invert_camera_x: bool = false
-var invert_camera_y: bool = false
-# BGM と効果音の音量（0〜100）
-var _bgm_volume: int = 100
-var _se_volume: int = 100
 var _menu_button: Button
 # メニューボタンの一辺（px。タッチ端末では倍率をかけた値）。マップのボタンも同じ大きさにする
 var button_size: float = BUTTON_SIZE * UiStyle.button_scale()
@@ -327,19 +302,16 @@ var _player: AudioStreamPlayer
 func _ready() -> void:
 	layer = 20
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_load_settings()
-	_apply_pad_buttons()
-	_apply_volume()
 	_build_button()
 	_build_menu()
 	DeferredPacks.pack_ready.connect(_on_deferred_pack_ready)
-	key_bindings_changed.connect(_refresh_keys)
+	GameSettings.key_bindings_changed.connect(_refresh_keys)
 	# ボタンの行の絵は、ボタンの割り当てのほか、機種（PlayStation の世代も機種で決まる）が変わったときにも作り直す
-	pad_bindings_changed.connect(_refresh_buttons)
-	pad_layout_changed.connect(_refresh_buttons.unbind(1))
+	GameSettings.pad_bindings_changed.connect(_refresh_buttons)
+	GameSettings.pad_layout_changed.connect(_refresh_buttons.unbind(1))
 	# 起動時の初期表示では保存や音を走らせない
-	_bgm_slider.set_value_no_signal(_bgm_volume)
-	_se_slider.set_value_no_signal(_se_volume)
+	_bgm_slider.set_value_no_signal(GameSettings.bgm_volume)
+	_se_slider.set_value_no_signal(GameSettings.se_volume)
 	_refresh_volume_labels()
 	_refresh_pad()
 	_refresh_confirm()
@@ -352,7 +324,7 @@ func _process(delta: float) -> void:
 	if not is_open:
 		return
 	# 入力方式かボタン表記、決定とキャンセルの入れ替えが変わったときだけ、閉じるの印を作り直す
-	if ControlsHelp.get_mode() != _close_hint_mode or pad_layout != _close_hint_layout or swap_confirm != _close_hint_swap:
+	if ControlsHelp.get_mode() != _close_hint_mode or GameSettings.pad_layout != _close_hint_layout or GameSettings.swap_confirm != _close_hint_swap:
 		_rebuild_close_hint()
 	_update_edit_bar()
 	# ロボットタイプを見ているときだけ機体を回す（一時停止中も動く）
@@ -361,16 +333,6 @@ func _process(delta: float) -> void:
 	# 割り当てるキー・ボタンの長押しを進める（一時停止中も進むよう、時刻は Time で見る）
 	_update_key_hold()
 	_update_button_hold()
-
-
-# その機種が PlayStation か（DualShock 3・DualShock 4・DualSense）
-func is_playstation_layout(layout: String) -> bool:
-	return PS_LAYOUT_GENERATIONS.has(layout)
-
-
-# 今の機種での PlayStation の表記の世代（ps3・ps4・ps5）。PlayStation の機種でなければ ps5
-func get_ps_generation() -> String:
-	return PS_LAYOUT_GENERATIONS.get(pad_layout, "ps5")
 
 
 func get_button_rect() -> Rect2:
@@ -953,8 +915,8 @@ func _rebuild_close_hint() -> void:
 	_close_hint_frame = null
 	_close_hint_text = null
 	_close_hint_mode = ControlsHelp.get_mode()
-	_close_hint_layout = pad_layout
-	_close_hint_swap = swap_confirm
+	_close_hint_layout = GameSettings.pad_layout
+	_close_hint_swap = GameSettings.swap_confirm
 	match _close_hint_mode:
 		ControlsHelp.Mode.KEYBOARD:
 			var box := PanelContainer.new()
@@ -1313,7 +1275,7 @@ func _build_pad_content() -> Control:
 	_pad_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_pad_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_pad_texture_rect.custom_minimum_size = Vector2(0, 250)
-	var parts := _build_selector(_pad_texture_rect, PAD_LAYOUTS.size(), _step_pad, ITEM_PAD)
+	var parts := _build_selector(_pad_texture_rect, GameSettings.PAD_LAYOUTS.size(), _step_pad, ITEM_PAD)
 	_pad_name_label = parts.name_label
 	_pad_dots = parts.dots
 	parts.box.add_child(_build_pad_buttons_row())
@@ -1601,7 +1563,7 @@ func _build_robot_content() -> Control:
 	_robot_pivot = Node3D.new()
 	viewport.add_child(_robot_pivot)
 
-	var parts := _build_selector(container, ROBOT_MODELS.size(), _step_robot, ITEM_ROBOT)
+	var parts := _build_selector(container, GameSettings.ROBOT_MODELS.size(), _step_robot, ITEM_ROBOT)
 	_robot_name_label = parts.name_label
 	_robot_dots = parts.dots
 	return parts.box
@@ -2010,9 +1972,9 @@ func _refresh_preview_marks() -> void:
 
 
 func _step_pad(direction: int) -> void:
-	var count := PAD_LAYOUTS.size()
-	var next := (PAD_LAYOUTS.find(pad_layout) + direction + count) % count
-	_on_pad_layout_pressed(PAD_LAYOUTS[next])
+	var count := GameSettings.PAD_LAYOUTS.size()
+	var next := (GameSettings.PAD_LAYOUTS.find(GameSettings.pad_layout) + direction + count) % count
+	_on_pad_layout_pressed(GameSettings.PAD_LAYOUTS[next])
 	_refresh_pad()
 	# 決定とキャンセルの項目の絵も表記に合わせる
 	_refresh_confirm()
@@ -2020,10 +1982,7 @@ func _step_pad(direction: int) -> void:
 
 # 選択肢は2つなので、どちらの向きでも交互に切り替わる
 func _step_confirm(_direction: int) -> void:
-	swap_confirm = not swap_confirm
-	_apply_pad_buttons()
-	_save_settings()
-	swap_confirm_changed.emit(swap_confirm)
+	GameSettings.set_swap_confirm(not GameSettings.swap_confirm)
 	_refresh_confirm()
 	# 操作の設定の中の「決定・キャンセル」の行も追従させる
 	_refresh_pad()
@@ -2031,21 +1990,19 @@ func _step_confirm(_direction: int) -> void:
 
 # 選択肢は2つなので、どちらの向きでも交互に切り替わる
 func _step_invert_x(_direction: int) -> void:
-	invert_camera_x = not invert_camera_x
-	_save_settings()
+	GameSettings.set_invert_camera_x(not GameSettings.invert_camera_x)
 	_refresh_camera()
 
 
 func _step_invert_y(_direction: int) -> void:
-	invert_camera_y = not invert_camera_y
-	_save_settings()
+	GameSettings.set_invert_camera_y(not GameSettings.invert_camera_y)
 	_refresh_camera()
 
 
 func _step_robot(direction: int) -> void:
-	var count := ROBOT_MODELS.size()
-	var next := (ROBOT_MODELS.find(robot_model) + direction + count) % count
-	_on_robot_model_pressed(ROBOT_MODELS[next])
+	var count := GameSettings.ROBOT_MODELS.size()
+	var next := (GameSettings.ROBOT_MODELS.find(GameSettings.robot_model) + direction + count) % count
+	_on_robot_model_pressed(GameSettings.ROBOT_MODELS[next])
 	_refresh_robot()
 
 
@@ -2063,30 +2020,30 @@ func _set_dots(dots: Array[ColorRect], active: int) -> void:
 
 
 func _refresh_volume_labels() -> void:
-	_bgm_percent_label.text = "%d%%" % _bgm_volume
-	_se_percent_label.text = "%d%%" % _se_volume
+	_bgm_percent_label.text = "%d%%" % GameSettings.bgm_volume
+	_se_percent_label.text = "%d%%" % GameSettings.se_volume
 
 
 func _refresh_pad() -> void:
-	var index := PAD_LAYOUTS.find(pad_layout)
+	var index := GameSettings.PAD_LAYOUTS.find(GameSettings.pad_layout)
 	_pad_texture_rect.texture = PAD_TEXTURES[index]
 	_pad_name_label.text = PAD_LAYOUT_NAMES[index]
 	_set_dots(_pad_dots, index)
-	_pad_confirm_icon.texture = ControlsHelp.get_confirm_icon_for(pad_layout)
-	_pad_cancel_icon.texture = ControlsHelp.get_cancel_icon_for(pad_layout)
+	_pad_confirm_icon.texture = ControlsHelp.get_confirm_icon_for(GameSettings.pad_layout)
+	_pad_cancel_icon.texture = ControlsHelp.get_cancel_icon_for(GameSettings.pad_layout)
 
 
 func _refresh_confirm() -> void:
-	var index := SWAP_CONFIRM_VALUES.find(swap_confirm)
+	var index := SWAP_CONFIRM_VALUES.find(GameSettings.swap_confirm)
 	_confirm_name_label.text = SWAP_CONFIRM_NAMES[index]
 	_set_dots(_confirm_dots, index)
-	_confirm_icon.texture = ControlsHelp.get_confirm_icon_for(pad_layout)
-	_confirm_cancel_icon.texture = ControlsHelp.get_cancel_icon_for(pad_layout)
+	_confirm_icon.texture = ControlsHelp.get_confirm_icon_for(GameSettings.pad_layout)
+	_confirm_cancel_icon.texture = ControlsHelp.get_cancel_icon_for(GameSettings.pad_layout)
 
 
 func _refresh_camera() -> void:
-	_camera_x_value.text = "反転" if invert_camera_x else "通常"
-	_camera_y_value.text = "反転" if invert_camera_y else "通常"
+	_camera_x_value.text = "反転" if GameSettings.invert_camera_x else "通常"
+	_camera_y_value.text = "反転" if GameSettings.invert_camera_y else "通常"
 
 
 # キーの割り当ての行の表示を作り直す（今のキーの絵を入れ直し、状態を出す行は絵を隠して状態の文を出す）
@@ -2201,8 +2158,7 @@ func _finish_key_hold() -> void:
 	_hold_key = KEY_NONE
 	_hold_key_event = null
 	KeyBindings.set_key(action, physical)
-	_save_settings()
-	key_bindings_changed.emit()
+	GameSettings.commit_key_bindings()
 
 
 # キーの長押しの進み具合のバーを更新し、BIND_HOLD_TIME に達したらキーを割り当てる。使えないキーの文は時間が来たら消す
@@ -2257,8 +2213,7 @@ func _on_keys_reset_pressed() -> void:
 func _reset_keys() -> void:
 	_stop_key_hold()
 	KeyBindings.reset_keys()
-	_save_settings()
-	key_bindings_changed.emit()
+	GameSettings.commit_key_bindings()
 
 
 # ボタンの割り当ての行の表示を作り直す（今のボタンの絵を入れ直し、状態を出す行は絵を隠して状態の文を出す）
@@ -2351,8 +2306,7 @@ func _finish_button_hold() -> void:
 	_hold_button = JOY_BUTTON_INVALID
 	_hold_button_event = null
 	KeyBindings.set_button(action, button)
-	_save_settings()
-	pad_bindings_changed.emit()
+	GameSettings.commit_pad_bindings()
 
 
 # ボタンの長押しの進み具合のバーを更新し、BIND_HOLD_TIME に達したらボタンを割り当てる。使えないボタンの文は時間が来たら消す
@@ -2383,12 +2337,11 @@ func _on_buttons_reset_pressed() -> void:
 func _reset_buttons() -> void:
 	_stop_button_hold()
 	KeyBindings.reset_buttons()
-	_save_settings()
-	pad_bindings_changed.emit()
+	GameSettings.commit_pad_bindings()
 
 
 func _refresh_robot_names() -> void:
-	var index := ROBOT_MODELS.find(robot_model)
+	var index := GameSettings.ROBOT_MODELS.find(GameSettings.robot_model)
 	_robot_name_label.text = ROBOT_MODEL_NAMES[index]
 	_set_dots(_robot_dots, index)
 
@@ -2396,13 +2349,13 @@ func _refresh_robot_names() -> void:
 # 名前・点を合わせ、3D に出している機体が違うときだけ作り直す（最初に見るときまで instantiate しない）
 func _refresh_robot() -> void:
 	_refresh_robot_names()
-	if _robot_shown == robot_model and _robot_model_node != null:
+	if _robot_shown == GameSettings.robot_model and _robot_model_node != null:
 		return
-	_robot_shown = robot_model
+	_robot_shown = GameSettings.robot_model
 	if _robot_model_node != null:
 		_robot_model_node.queue_free()
 		_robot_model_node = null
-	var path: String = ROBOT_MODEL_PATHS[ROBOT_MODELS.find(robot_model)]
+	var path: String = ROBOT_MODEL_PATHS[GameSettings.ROBOT_MODELS.find(GameSettings.robot_model)]
 	if not ResourceLoader.exists(path):
 		return
 	var scene := load(path) as PackedScene
@@ -2435,7 +2388,7 @@ func _refresh_robot() -> void:
 
 # 後から読み込んだ Classic を、メニューで見ているなら出し直す
 func _on_deferred_pack_ready(pack_name: StringName) -> void:
-	if pack_name == &"classic" and is_open and _current_item == ITEM_ROBOT and robot_model == "classic":
+	if pack_name == &"classic" and is_open and _current_item == ITEM_ROBOT and GameSettings.robot_model == "classic":
 		_robot_shown = ""
 		_refresh_robot()
 
@@ -2450,12 +2403,7 @@ func _collect_visuals(node: Node) -> Array[VisualInstance3D]:
 
 
 func _on_pad_layout_pressed(layout: String) -> void:
-	if layout == pad_layout:
-		return
-	pad_layout = layout
-	_apply_pad_buttons()
-	_save_settings()
-	pad_layout_changed.emit(pad_layout)
+	GameSettings.set_pad_layout(layout)
 
 
 func _on_debug_power_up_toggled(on: bool, key: String) -> void:
@@ -2467,135 +2415,17 @@ func _on_debug_hint_toggled(on: bool, id: String) -> void:
 
 
 func _on_robot_model_pressed(model: String) -> void:
-	if model == robot_model:
-		return
-	robot_model = model
-	_save_settings()
-	robot_model_changed.emit(robot_model)
-
-
-# 決定・キャンセル（と看板を開く）のボタンを表記に合わせる。
-# 標準は Nintendo が A（右）で決定・B（下）でキャンセル、PlayStation が ×（下）で決定・○（右）でキャンセル、Xbox が A（下）で決定・B（右）でキャンセル。
-# swap_confirm が true なら決定とキャンセルを入れ替える
-func _apply_pad_buttons() -> void:
-	var confirm := JOY_BUTTON_B if pad_layout == "nintendo" else JOY_BUTTON_A
-	var cancel := JOY_BUTTON_A if pad_layout == "nintendo" else JOY_BUTTON_B
-	if swap_confirm:
-		var swapped := confirm
-		confirm = cancel
-		cancel = swapped
-	_set_joy_button("ui_accept", confirm)
-	_set_joy_button("ui_cancel", cancel)
-	# 看板を開くボタンは決定と同じ
-	_set_joy_button("interact", confirm)
-
-
-# アクションのゲームパッドのボタン割り当てを1つに置き換える（キーボードの割り当ては残す）
-func _set_joy_button(action: StringName, button: JoyButton) -> void:
-	for event in InputMap.action_get_events(action):
-		if event is InputEventJoypadButton:
-			InputMap.action_erase_event(action, event)
-	var joy := InputEventJoypadButton.new()
-	joy.device = -1
-	joy.button_index = button
-	InputMap.action_add_event(action, joy)
+	GameSettings.set_robot_model(model)
 
 
 func _on_bgm_volume_changed(value: float) -> void:
-	_bgm_volume = int(value)
-	_apply_volume()
-	_refresh_volume_labels()
-	_save_settings()
+	_bgm_percent_label.text = "%d%%" % int(value)
+	GameSettings.set_bgm_volume(int(value))
 	# BGM のバーは音を鳴らさない（試聴中なら音量がそのまま反映される）
 
 
 func _on_se_volume_changed(value: float) -> void:
-	_se_volume = int(value)
-	_apply_volume()
-	_refresh_volume_labels()
-	_save_settings()
+	_se_percent_label.text = "%d%%" % int(value)
+	GameSettings.set_se_volume(int(value))
 	# 音量の確認用に、bump の音を鳴らし直す
 	_play_se_preview()
-
-
-# 看板のリンクを開く前に、すべての音を消す。フォーカスが戻ったら _notification で音量を戻す
-func mute_all() -> void:
-	AudioServer.set_bus_mute(0, true)
-
-
-# 音量を設定どおりに戻す（リンクを開いてもフォーカスが外れなかったとき用）
-func restore_volume() -> void:
-	_apply_volume()
-
-
-# Web 版で走行中に看板のリンクを開くと、別のタブが前に出てゲームが止まり、走行音が鳴りっぱなしになる。
-# ゲームの画面からフォーカスが外れている間は音を消し、戻ったら音量の設定どおりに戻す（0% ならミュートのまま）
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		AudioServer.set_bus_mute(0, true)
-	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
-		_apply_volume()
-
-
-# Master は既定音量に固定してミュートも外し、BGM・SE のバスに設定の音量をかける
-func _apply_volume() -> void:
-	AudioServer.set_bus_mute(0, false)
-	AudioServer.set_bus_volume_db(0, BASE_DB)
-	_apply_bus_volume("BGM", _bgm_volume)
-	_apply_bus_volume("SE", _se_volume)
-
-
-# 0% はミュート、それ以外はミュートを外して比率で下げる
-func _apply_bus_volume(bus_name: String, volume: int) -> void:
-	var bus := AudioServer.get_bus_index(bus_name)
-	if bus < 0:
-		return
-	var ratio := volume / 100.0
-	if ratio <= 0.0:
-		AudioServer.set_bus_mute(bus, true)
-	else:
-		AudioServer.set_bus_mute(bus, false)
-		AudioServer.set_bus_volume_db(bus, linear_to_db(ratio))
-
-
-func _load_settings() -> void:
-	var config := ConfigFile.new()
-	if config.load(SETTINGS_PATH) != OK:
-		return
-	# 古い設定ファイルの audio/volume は、BGM・SE の初期値に引き継ぐ
-	var legacy_volume := clampi(int(config.get_value("audio", "volume", 100)), 0, 100)
-	_bgm_volume = clampi(int(config.get_value("audio", "bgm_volume", legacy_volume)), 0, 100)
-	_se_volume = clampi(int(config.get_value("audio", "se_volume", legacy_volume)), 0, 100)
-	var layout := str(config.get_value("controls", "pad_layout", "nintendo"))
-	if layout in PAD_LAYOUTS:
-		pad_layout = layout
-	elif layout == "playstation":
-		# 古い設定からの引き継ぎ。PlayStation は世代を別に保存していたので、その世代の機種にする
-		var generation := str(config.get_value("controls", "ps_generation", "ps5"))
-		match generation:
-			"ps3":
-				pad_layout = "ds3"
-			"ps4":
-				pad_layout = "ds4"
-			_:
-				pad_layout = "dualsense"
-	swap_confirm = bool(config.get_value("controls", "swap_confirm", false))
-	invert_camera_x = bool(config.get_value("camera", "invert_x", false))
-	invert_camera_y = bool(config.get_value("camera", "invert_y", false))
-	var model := str(config.get_value("robot", "model", "neo"))
-	if model in ROBOT_MODELS:
-		robot_model = model
-	KeyBindings.load_from(config)
-
-
-func _save_settings() -> void:
-	var config := ConfigFile.new()
-	config.set_value("audio", "bgm_volume", _bgm_volume)
-	config.set_value("audio", "se_volume", _se_volume)
-	config.set_value("controls", "pad_layout", pad_layout)
-	config.set_value("controls", "swap_confirm", swap_confirm)
-	config.set_value("camera", "invert_x", invert_camera_x)
-	config.set_value("camera", "invert_y", invert_camera_y)
-	config.set_value("robot", "model", robot_model)
-	KeyBindings.save_to(config)
-	config.save(SETTINGS_PATH)

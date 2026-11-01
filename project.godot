@@ -24,6 +24,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 MCPGameBridge="res://addons/godot_mcp/game_bridge/mcp_game_bridge.gd"
+GameSettings="*res://src/core/game_settings.gd"
 DeferredPacks="*res://src/core/deferred_packs.gd"
 TouchControls="*res://src/ui/touch_controls.gd"
 ControlsHelp="*res://src/ui/controls_help.gd"

@@ -3,7 +3,7 @@ extends Node
 
 signal player_changed(player: VehicleBody3D)
 
-# 機体のキー（GameMenu.ROBOT_MODELS）ごとのプレイヤーのシーン
+# 機体のキー（GameSettings.ROBOT_MODELS）ごとのプレイヤーのシーン
 const SCENES := {
 	"neo": "res://src/vehicle/car.tscn",
 	"classic": "res://src/vehicle/car_classic.tscn",
@@ -17,7 +17,7 @@ var _scenes := {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	GameMenu.robot_model_changed.connect(_on_robot_model_changed)
+	GameSettings.robot_model_changed.connect(_on_robot_model_changed)
 	DeferredPacks.when_ready(&"classic", _preload_classic)
 
 
@@ -37,8 +37,8 @@ func _get_scene(model: String) -> PackedScene:
 
 # プレイヤーの準備ができたときに呼ばれる。シーンに置いた機体が保存済みの機体と違えば入れ替える
 func on_player_ready(player: Car) -> void:
-	if player.robot_key != GameMenu.robot_model:
-		_replace.call_deferred(player, GameMenu.robot_model)
+	if player.robot_key != GameSettings.robot_model:
+		_replace.call_deferred(player, GameSettings.robot_model)
 
 
 func _on_robot_model_changed(model: String) -> void:
@@ -88,5 +88,5 @@ func _on_classic_ready() -> void:
 	_waiting_for_classic = false
 	var model := _pending_model
 	_pending_model = ""
-	if GameMenu.robot_model == model:
+	if GameSettings.robot_model == model:
 		_on_robot_model_changed(model)

@@ -66,7 +66,7 @@ func _ready() -> void:
 	if not is_instance_valid(_warmup):
 		_log("skip missing ShaderWarmup")
 	_connect_event("DeferredPacks", &"pack_ready", _on_pack_ready)
-	_connect_event("GameMenu", &"robot_model_changed", _on_robot_model_changed)
+	_connect_event("GameSettings", &"robot_model_changed", _on_robot_model_changed)
 	_connect_event("PlayerSwitch", &"player_changed", _on_player_changed)
 	get_tree().node_added.connect(_on_node_added)
 	_previous_us = Time.get_ticks_usec()

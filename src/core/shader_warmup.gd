@@ -234,7 +234,7 @@ func _build_views() -> void:
 	_standin_kinds.clear()
 	_standin_kinds.append(0)
 	_standin_kinds.append(1)
-	if GameMenu.robot_model == "classic":
+	if GameSettings.robot_model == "classic":
 		_standin_kinds.append(2)
 	_standin_view_index = -1
 	if not _standin_kinds.is_empty():

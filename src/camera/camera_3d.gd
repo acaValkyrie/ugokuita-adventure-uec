@@ -109,9 +109,9 @@ func _physics_process(delta: float) -> void:
 	var input_LR = Input.get_axis("view_left", "view_right")
 	var input_UD = Input.get_axis("view_up", "view_down")
 	# メニューの設定で、視点操作の向きを反転する
-	if GameMenu.invert_camera_x:
+	if GameSettings.invert_camera_x:
 		input_LR = -input_LR
-	if GameMenu.invert_camera_y:
+	if GameSettings.invert_camera_y:
 		input_UD = -input_UD
 	if is_zero_approx(input_LR):
 		# 止まっているときは視点を動かした位置のまま残す

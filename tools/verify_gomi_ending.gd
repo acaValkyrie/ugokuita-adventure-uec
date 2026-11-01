@@ -24,8 +24,8 @@ func _verify() -> void:
 	if not _screenshot_dir.is_empty():
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_screenshot_dir))
 	root.size = Vector2i(1000,650)
-	var menu := root.get_node("GameMenu")
-	menu.robot_model = "neo"
+	var settings := root.get_node("GameSettings")
+	settings.robot_model = "neo"
 	var warmup := root.get_node("ShaderWarmup")
 	warmup.set("_done", true)
 	warmup.set_process(false)
@@ -51,7 +51,7 @@ func _verify() -> void:
 	for key in ["neo", "classic"]:
 		var probe: VehicleBody3D = car
 		if key == "classic":
-			menu.robot_model = key
+			settings.robot_model = key
 			probe = load("res://src/vehicle/car_classic.tscn").instantiate()
 			probe.freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
 			probe.freeze = true
@@ -83,7 +83,7 @@ func _verify() -> void:
 		if key == "classic":
 			probe.queue_free()
 			await _frames(2)
-	menu.robot_model = _run_model
+	settings.robot_model = _run_model
 	# 静的な包含判定用プローブを捨て、非凍結の実車を箱へ落として接地後の判定を確かめる。
 	stage.queue_free()
 	await _frames(2)

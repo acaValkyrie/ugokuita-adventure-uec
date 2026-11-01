@@ -124,7 +124,7 @@ const ICON_ALIGN := {
 # 表記が変わっても操作は同じでアイコンだけが変わる。どの操作にどのボタンを割り当てるかは KeyBindings で決まり、
 # 絵は make_button_icon でボタン番号から引く（"face" は番号 0〜3 の順、"back" は番号 4、"shoulder_r" は番号 10 の絵。PlayStation の "back" は世代ごとに違うので get_ps_back_icon で引く）。
 # ただし "interact"（看板を開く）と "cancel" は例外で、表記ごとの標準の決定・キャンセルのボタン
-# （game_menu.gd の _apply_pad_buttons。Nintendo は A・B、PlayStation は ×・○、Xbox は A・B）なので、
+# （game_settings.gd の _apply_pad_buttons。Nintendo は A・B、PlayStation は ×・○、Xbox は A・B）なので、
 # 割り当ても表記で変わる。決定とキャンセルを入れ替える設定は get_confirm_icon_for / get_cancel_icon_for で反映する。
 const PAD_ICONS := {
     "nintendo": {
@@ -163,7 +163,7 @@ const PAD_ARROWS := {
     JOY_BUTTON_DPAD_LEFT: -PI / 2.0,
 }
 
-# PlayStation の世代（選んだ機種から決まる。GameMenu.get_ps_generation）ごとの、左側の小さいボタン（SELECT・SHARE・CREATE）と右側の小さいボタン（START・OPTIONS）のアイコン。
+# PlayStation の世代（選んだ機種から決まる。GameSettings.get_ps_generation）ごとの、左側の小さいボタン（SELECT・SHARE・CREATE）と右側の小さいボタン（START・OPTIONS）のアイコン。
 # リセットは左側のボタンに割り当てている
 const PS_BACK_ICONS := {
     "ps3": ICON_BUTTON_SELECT,
@@ -215,8 +215,8 @@ func _ready() -> void:
     get_viewport().size_changed.connect(_fit_to_width)
 
     _rebuild()
-    # GameMenu はこのノードより後に追加される Autoload なので、全 Autoload の準備後に接続する
-    _connect_menu.call_deferred()
+    # 全 Autoload の準備後に設定の変更通知へ接続する
+    _connect_settings.call_deferred()
 
 
 # 動けなくなっていそうかを見て、変わったときだけ Recover の縁取りを出し入れする（一時停止中は判定も止まる）
@@ -237,11 +237,12 @@ func _process(_delta: float) -> void:
         _recover_ring.modulate.a = recover_ring_alpha()
 
 
-func _connect_menu() -> void:
-    GameMenu.pad_layout_changed.connect(_on_pad_layout_changed)
-    GameMenu.swap_confirm_changed.connect(_on_swap_confirm_changed)
-    GameMenu.key_bindings_changed.connect(_on_key_bindings_changed)
-    GameMenu.pad_bindings_changed.connect(_on_pad_bindings_changed)
+# 設定の変更通知に接続し、読み込んだ値で表示を作り直す
+func _connect_settings() -> void:
+    GameSettings.pad_layout_changed.connect(_on_pad_layout_changed)
+    GameSettings.swap_confirm_changed.connect(_on_swap_confirm_changed)
+    GameSettings.key_bindings_changed.connect(_on_key_bindings_changed)
+    GameSettings.pad_bindings_changed.connect(_on_pad_bindings_changed)
     # 読み込んだ設定を反映する
     _rebuild()
 
@@ -298,7 +299,7 @@ func _items_for(mode: Mode) -> Array:
         return _keyboard_items()
     if mode != Mode.GAMEPAD:
         return ITEMS[mode]
-    var icons: Dictionary = PAD_ICONS[_icon_family(GameMenu.pad_layout)]
+    var icons: Dictionary = PAD_ICONS[_icon_family(GameSettings.pad_layout)]
     # ボタンの絵は、割り当てたボタンに合わせて毎回作る（make_button_icon）。肩のボタンは絵の高さを自分で縮める
     var button_height := _icon_height(0.8)
     return [
@@ -328,8 +329,8 @@ func _salvage_items(mode: Mode) -> Array:
         Mode.GAMEPAD:
             var button_height := _icon_height(0.8)
             return [
-                [_make_texture_icon(get_cancel_icon_for(GameMenu.pad_layout), button_height), "Pause"],
-                [_make_texture_icon(get_cancel_icon_for(GameMenu.pad_layout), button_height), "Hold to Skip"],
+                [_make_texture_icon(get_cancel_icon_for(GameSettings.pad_layout), button_height), "Pause"],
+                [_make_texture_icon(get_cancel_icon_for(GameSettings.pad_layout), button_height), "Hold to Skip"],
                 [make_button_icon(JOY_BUTTON_START, button_height), "Menu"],
             ]
     return []
@@ -394,7 +395,7 @@ func _make_action_icon(action: String, height: float) -> Control:
         Mode.GAMEPAD:
             # 看板を開くボタンは決定と同じ（表記と入れ替えの設定で決まる）。それ以外は割り当てたボタン
             if action == "interact":
-                return _make_texture_icon(get_confirm_icon_for(GameMenu.pad_layout), height)
+                return _make_texture_icon(get_confirm_icon_for(GameSettings.pad_layout), height)
             return make_button_icon(KeyBindings.get_button(action), height)
     return null
 
@@ -407,9 +408,9 @@ func get_icon_token(action: String) -> String:
             return "key:%d" % KeyBindings.get_key(action)
         Mode.GAMEPAD:
             if action == "interact":
-                return "pad:%s" % get_confirm_icon_for(GameMenu.pad_layout).resource_path
+                return "pad:%s" % get_confirm_icon_for(GameSettings.pad_layout).resource_path
             # ボタンの絵は、割り当てたボタンと機種・PlayStation の世代（左側の小さいボタンの絵が変わる）で決まる
-            return "pad:%d:%s:%s" % [KeyBindings.get_button(action), _icon_family(GameMenu.pad_layout), GameMenu.get_ps_generation()]
+            return "pad:%d:%s:%s" % [KeyBindings.get_button(action), _icon_family(GameSettings.pad_layout), GameSettings.get_ps_generation()]
     return ""
 
 
@@ -472,7 +473,7 @@ func make_key_icon(physical: Key, height: float) -> Control:
 # 専用の絵が無い 9（左の肩）・7・8（スティックの押し込み）は、文字の無いボタンの絵の面に文字を重ねて描く。11〜14（十字キー）は _make_dpad_icon で十字の形を描く。
 # 絵の中の縦の基準は絵の中央なので、align のメタデータは付けない
 func make_button_icon(button: JoyButton, height: float) -> Control:
-    var family := _icon_family(GameMenu.pad_layout)
+    var family := _icon_family(GameSettings.pad_layout)
     var icons: Dictionary = PAD_ICONS[family]
     var texture: Texture2D = ICON_BUTTON_BLANK
     var icon_height := height
@@ -483,10 +484,10 @@ func make_button_icon(button: JoyButton, height: float) -> Control:
         JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_X, JOY_BUTTON_Y:
             texture = icons["face"][button]
         JOY_BUTTON_BACK:
-            texture = get_ps_back_icon(GameMenu.get_ps_generation()) if family == "playstation" else icons["back"]
+            texture = get_ps_back_icon(GameSettings.get_ps_generation()) if family == "playstation" else icons["back"]
         JOY_BUTTON_START:
             if family == "playstation":
-                texture = get_ps_start_icon(GameMenu.get_ps_generation())
+                texture = get_ps_start_icon(GameSettings.get_ps_generation())
             else:
                 text = PAD_START_LABELS[family]
         JOY_BUTTON_RIGHT_SHOULDER:
@@ -662,23 +663,23 @@ func get_mode() -> Mode:
 # キャンセルのボタンのアイコン（メニューの「閉じる」に出す）。コントローラ以外は null
 func get_cancel_icon() -> Texture2D:
     if _mode == Mode.GAMEPAD:
-        return get_cancel_icon_for(GameMenu.pad_layout)
+        return get_cancel_icon_for(GameSettings.pad_layout)
     return null
 
 
 # 指定した表記での決定のボタンのアイコン。入れ替えの設定が有効ならキャンセルのボタンのアイコンを返す
 func get_confirm_icon_for(layout: String) -> Texture2D:
-    return PAD_ICONS[_icon_family(layout)]["cancel" if GameMenu.swap_confirm else "interact"]
+    return PAD_ICONS[_icon_family(layout)]["cancel" if GameSettings.swap_confirm else "interact"]
 
 
 # 指定した表記でのキャンセルのボタンのアイコン。入れ替えの設定が有効なら決定のボタンのアイコンを返す
 func get_cancel_icon_for(layout: String) -> Texture2D:
-    return PAD_ICONS[_icon_family(layout)]["interact" if GameMenu.swap_confirm else "cancel"]
+    return PAD_ICONS[_icon_family(layout)]["interact" if GameSettings.swap_confirm else "cancel"]
 
 
 # アイコンの表を引くための機種の分類。PlayStation の3機種（DualShock 3・4・DualSense）は "playstation" にまとめる
 func _icon_family(layout: String) -> String:
-    if GameMenu.is_playstation_layout(layout):
+    if GameSettings.is_playstation_layout(layout):
         return "playstation"
     return layout
 

@@ -52,7 +52,7 @@ func _call_if_valid(callback: Callable) -> void:
 
 
 func _download_remaining() -> void:
-	var preferred: StringName = &"classic" if GameMenu.robot_model == "classic" else &"gomi"
+	var preferred: StringName = &"classic" if GameSettings.robot_model == "classic" else &"gomi"
 	var remaining: StringName = &"gomi" if preferred == &"classic" else &"classic"
 	var order: Array[StringName] = [&"ending_audio", preferred, remaining]
 	if not OS.has_feature("web"):
