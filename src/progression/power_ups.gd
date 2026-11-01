@@ -152,8 +152,6 @@ var _queue: Array[String] = []
 var _shown_scene: Node = null
 var _need_spawn := false
 var _opened_msec := 0
-# ポップアップを閉じたときの物理フレーム番号
-var _closed_physics_frame: int = -100
 
 var _root: Control
 var _icon: TextureRect
@@ -323,11 +321,6 @@ func _clear_hint_medals_if_done() -> void:
 			medal.queue_free()
 
 
-# 閉じた直後か。閉じるのに使ったボタンがジャンプ・ブースト・看板と同じとき、再開した瞬間に発動させないために使う
-func is_just_closed() -> bool:
-	return Engine.get_physics_frames() - _closed_physics_frame <= 1
-
-
 func _process(_delta: float) -> void:
 	var scene := get_tree().current_scene
 	if scene != null and scene != _shown_scene:
@@ -450,7 +443,7 @@ func _open_next() -> void:
 
 
 func _close() -> void:
-	_closed_physics_frame = Engine.get_physics_frames()
+	InputGuard.mark_closed()
 	if _queue.is_empty():
 		is_open = false
 		_root.visible = false

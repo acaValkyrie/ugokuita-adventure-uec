@@ -78,8 +78,6 @@ var _cursor_pos := Vector2.ZERO
 var _cursor_visible: bool = false
 # シーンに置いている3Dの印
 var _marker_3d  # map_marker_3d.gd のノード（型は付けられない）
-# 閉じたときの物理フレーム番号
-var _closed_physics_frame: int = -100
 
 
 func _ready() -> void:
@@ -122,7 +120,7 @@ func close(unpause: bool = true) -> void:
 	_overlay.visible = false
 	if unpause:
 		get_tree().paused = false
-	_closed_physics_frame = Engine.get_physics_frames()
+	InputGuard.mark_closed()
 
 
 func toggle() -> void:
@@ -130,11 +128,6 @@ func toggle() -> void:
 		close()
 	else:
 		open()
-
-
-# 閉じた直後か。閉じるのに使ったボタンがジャンプ・ブーストと同じとき、再開した瞬間に発動させないために使う
-func is_just_closed() -> bool:
-	return Engine.get_physics_frames() - _closed_physics_frame <= 1
 
 
 func set_marker(xz: Vector2) -> void:

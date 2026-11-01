@@ -180,8 +180,7 @@ func _physics_process(_delta: float) -> void:
     _outline.visible = selected
 
     if selected and Input.is_action_just_pressed("interact") \
-            and not GameMenu.is_open and not GameMenu.is_just_closed() \
-            and not PowerUps.is_just_closed():
+            and not GameMenu.is_open and not InputGuard.is_just_closed():
         _open()
 
 

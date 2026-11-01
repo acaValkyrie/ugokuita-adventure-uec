@@ -216,8 +216,7 @@ func _physics_process(delta: float) -> void:
 		boost_gauge = minf(boost_gauge + charge, 1.0)
 	# 満タンのときだけ発動できる。後退の入力中なら後ろ向き、それ以外は前向き
 	# （発動したフレームからモーターに効かせるため、モーターの処理より前に置く）
-	if Input.is_action_just_pressed("boost") and not GameMenu.is_just_closed() \
-			and not PowerUps.is_just_closed() and not Map.is_just_closed() \
+	if Input.is_action_just_pressed("boost") and not InputGuard.is_just_closed() \
 			and boost_gauge >= 1.0:
 		boost_gauge = 0.0
 		_boost_time = BOOST_DURATION
@@ -257,8 +256,7 @@ func _physics_process(delta: float) -> void:
 	# 二段ジャンプを取っていれば、空中でも1回だけもう一度ジャンプできる
 	if on_ground:
 		_air_jump_used = false
-	if Input.is_action_just_pressed("jump") and not GameMenu.is_just_closed() \
-			and not PowerUps.is_just_closed() and not Map.is_just_closed() \
+	if Input.is_action_just_pressed("jump") and not InputGuard.is_just_closed() \
 			and not (LinkBoard.is_player_near() and Input.is_action_just_pressed("interact")):
 		if on_ground:
 			apply_central_impulse(Vector3.UP * _jump_speed() * mass)
@@ -297,8 +295,7 @@ func _physics_process(delta: float) -> void:
 func _update_drift(delta: float, steer_input: float, forward_speed: float, on_ground: bool) -> void:
 	if not drifting:
 		# メニューやポップアップを閉じたボタンでは始まらない
-		if Input.is_action_pressed("drift") and not GameMenu.is_just_closed() \
-				and not PowerUps.is_just_closed() and not Map.is_just_closed() \
+		if Input.is_action_pressed("drift") and not InputGuard.is_just_closed() \
 				and on_ground and forward_speed >= DRIFT_MIN_SPEED \
 				and absf(steer_input) >= DRIFT_START_STEER:
 			_drift_dir = signf(steer_input)
@@ -445,8 +442,7 @@ func _end_drift(release: bool) -> void:
 # ジェットで吹かしているか（ジェットを持っていて、ジャンプを押している。無重力やメニューを閉じた直後は除く）
 func _is_jet_thrusting_input() -> bool:
 	return PowerUps.has("jet") and Input.is_action_pressed("jump") \
-			and not GameMenu.is_just_closed() and not PowerUps.is_just_closed() \
-			and not Map.is_just_closed() and not get_gravity().is_zero_approx()
+			and not InputGuard.is_just_closed() and not get_gravity().is_zero_approx()
 
 
 # ジェット。ジャンプを押している間は上へ押し上げ、空中ではアクセルとハンドルで水平に動かす
