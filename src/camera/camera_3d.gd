@@ -6,7 +6,7 @@ var vehicle
 @export var follow_speed: float = 4.0
 # 視点操作をやめたあと、真後ろへ戻る速さ [rad/s]
 @export var offset_return_speed: float = 2.0
-# この速さ [m/s] を超えて走っているときだけ真後ろへ戻す
+# 水平の速さがこの値 [m/s] を超えて走っているときだけ真後ろへ戻す（ジャンプや落下の上下の速さは数えない）
 @export var return_min_speed: float = 0.3
 
 # ブーストやドリフトのダッシュを出した瞬間に、カメラを機体の進む向きと逆へ水平に引く距離 [m]
@@ -114,8 +114,8 @@ func _physics_process(delta: float) -> void:
 	if GameSettings.invert_camera_y:
 		input_UD = -input_UD
 	if is_zero_approx(input_LR):
-		# 止まっているときは視点を動かした位置のまま残す
-		if vehicle.linear_velocity.length() > return_min_speed:
+		# 止まっているとき（ジャンプで上下に動いているだけのときも含む）は視点を動かした位置のまま残す
+		if Vector2(vehicle.linear_velocity.x, vehicle.linear_velocity.z).length() > return_min_speed:
 			theta_offset = move_toward(theta_offset, 0.0, offset_return_speed * delta)
 	else:
 		theta_offset = wrapf(theta_offset + input_LR * theta_speed * delta, -PI, PI)
