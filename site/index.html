@@ -47,8 +47,8 @@ img.hero {
 main { max-width: 960px; margin: 0 auto; padding: 8px 16px 16px; text-align: left; }
 footer { max-width: 960px; margin: 0 auto; padding: 0 16px; }
 h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 16px; }
-.btn { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 700; font-size: 1.3rem; padding: 16px 36px; transition: background 0.15s, transform 0.15s; max-width: 100%; }
-.btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.btn { display: inline-block; background: transparent; color: var(--accent); border: 2px solid var(--accent); text-decoration: none; font-weight: 700; font-size: 1.3rem; padding: 14px 34px; transition: background 0.15s, color 0.15s, transform 0.15s; max-width: 100%; }
+.btn:hover { background: var(--accent); color: var(--on-accent); transform: translateY(-1px); }
 a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .btn:focus-visible { outline-color: var(--text); }
 .note { color: var(--muted); font-size: 0.85rem; margin: 10px 0 0; }
