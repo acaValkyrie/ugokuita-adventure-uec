@@ -1337,7 +1337,7 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
 
 - ユーザーの依頼。設計を Claude、実装を Codex、レビューと動作確認を Claude で分担した。ゲームの挙動と保存データの形式は変えていない。
 - ルート直下の .gd・.tscn を `src/` の下の機能別フォルダに移した: `core`（DeferredPacks・RenderQuality・ShaderWarmup・ScreenOrientation・TreeLook・GameSettings・InputGuard）、`ui`、`map`、`vehicle`（car.tscn・car_classic.tscn も）、`camera`、`world`（uec.tscn も）、`gym`、`gomi_station`、`progression`（PowerUps・Ending）。
-  - `main_scene.tscn` とライトマップ（.exr・.lmbake・_shadow.png）は、焼き直さずに `src/main/` へ移した。.lmbake はバイナリの中に `res://main_scene.exr` などのパスを持っているので、移したあと Godot で読み込んで（古いパスは uid で解決される）同じ場所に保存し直し、中のパスを書き換えた。uid（`uid://tojgoxeni2do`）は変わらない。ファイルは 244,608 → 194,403 バイトになったが、保存される項目（user_data・probe_data・テクスチャなど）は移動前とすべて一致することを確かめた。`main_scene.gdshader` はどこからも参照されていないが、一式なので一緒に移した。
+  - `main_scene.tscn` とライトマップ（.exr・.lmbake・_shadow.png）は、焼き直さずに `src/main/` へ移した。.lmbake はバイナリの中に `res://main_scene.exr` などのパスを持っているので、移したあと Godot で読み込んで（古いパスは uid で解決される）同じ場所に保存し直し、中のパスを書き換えた。uid（`uid://tojgoxeni2do`）は変わらない。ファイルは 244,608 → 194,403 バイトになったが、保存される項目（user_data・probe_data・テクスチャなど）は移動前とすべて一致することを確かめた。`main_scene.gdshader` はパスでも uid でもどこからも参照されていなかったので消した。
   - ルートのテスト用シーンは `tests/` へ。`test_stage.tscn` → `tests/vehicle_test_stage.tscn`（`tests/test_stage.tscn` と名前がぶつかるため）、`test.tscn` → `tests/flat_test.tscn`。
   - `export_presets.cfg` の除外と分割 pck、CI が使うツール（`check_font_glyphs.py` など）のパスも付け替えた。`tools/web_bench/pack_deps.gd` で、本体から参照されるのに除外されているファイルがないことを確かめた。
 - 疎結合化:
