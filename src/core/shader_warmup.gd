@@ -407,7 +407,7 @@ func _begin_effects() -> void:
 		im.surface_end()
 		_warm_meshes.append(mi)
 	# 集中線もツリーと一緒に止まっているので、ここで出しても隠されない
-	SpeedLines._rect.visible = true
+	SpeedLines.set_overlay_visible(true)
 	_effects_active = true
 
 
@@ -427,7 +427,7 @@ func _end_effects() -> void:
 		if is_instance_valid(mi):
 			(mi.mesh as ImmediateMesh).clear_surfaces()
 	_warm_meshes.clear()
-	SpeedLines._rect.visible = false
+	SpeedLines.set_overlay_visible(false)
 	_effects_active = false
 
 

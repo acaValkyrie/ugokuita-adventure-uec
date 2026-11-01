@@ -13,6 +13,11 @@ var _material: ShaderMaterial
 var _intensity := 0.0
 
 
+# 集中線の表示を切り替える
+func set_overlay_visible(shown: bool) -> void:
+    _rect.visible = shown
+
+
 func _ready() -> void:
     # 操作説明などの表示（layer 10）より下に描く
     layer = 5
