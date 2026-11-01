@@ -11,7 +11,7 @@ const WAIT_FRAMES := 30
 
 
 func _ready() -> void:
-    var main: Node = (load("res://main_scene.tscn") as PackedScene).instantiate()
+    var main: Node = (load("res://src/main/main_scene.tscn") as PackedScene).instantiate()
     add_child(main)
     # 機体は写さない
     for node in get_tree().get_nodes_in_group("player"):

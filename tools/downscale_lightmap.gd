@@ -11,7 +11,7 @@ func _init() -> void:
 		quit(1)
 		return
 
-	for path in ["res://main_scene.exr", "res://main_scene_shadow.png"]:
+	for path in ["res://src/main/main_scene.exr", "res://src/main/main_scene_shadow.png"]:
 		var abs_path := ProjectSettings.globalize_path(path)
 		var image := Image.load_from_file(abs_path)
 		if image == null or image.is_empty():

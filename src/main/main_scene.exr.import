@@ -2,8 +2,8 @@
 
 importer="2d_array_texture"
 type="CompressedTexture2DArray"
-uid="uid://elcse2rgkt66"
-path.s3tc="res://.godot/imported/main_scene_shadow.png-25de10fc65eef5ecb1f3244e5330cce8.s3tc.ctexarray"
+uid="uid://b22w05vedfmc1"
+path.bptc="res://.godot/imported/main_scene.exr-6df36a7e2402eed70b77adb4db0dc56a.bptc.ctexarray"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://main_scene_shadow.png"
-dest_files=["res://.godot/imported/main_scene_shadow.png-25de10fc65eef5ecb1f3244e5330cce8.s3tc.ctexarray"]
+source_file="res://src/main/main_scene.exr"
+dest_files=["res://.godot/imported/main_scene.exr-6df36a7e2402eed70b77adb4db0dc56a.bptc.ctexarray"]
 
 [params]
 
