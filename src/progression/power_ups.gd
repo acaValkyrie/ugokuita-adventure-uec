@@ -108,7 +108,7 @@ const JUMP_UP_START := Transform3D(Basis(Vector3(-0.6693, 0, 0.743), Vector3.UP,
 # ポップアップを開いてから、閉じる操作を受け付けるまでの時間 [ms]（開いた押下で閉じないため）
 const CLOSE_DELAY_MSEC := 300
 
-# 取った種類・使ったヒントの保存先（game_menu.gd の SETTINGS_PATH と同じ ConfigFile）。Web では user:// は IndexedDB に保存される
+# 取った種類・使ったヒントの保存先（user://progress.cfg。設定とは別ファイル）。Web では user:// は IndexedDB に保存される
 const PROGRESS_PATH := "user://progress.cfg"
 
 # ヒントの種類: 印を付けるパワーアップのキー。ヒント1はジャンプ力UPと二段ジャンプ、ヒント2はジェット（図書館の屋上の上）
