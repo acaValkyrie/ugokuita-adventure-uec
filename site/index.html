@@ -37,20 +37,20 @@ body {
   line-height: 1.7;
 }
 header.hero {
-  background: linear-gradient(to bottom, rgba(10,15,30,0) 35%, rgba(10,15,30,0.85) 100%), url('./hero.webp');
+  background: linear-gradient(to bottom, rgba(10,15,30,0.8) 0%, rgba(10,15,30,0.4) 35%, rgba(10,15,30,0) 60%), url('./hero.webp');
   background-color: #1b2438;
   background-size: cover;
-  background-position: 60% 30%;
+  background-position: 52% 70%;
   min-height: min(78vh, 640px);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
-  padding: 0 16px 40px;
+  padding: 48px 16px 40px;
   color: #ffffff;
   text-align: center;
 }
-@media (max-width: 639px) { header.hero { min-height: 70vh; } }
+@media (max-width: 639px) { header.hero { min-height: 70vh; padding-top: 32px; } }
 main { max-width: 960px; margin: 0 auto; padding: 8px 16px 16px; text-align: center; }
 footer { max-width: 960px; margin: 0 auto; padding: 0 16px; }
 h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 12px; }
