@@ -36,31 +36,22 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
   line-height: 1.7;
 }
-header.hero {
-  background: linear-gradient(to bottom, rgba(10,15,30,0.8) 0%, rgba(10,15,30,0.4) 35%, rgba(10,15,30,0) 60%), url('./hero.webp');
-  background-color: #1b2438;
-  background-size: cover;
-  background-position: 52% 70%;
-  min-height: min(78vh, 640px);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
-  padding: 48px max(16px, calc((100% - 928px) / 2)) 40px;
-  color: #ffffff;
-  text-align: left;
+img.hero {
+  display: block;
+  width: 100%;
+  height: clamp(220px, 50vw, 560px);
+  object-fit: cover;
+  object-position: 52% 70%;
 }
-@media (max-width: 639px) { header.hero { min-height: 70vh; padding-top: 32px; } }
+.intro { max-width: 960px; margin: 0 auto; padding: 24px 16px 0; }
 main { max-width: 960px; margin: 0 auto; padding: 8px 16px 16px; text-align: left; }
 footer { max-width: 960px; margin: 0 auto; padding: 0 16px; }
-h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 24px; }
-.hero h1, .hero .note { text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 16px; }
 .btn { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 700; font-size: 1.3rem; padding: 16px 36px; border-radius: 12px; transition: background 0.15s, transform 0.15s; max-width: 100%; }
 .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
-.hero .btn { box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
 a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .btn:focus-visible { outline-color: var(--text); }
-.note { color: rgba(255,255,255,0.85); font-size: 0.85rem; margin: 10px 0 0; }
+.note { color: var(--muted); font-size: 0.85rem; margin: 10px 0 0; }
 div.about img { width: 100%; max-width: 360px; height: auto; margin: 0; display: block; }
 @media (prefers-color-scheme: dark) { div.about img { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18)); } }
 @media (min-width: 640px) {
@@ -85,7 +76,8 @@ footer a { color: var(--accent); }
 </style>
 </head>
 <body>
-<header class="hero">
+<img class="hero" src="./hero.webp" width="1330" height="715" alt="動く板がキャンパスのレンガ道を光の帯を引いて走っているゲーム画面">
+<header class="intro">
   <h1>動く板アドベンチャー in UEC</h1>
   <a class="btn" href="./web/">ブラウザで遊ぶ ▶</a>
   <p class="note">※ 初回は読み込みに少し時間がかかります。</p>
