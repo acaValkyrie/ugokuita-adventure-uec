@@ -52,8 +52,7 @@ h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 16px; }
 a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .btn:focus-visible { outline-color: var(--text); }
 .note { color: var(--muted); font-size: 0.85rem; margin: 10px 0 0; }
-section.about { margin-top: 40px; }
-div.about p { font-size: 14pt; }
+.lead p { font-size: 14pt; margin: 32px 0 0; }
 div.about img { width: 100%; max-width: 360px; height: auto; margin: 0; display: block; }
 @media (min-width: 640px) {
   div.about { display: grid; grid-template-columns: 2fr 3fr; gap: 24px; align-items: center; text-align: left; }
@@ -84,16 +83,16 @@ footer a { color: var(--accent); }
   <p class="note">※ 初回は読み込みに少し時間がかかります。</p>
 </header>
 <main>
-  <section class="about">
-    <div class="about">
-      <img src="./ugokuita.png" width="820" height="484" loading="lazy" alt="動く板の機体">
-      <p>電気通信大学の有志の学生が開発している自動運転AGVを乗り回せるゲームが登場！<br>電気通信大学のキャンパス内を走り回れ！</p>
-    </div>
+  <section class="lead">
+    <p>電気通信大学の有志の学生が開発している自動運転AGVを乗り回せるゲームが登場！<br>電気通信大学のキャンパス内を走り回れ！</p>
   </section>
 
-  <section>
+  <section class="about">
     <h2>動く板とは</h2>
-    <p>動く板は、電気通信大学の有志の学生が開発している自動運転AGVです。</p>
+    <div class="about">
+      <img src="./ugokuita.png" width="820" height="484" loading="lazy" alt="動く板の機体">
+      <p>動く板は、電気通信大学の有志の学生が開発している自動運転AGVです。</p>
+    </div>
   </section>
 
   <h2>電通大のキャンパスを再現</h2>
