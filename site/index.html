@@ -53,11 +53,8 @@ header.hero {
 @media (max-width: 639px) { header.hero { min-height: 70vh; padding-top: 32px; } }
 main { max-width: 960px; margin: 0 auto; padding: 8px 16px 16px; text-align: center; }
 footer { max-width: 960px; margin: 0 auto; padding: 0 16px; }
-h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 12px; }
-.hero h1, .hero .badges, .hero .note { text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
-.badges { display: flex; flex-wrap: wrap; gap: 4px 20px; justify-content: center; margin: 0 0 28px; padding: 0; list-style: none; }
-.badges li { color: #ffffff; font-weight: 700; font-size: 1rem; }
-.badges li::before { content: "✓ "; color: #93c5fd; }
+h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 24px; }
+.hero h1, .hero .note { text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
 .btn { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 700; font-size: 1.3rem; padding: 16px 36px; border-radius: 12px; transition: background 0.15s, transform 0.15s; max-width: 100%; }
 .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
 .hero .btn { box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
@@ -90,10 +87,6 @@ footer a { color: var(--accent); }
 <body>
 <header class="hero">
   <h1>動く板アドベンチャー in UEC</h1>
-  <ul class="badges">
-    <li>ブラウザでそのまま遊べる！</li>
-    <li>舞台は電気通信大学！</li>
-  </ul>
   <a class="btn" href="./web/">ブラウザで遊ぶ ▶</a>
   <p class="note">※ 初回は読み込みに少し時間がかかります。</p>
 </header>
