@@ -45,13 +45,13 @@ header.hero {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
-  padding: 48px 16px 40px;
+  align-items: flex-start;
+  padding: 48px max(16px, calc((100% - 928px) / 2)) 40px;
   color: #ffffff;
-  text-align: center;
+  text-align: left;
 }
 @media (max-width: 639px) { header.hero { min-height: 70vh; padding-top: 32px; } }
-main { max-width: 960px; margin: 0 auto; padding: 8px 16px 16px; text-align: center; }
+main { max-width: 960px; margin: 0 auto; padding: 8px 16px 16px; text-align: left; }
 footer { max-width: 960px; margin: 0 auto; padding: 0 16px; }
 h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 24px; }
 .hero h1, .hero .note { text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
@@ -61,7 +61,7 @@ h1 { font-size: clamp(1.9rem, 7vw, 3rem); line-height: 1.2; margin: 0 0 24px; }
 a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .btn:focus-visible { outline-color: var(--text); }
 .note { color: rgba(255,255,255,0.85); font-size: 0.85rem; margin: 10px 0 0; }
-div.about img { width: 100%; max-width: 360px; height: auto; margin: 0 auto; display: block; }
+div.about img { width: 100%; max-width: 360px; height: auto; margin: 0; display: block; }
 @media (prefers-color-scheme: dark) { div.about img { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18)); } }
 @media (min-width: 640px) {
   div.about { display: grid; grid-template-columns: 2fr 3fr; gap: 24px; align-items: center; text-align: left; }
@@ -69,13 +69,13 @@ div.about img { width: 100%; max-width: 360px; height: auto; margin: 0 auto; dis
 .compare { display: flex; flex-direction: column; gap: 12px; }
 .compare figure { margin: 0; }
 .compare img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border); }
-.compare figcaption { margin-top: 6px; font-size: 0.9rem; font-weight: 700; color: var(--muted); }
+.compare figcaption { margin-top: 6px; font-size: 0.9rem; font-weight: 700; color: var(--muted); text-align: center; }
 @media (min-width: 640px) {
   .compare { flex-direction: row; align-items: flex-start; }
   .compare figure { flex: var(--ratio) 1 0; min-width: 0; }
 }
 h2 { font-size: 1.3rem; margin: 40px 0 16px; }
-footer { text-align: center; padding-top: 24px; padding-bottom: 40px; font-size: 0.9rem; }
+footer { text-align: left; padding-top: 24px; padding-bottom: 40px; font-size: 0.9rem; }
 footer a { color: var(--accent); }
 .credits { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; text-align: left; font-size: 0.9rem; }
 .credits h3 { margin: 12px 0 4px; font-size: 1rem; color: var(--accent); }
