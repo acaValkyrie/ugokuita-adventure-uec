@@ -3,7 +3,7 @@ extends Node
 # 実行: Godot --path <プロジェクト> res://tools/capture_map.tscn（headless では描画できない）
 
 # map.gd の WORLD_RECT を参照する（Autoload 経由にしない）
-const MapScript := preload("res://map.gd")
+const MapScript := preload("res://src/map/map.gd")
 const OUT_PATH := "res://assets/map/campus_map.png"
 const IMAGE_SIZE := Vector2i(1536, 1479)
 # 描画が落ち着くまで待つフレーム数

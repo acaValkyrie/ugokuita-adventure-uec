@@ -18,7 +18,7 @@ const EYE_SPARKLE_SOUND := preload("res://assets/audio/salvage/eye_sparkle.ogg")
 # ED3 が始まってから Back to Start を押すまで流す BGM（ループしない）
 const BGM := preload("res://assets/audio/salvage/ed3_bgm.ogg")
 const BGM_VOLUME_DB := 0.0
-const PlaybackInput := preload("res://salvage_playback_input.gd")
+const PlaybackInput := preload("res://src/gomi_station/salvage_playback_input.gd")
 # 最初のカットでは、機体から OVERHEAD_DISTANCE [m]、仰角 OVERHEAD_ELEVATION_DEG [度] の位置から見下ろし、経度を OVERHEAD_ORBIT_DEG [度] 回す。
 const OVERHEAD_DISTANCE := 2.4
 const OVERHEAD_ELEVATION_DEG := 60.0

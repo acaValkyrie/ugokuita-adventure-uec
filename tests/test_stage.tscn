@@ -1,8 +1,8 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://tests/test_stage.gd" id="1_stage"]
-[ext_resource type="Script" path="res://camera_3d.gd" id="2_camera"]
-[ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://car.tscn" id="3_car"]
+[ext_resource type="Script" path="res://src/camera/camera_3d.gd" id="2_camera"]
+[ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://src/vehicle/car.tscn" id="3_car"]
 [ext_resource type="Script" path="res://tests/measure_runner.gd" id="4_measure"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_stage"]

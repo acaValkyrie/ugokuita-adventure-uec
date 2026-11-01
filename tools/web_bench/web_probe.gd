@@ -405,7 +405,7 @@ func _disable_items() -> void:
 		return
 	for node: Node in scene.find_children("*", "", true, false):
 		var script: Script = node.get_script() as Script
-		if script != null and script.resource_path == "res://power_up_item.gd":
+		if script != null and script.resource_path == "res://src/progression/power_up_item.gd":
 			node.process_mode = Node.PROCESS_MODE_DISABLED
 
 func _start_spot(now: int) -> void:

@@ -6,8 +6,8 @@ const GROUPS := {
 		"res://assets/audio/bgm/ending2_fanfare_1.mp3",
 		"res://assets/audio/bgm/city_bird.ogg",
 	],
-	"gomi": ["res://gomi_station.tscn"],
-	"classic": ["res://car_classic.tscn"],
+	"gomi": ["res://src/gomi_station/gomi_station.tscn"],
+	"classic": ["res://src/vehicle/car_classic.tscn"],
 }
 const MAIN_EXTENSIONS := ["tscn", "scn", "tres", "res", "gd", "gdshader", "gdshaderinc"]
 const EXCLUDED_DIRS := [

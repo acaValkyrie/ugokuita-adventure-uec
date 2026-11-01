@@ -5,8 +5,8 @@ signal player_changed(player: VehicleBody3D)
 
 # 機体のキー（GameMenu.ROBOT_MODELS）ごとのプレイヤーのシーン
 const SCENES := {
-	"neo": "res://car.tscn",
-	"classic": "res://car_classic.tscn",
+	"neo": "res://src/vehicle/car.tscn",
+	"classic": "res://src/vehicle/car_classic.tscn",
 }
 
 var _pending_model := ""

@@ -33,7 +33,7 @@ func _record() -> void:
 	var stage: Node3D = load(STAGE).instantiate()
 	if _run_model == "classic":
 		var neo_car := stage.get_node("Car") as VehicleBody3D
-		var classic_car := load("res://car_classic.tscn").instantiate() as VehicleBody3D
+		var classic_car := load("res://src/vehicle/car_classic.tscn").instantiate() as VehicleBody3D
 		classic_car.name = "Car"
 		classic_car.transform = neo_car.transform
 		neo_car.free()

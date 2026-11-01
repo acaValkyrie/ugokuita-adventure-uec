@@ -1,9 +1,9 @@
 [gd_scene load_steps=21 format=3 uid="uid://da3c8ktvtj35a"]
 
-[ext_resource type="Script" uid="uid://voefr7qy7ut3" path="res://car.gd" id="1_7822p"]
+[ext_resource type="Script" uid="uid://voefr7qy7ut3" path="res://src/vehicle/car.gd" id="1_7822p"]
 [ext_resource type="PackedScene" uid="uid://ylkf1vi76cbh" path="res://assets/models/ugokuita-neo.glb" id="2_uoj53"]
 [ext_resource type="AudioStream" path="res://assets/audio/running_loop.wav" id="3_runsnd"]
-[ext_resource type="Script" path="res://surface_sounds.gd" id="4_surf"]
+[ext_resource type="Script" path="res://src/vehicle/surface_sounds.gd" id="4_surf"]
 [ext_resource type="AudioStream" path="res://assets/audio/grass/rustle02.ogg" id="g0_rustle02"]
 [ext_resource type="AudioStream" path="res://assets/audio/grass/rustle05.ogg" id="g1_rustle05"]
 [ext_resource type="AudioStream" path="res://assets/audio/grass/rustle09.ogg" id="g2_rustle09"]
@@ -13,11 +13,11 @@
 [ext_resource type="AudioStream" path="res://assets/audio/grass/rustle18.ogg" id="g6_rustle18"]
 [ext_resource type="AudioStream" path="res://assets/audio/grass/rustle19.ogg" id="g7_rustle19"]
 [ext_resource type="AudioStream" uid="uid://bn8dni736kugo" path="res://assets/audio/water/running_stream.ogg" id="13_w3"]
-[ext_resource type="Script" path="res://bump_sounds.gd" id="5_bump"]
+[ext_resource type="Script" path="res://src/vehicle/bump_sounds.gd" id="5_bump"]
 [ext_resource type="AudioStream" path="res://assets/audio/bump/bump_a.ogg" id="b0_bumpa"]
 [ext_resource type="AudioStream" path="res://assets/audio/bump/bump_b.ogg" id="b1_bumpb"]
 
-[ext_resource type="Script" path="res://respawn.gd" id="6_respawn"]
+[ext_resource type="Script" path="res://src/vehicle/respawn.gd" id="6_respawn"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_0f027"]
 size = Vector3(0.511314, 0.0943527, 0.70813)

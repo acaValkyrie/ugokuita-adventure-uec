@@ -2,7 +2,7 @@ extends Node3D
 # 体育館の入口。キャンパスの入口に入ると、機体を体育館の中（西の壁の入口側の出入口のそば）へ、
 # 体育館の側面の壁にある6つの出入口のどれかを通ると、キャンパスの入口へ、暗転しながら瞬間移動させる
 
-const GYM_SCENE := preload("res://gym.tscn")
+const GYM_SCENE := preload("res://src/gym/gym.tscn")
 # 体育館を置く位置。キャンパスから遠く離しておく。
 # エンディング1が高さ y=-10 を下回ると始まるので、体育館の床は y=0 のままにして、横にだけずらす
 const GYM_ORIGIN := Vector3(2000, 0, 0)

@@ -47,8 +47,8 @@ try {
 	Set-Content -LiteralPath $presetPath -Value $presets -NoNewline -Encoding utf8
 
 	$project = Get-Content -LiteralPath $projectPath -Raw
-	$orientationLine = 'ScreenOrientation="*res://screen_orientation.gd"'
-	$benchLine = "ScreenOrientation=`"*res://screen_orientation.gd`"`nWebBench=`"*res://web_bench_tmp.gd`""
+	$orientationLine = 'ScreenOrientation="*res://src/core/screen_orientation.gd"'
+	$benchLine = "ScreenOrientation=`"*res://src/core/screen_orientation.gd`"`nWebBench=`"*res://web_bench_tmp.gd`""
 	if (-not $project.Contains($orientationLine)) { throw 'project.godot の ScreenOrientation が見つかりません。' }
 	$project = $project.Replace($orientationLine, $benchLine)
 	Set-Content -LiteralPath $projectPath -Value $project -NoNewline -Encoding utf8

@@ -6,7 +6,7 @@ signal surplus_bin_exited(bin_id: StringName, body: Node3D)
 const GOMI_RENDER_LAYER := 1
 const FADE_START_DISTANCE := 2.0
 const FADE_FULL_DISTANCE := 1.0
-const StairProximity = preload("res://stair_proximity.gd")
+const StairProximity = preload("res://src/gomi_station/stair_proximity.gd")
 # 新倉庫の中で流す環境音（ギャラリーのざわめき）。外では建物からの距離に応じて小さくし、この距離 [m] で聞こえなくなる。クレジットは assets/audio/CREDITS.md
 const CROWD_SOUND := preload("res://assets/audio/salvage/warehouse_crowd.ogg")
 const CROWD_FADE_OUT_DISTANCE := 2.5

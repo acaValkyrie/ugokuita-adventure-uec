@@ -12,7 +12,7 @@ func _initialize() -> void:
 
 
 func _verify() -> void:
-	station = load("res://gomi_station.tscn").instantiate()
+	station = load("res://src/gomi_station/gomi_station.tscn").instantiate()
 	root.add_child(station)
 	station.set_process(false)
 	var inside := station.get_node("InsideStairs") as MeshInstance3D
@@ -78,7 +78,7 @@ func _verify_distance_and_fade() -> void:
 	body.mesh = BoxMesh.new()
 	body.mesh.size = Vector3.ONE
 	vehicle.add_child(body)
-	var proximity := preload("res://stair_proximity.gd").new()
+	var proximity := preload("res://src/gomi_station/stair_proximity.gd").new()
 	proximity.setup(stairs)
 	for distance in [2.1, 2.0, 1.999, 1.75, 1.5, 1.25, 1.001, 1.0, 0.9]:
 		vehicle.position = Vector3(distance + 0.5, 0, 0)
@@ -123,19 +123,19 @@ func _verify_indoor_distance_fade() -> void:
 
 
 func _verify_vehicle_effect_bounds() -> void:
-	var test_station = load("res://gomi_station.tscn").instantiate()
+	var test_station = load("res://src/gomi_station/gomi_station.tscn").instantiate()
 	# main_scene.tscnと同じ配置と通常開始位置で、実際の機体の外形を調べる。
 	test_station.transform = Transform3D(Vector3(0.96813136, 0.25044295, 0), Vector3(0, 0, 1), Vector3(0.25044295, -0.96813136, 0), Vector3(103.399, 0, 4.568))
 	root.add_child(test_station)
 	test_station.set_process(false)
-	for scene in ["res://car.tscn", "res://car_classic.tscn"]:
+	for scene in ["res://src/vehicle/car.tscn", "res://src/vehicle/car_classic.tscn"]:
 		var vehicle = load(scene).instantiate()
 		vehicle.position = Vector3(72.1656, 0.259146, -112.579)
 		vehicle.freeze = true
 		root.add_child(vehicle)
 		vehicle.set_process(false)
 		vehicle.set_physics_process(false)
-		var proximity = preload("res://stair_proximity.gd").new()
+		var proximity = preload("res://src/gomi_station/stair_proximity.gd").new()
 		proximity.setup(test_station.get_node("OutsideStairs"))
 		test_station._proximity = proximity
 		proximity.distance_to(vehicle, 2.0)
@@ -164,7 +164,7 @@ func _verify_vehicle_effect_bounds() -> void:
 		vehicle.add_child(empty_mesh)
 		# プレイヤー自身がtop_levelであっても、その本体は収集対象。
 		vehicle.top_level = true
-		var with_effects = preload("res://stair_proximity.gd").new()
+		var with_effects = preload("res://src/gomi_station/stair_proximity.gd").new()
 		with_effects.setup(test_station.get_node("OutsideStairs"))
 		with_effects.distance_to(vehicle, 2.0)
 		_require(bounds.position.is_equal_approx(with_effects._bounds.position) and bounds.size.is_equal_approx(with_effects._bounds.size), scene + " ワールド座標の有面エフェクトと空メッシュを除外")

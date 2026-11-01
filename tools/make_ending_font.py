@@ -39,7 +39,7 @@ def gd_string_chars(src: str) -> set[str]:
 
 def collect_chars() -> set[str]:
     found: set[str] = set()
-    for name in ("ending.gd", "gomi_ending.gd"):
+    for name in ("src/progression/ending.gd", "src/gomi_station/gomi_ending.gd"):
         found |= gd_string_chars((ROOT / name).read_text(encoding="utf-8", errors="ignore"))
     return {c for c in found if c.isprintable() and c not in "\n\r\t"}
 

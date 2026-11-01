@@ -7,7 +7,7 @@ const TARGETS: Array[Array] = [
 	["classic", "res://assets/models/ugokuita-classic.fbx"],
 	["gym", "res://assets/models/Gym.fbx"],
 	["nadegg", "res://assets/models/NadeggMini.glb"],
-	["gomi_contents", "res://gomi_station_contents.tscn"],
+	["gomi_contents", "res://src/gomi_station/gomi_station_contents.tscn"],
 ]
 
 

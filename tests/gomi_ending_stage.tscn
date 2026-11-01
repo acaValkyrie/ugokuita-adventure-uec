@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
-[ext_resource type="PackedScene" path="res://gomi_station.tscn" id="1_station"]
-[ext_resource type="PackedScene" path="res://car.tscn" id="2_car"]
+[ext_resource type="PackedScene" path="res://src/gomi_station/gomi_station.tscn" id="1_station"]
+[ext_resource type="PackedScene" path="res://src/vehicle/car.tscn" id="2_car"]
 
 [sub_resource type="Environment" id="Environment_test"]
 background_mode = 1

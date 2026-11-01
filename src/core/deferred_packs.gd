@@ -5,8 +5,8 @@ signal pack_ready(pack_name: StringName)
 
 const PACKS := {
 	&"ending_audio": {"file": "ending_audio.pck", "probe": "res://assets/audio/bgm/city_bird.ogg"},
-	&"gomi": {"file": "gomi.pck", "probe": "res://gomi_station.tscn"},
-	&"classic": {"file": "classic.pck", "probe": "res://car_classic.tscn"},
+	&"gomi": {"file": "gomi.pck", "probe": "res://src/gomi_station/gomi_station.tscn"},
+	&"classic": {"file": "classic.pck", "probe": "res://src/vehicle/car_classic.tscn"},
 }
 
 var _ready_packs := {}

@@ -52,7 +52,7 @@ func _verify() -> void:
 		var probe: VehicleBody3D = car
 		if key == "classic":
 			menu.robot_model = key
-			probe = load("res://car_classic.tscn").instantiate()
+			probe = load("res://src/vehicle/car_classic.tscn").instantiate()
 			probe.freeze_mode = RigidBody3D.FREEZE_MODE_KINEMATIC
 			probe.freeze = true
 			probe.collision_mask = 0
@@ -90,7 +90,7 @@ func _verify() -> void:
 	stage = load(STAGE).instantiate()
 	if _run_model == "classic":
 		var neo_car := stage.get_node("Car") as VehicleBody3D
-		var classic_car := load("res://car_classic.tscn").instantiate() as VehicleBody3D
+		var classic_car := load("res://src/vehicle/car_classic.tscn").instantiate() as VehicleBody3D
 		classic_car.name = "Car"
 		classic_car.transform = neo_car.transform
 		neo_car.free()

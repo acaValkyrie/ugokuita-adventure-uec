@@ -27,7 +27,7 @@ const ARROW_LENGTH := 22.0
 const ARROW_WIDTH := 16.0
 # 目的地のマーカー
 const MARKER_COLOR := Color("#ffd600")
-const MARKER_3D_SCRIPT := preload("res://map_marker_3d.gd")
+const MARKER_3D_SCRIPT := preload("res://src/map/map_marker_3d.gd")
 # パワーアップの場所のヒントの印（金色の丸に「?」。色はメダルと同じ）
 const HINT_MARK_COLOR := Color("#d4a017")
 const HINT_MARK_RADIUS := 12.0

@@ -20,7 +20,7 @@ func _verify() -> void:
 	viewport.world_3d = World3D.new()
 	root.add_child(viewport)
 	viewport.add_child(Camera3D.new())
-	var station: StaticBody3D = load("res://gomi_station.tscn").instantiate()
+	var station: StaticBody3D = load("res://src/gomi_station/gomi_station.tscn").instantiate()
 	station.rotation.x = -PI / 2
 	viewport.add_child(station)
 	station.set_process(false)
@@ -39,7 +39,7 @@ func _verify() -> void:
 		assert(hit.get("collider") == bin.get_node("ContentsCollision"), "箱の画像面に物理面がありません")
 		assert((hit.position as Vector3).distance_to(bin.global_position) < 0.001)
 	# 棚やNadeggなどのStaticBodyが入ってもプレイヤー通知に含めない。
-	var ignored: StaticBody3D = load("res://gomi_nadegg.tscn").instantiate()
+	var ignored: StaticBody3D = load("res://src/gomi_station/gomi_nadegg.tscn").instantiate()
 	viewport.add_child(ignored)
 	ignored.global_position = bins.get_child(0).to_global(Vector3(0, 0.02, 0))
 	await _physics_frames(4)
@@ -48,7 +48,7 @@ func _verify() -> void:
 	assert(station.get_bodies_in_surplus_bin(bins.get_child(0).name).is_empty())
 	ignored.queue_free()
 	# 現行車と旧CharacterBodyの実シーンから衝突形状を使い、全箱へ出入りさせる。
-	for scene_path in ["res://car.tscn", "res://player.tscn"]:
+	for scene_path in ["res://src/vehicle/car.tscn", "res://src/vehicle/player.tscn"]:
 		var probe: PhysicsBody3D = load(scene_path).instantiate()
 		_strip_scripts(probe)
 		if probe is RigidBody3D:
@@ -122,7 +122,7 @@ func _category(sprite: Sprite3D) -> String:
 
 
 func _verify_nadegg_size(contents: Node) -> bool:
-	var gym: Node3D = load("res://gym.tscn").instantiate()
+	var gym: Node3D = load("res://src/gym/gym.tscn").instantiate()
 	var reference := _bounds(gym.get_node("Nadegg"))
 	if contents.get_node("Browsers").get_child_count() != 3:
 		push_error("新倉庫のNadeggは3体にする")

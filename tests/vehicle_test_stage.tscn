@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
-[ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://car.tscn" id="1_car"]
-[ext_resource type="Script" uid="uid://c73kjb0wys46o" path="res://camera_3d.gd" id="2_cam"]
+[ext_resource type="PackedScene" uid="uid://da3c8ktvtj35a" path="res://src/vehicle/car.tscn" id="1_car"]
+[ext_resource type="Script" uid="uid://c73kjb0wys46o" path="res://src/camera/camera_3d.gd" id="2_cam"]
 [ext_resource type="Shader" path="res://assets/shaders/test_grid.gdshader" id="3_grid"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]

@@ -5,7 +5,7 @@ extends Node3D
 # 新倉庫の当たり判定
 const COLLISION_SHAPE_PATH := "res://assets/models/GOMI_collision.res"
 # ED3 のスクリプト
-const ENDING_SCRIPT_PATH := "res://gomi_ending.gd"
+const ENDING_SCRIPT_PATH := "res://src/gomi_station/gomi_ending.gd"
 
 var _preloaded: Array = []
 
@@ -22,7 +22,7 @@ func _spawn() -> void:
 	await get_tree().process_frame
 	_preloaded.append(load(ENDING_SCRIPT_PATH))
 	await get_tree().process_frame
-	var scene := load("res://gomi_station.tscn") as PackedScene
+	var scene := load("res://src/gomi_station/gomi_station.tscn") as PackedScene
 	await get_tree().process_frame
 	# 新倉庫を初めて描くとき、Nadegg と棚のビルボードのシェーダーを作るのに約 0.2 秒かかる。置く前に、同じ世界を映す小さな画面で同じマテリアルを1つずつ描いて、シェーダーを1フレームずつ作っておく（Compatibility は描くときにシェーダーを作り、ライトマップの有無などで別のシェーダーになるので、同じ世界で描く）
 	var warm_root := scene.instantiate() as Node3D

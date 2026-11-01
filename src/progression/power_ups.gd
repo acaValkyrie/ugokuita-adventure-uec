@@ -4,7 +4,7 @@ extends CanvasLayer
 # 取った種類と使ったヒントは user:// に保存し、次に起動したときも残す（Web では user:// はブラウザの IndexedDB に保存される）。
 
 const FONT := preload("res://assets/fonts/noto_sans_cjk_jp_bold_ui.otf")
-const ITEM_SCRIPT := preload("res://power_up_item.gd")
+const ITEM_SCRIPT := preload("res://src/progression/power_up_item.gd")
 # アイテムを取ったときのファンファーレ。Fantasy Musica (Beau Buckley)「Fanfare 02」CC-BY-SA 4.0。クレジットは assets/audio/CREDITS.md
 const FANFARE := preload("res://assets/audio/fanfare/fanfare_02.ogg")
 

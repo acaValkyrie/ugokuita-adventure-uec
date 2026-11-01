@@ -99,7 +99,7 @@ func _ready():
 		_last_dash_count = p.dash_count
 	)
 	# 水中にいるときの見た目
-	add_child(preload("res://underwater_view.gd").new())
+	add_child(preload("res://src/camera/underwater_view.gd").new())
 
 
 var theta_speed: float = 3

@@ -1,8 +1,8 @@
 extends VehicleBody3D
 
-const JetExhaustScript := preload("res://jet_exhaust.gd")
-const DriftSparksScript := preload("res://drift_sparks.gd")
-const DriftTrailsScript := preload("res://drift_trails.gd")
+const JetExhaustScript := preload("res://src/vehicle/jet_exhaust.gd")
+const DriftSparksScript := preload("res://src/vehicle/drift_sparks.gd")
+const DriftTrailsScript := preload("res://src/vehicle/drift_trails.gd")
 
 @export var MAX_STEER = 0.5
 # 最高速度で走っているときのハンドルの最大角 [rad]。速いほど MAX_STEER からこの値へ絞り、高速で切ったときにスピンしないようにする

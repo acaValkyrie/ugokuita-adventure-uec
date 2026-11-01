@@ -3,12 +3,12 @@
 [ext_resource type="ArrayMesh" path="res://assets/models/gomi_station_without_long_stairs.res" id="1_gomi"]
 [ext_resource type="Shape3D" path="res://assets/models/GOMI_collision.res" id="2_gomi_collision"]
 [ext_resource type="Material" path="res://assets/models/gomi_station_ground_brick.tres" id="3_ground_brick"]
-[ext_resource type="Script" uid="uid://bxcnunf3jakjj" path="res://gomi_station.gd" id="4_gomi_station"]
+[ext_resource type="Script" uid="uid://bxcnunf3jakjj" path="res://src/gomi_station/gomi_station.gd" id="4_gomi_station"]
 
 [ext_resource type="ArrayMesh" path="res://assets/models/gomi_inside_stairs.res" id="5_inside_stairs"]
 [ext_resource type="ArrayMesh" path="res://assets/models/gomi_outside_stairs.res" id="6_outside_stairs"]
-[ext_resource type="PackedScene" path="res://gomi_station_contents.tscn" id="7_contents"]
-[ext_resource type="Script" path="res://gomi_ending.gd" id="8_ending"]
+[ext_resource type="PackedScene" path="res://src/gomi_station/gomi_station_contents.tscn" id="7_contents"]
+[ext_resource type="Script" path="res://src/gomi_station/gomi_ending.gd" id="8_ending"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_stairs_ramp"]
 size = Vector3(36.028336, 1.3, 0.2)

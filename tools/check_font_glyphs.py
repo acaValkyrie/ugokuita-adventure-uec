@@ -14,7 +14,7 @@ EXCLUDED_TOP = {
     ".godot", ".git", ".codex", "addons", "tools", "tmp", "latest", "blender", "tests"
 }
 EXCLUDED_ANYWHERE = {"node_modules", "__pycache__"}
-ENDING_FILES = {"ending.gd", "gomi_ending.gd"}
+ENDING_FILES = {"src/progression/ending.gd", "src/gomi_station/gomi_ending.gd"}
 
 
 def string_chars(source: str, gdscript: bool):
@@ -77,7 +77,7 @@ def collect_chars(root: Path):
             for ch, line in string_chars(source, path.suffix == ".gd"):
                 location = f"{display_path}:{line}"
                 ui.setdefault(ch, location)
-                if name in ENDING_FILES:
+                if display_path in ENDING_FILES:
                     ending.setdefault(ch, location)
     return ui, ending
 

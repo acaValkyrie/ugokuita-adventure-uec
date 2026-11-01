@@ -6,7 +6,7 @@ func _initialize() -> void:
 
 
 func _verify() -> void:
-	var station: StaticBody3D = load("res://gomi_station.tscn").instantiate()
+	var station: StaticBody3D = load("res://src/gomi_station/gomi_station.tscn").instantiate()
 	var viewport := SubViewport.new()
 	viewport.size = Vector2i(384, 256)
 	viewport.own_world_3d = true
