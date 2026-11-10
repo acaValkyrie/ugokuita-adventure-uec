@@ -3,7 +3,7 @@ extends Node
 # 機体に載った疑似 LiDAR の命中点を、汎用の点群描画へ渡す。
 
 # Web 版の負荷を見て調整する、物理フレームごとのレイ数。
-const RAYS_PER_TICK := 300
+const RAYS_PER_TICK := 150
 const NEO_MIN_ELEVATION := -7.0
 const NEO_MAX_ELEVATION := 52.0
 const NEO_MAX_DISTANCE := 40.0
