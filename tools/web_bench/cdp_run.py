@@ -364,6 +364,15 @@ async def run(args):
             finally:
                 cdp.loads.remove(loaded)
             settings = await evaluate(cdp, SETTINGS % json.dumps(args.robot))
+        if args.mobile != "off":
+            await cdp.send("Emulation.setUserAgentOverride", {
+                "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36",
+                "platform": "Android"})
+            width, height = (412, 915) if args.mobile == "portrait" else (915, 412)
+            await cdp.send("Emulation.setDeviceMetricsOverride", {
+                "width": width, "height": height, "deviceScaleFactor": 2.625, "mobile": True})
+            await cdp.send("Emulation.setTouchEmulationEnabled", {
+                "enabled": True, "maxTouchPoints": 5})
         await cdp.send("Page.addScriptToEvaluateOnNewDocument", {"source": INSTRUMENT})
         if args.cpu_throttle > 1:
             await cdp.send("Emulation.setCPUThrottlingRate", {"rate": args.cpu_throttle})
@@ -493,6 +502,7 @@ if __name__ == "__main__":
     parser.add_argument("--profile-dir", required=True)
     parser.add_argument("--cold", action="store_true")
     parser.add_argument("--robot", choices=("keep", "neo", "classic"), default="keep")
+    parser.add_argument("--mobile", choices=("off", "portrait", "landscape"), default="off")
     parser.add_argument("--seconds", type=float, default=60)
     parser.add_argument("--screenshot-on", action="append", default=[])
     parser.add_argument("--screenshot-delay", type=float, default=0.5)

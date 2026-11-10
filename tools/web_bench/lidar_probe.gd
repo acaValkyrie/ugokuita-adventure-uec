@@ -40,6 +40,9 @@ func _run() -> void:
 		_complete()
 		return
 	_log("start model=%s" % robot_model)
+	_log("env touch=%s window=%s" % [UiStyle.is_touch_device(), get_tree().root.size])
+	_log("shot normal")
+	await get_tree().create_timer(2.0).timeout
 
 	_disable_items()
 	var lidar_view: Node = get_node_or_null("/root/LidarView")
@@ -112,8 +115,13 @@ func _run() -> void:
 			phase, robot_model, count, float(count) / elapsed_sec if elapsed_sec > 0.0 else 0.0,
 			median, p95, max_frame, physics_ms, render_avg, render_max, draw_avg, primitive_avg, steps, points])
 
-	power_ups.call("_move_player_to", player, start_transform)
 	var lidar: Object = lidar_view.get("_lidar")
+	if is_instance_valid(lidar):
+		_log("lidar rays_per_tick=%d" % lidar.rays_per_tick)
+	_log("shot lidar")
+	await get_tree().create_timer(2.0).timeout
+
+	power_ups.call("_move_player_to", player, start_transform)
 	if is_instance_valid(lidar):
 		var tick_start_us: int = Time.get_ticks_usec()
 		for _i: int in range(60):
