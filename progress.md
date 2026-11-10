@@ -1378,6 +1378,21 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - 「動く板とは」の本文は、元のページの一文だけの仮のもの。何を書くかはユーザーと決める。
 - 2026-11-02 に push した。
 
+## LiDAR の点群だけを見せるモード（2026-11-10、ブランチ `lidar-only-view`）
+
+- ユーザーの依頼。普通のメッシュを見せずに、LiDAR の点群だけを見るモード。将来は実際の LiDAR で取った点群のデータも使うつもりなので、「点を描く部分」と「点を作る部分」を分けた。
+- **L キー**で切り替える（`lidar_view` アクション。ゲームパッドは割り当てなし。キー変更の画面と操作説明にはまだ出していない）。autoload `LidarView`（`src/lidar/lidar_view.gd`）が受け持つ。
+- 点を描く部分（`src/lidar/point_cloud_renderer.gd`）: `add_points(座標, 色)` で受け取り、0.1m のマスに1点だけ残して間引く。8192 点ずつのまとまりを `PRIMITIVE_POINTS` の ArrayMesh で描き、合計 40 万点を超えたら古いまとまりから捨てる。色を渡さなければ高さ（-1〜15m）で青→シアン→緑→黄→赤。実測の点群を読むときは、読み込む部分を作ってここへ渡せばよい。
+- 点を作る部分（`src/lidar/simulated_lidar.gd`）: 機体の LiDAR の部品（Neo は `mid-360-asm`、Classic は `Livox Mid-70`）の中心から、物理フレームごとに 300 本のレイを飛ばす。視野は Livox の公表値に合わせた（Mid-360: 水平 360°・仰角 -7°〜52°・40m、Mid-70: 円錐 70.4°・90m）。Livox のように同じ所をなぞらないよう、方向は黄金比の列で散らす。当たり判定のレイヤー1（建物・地面・幹）と3（木の葉）に当てる。当たり判定のない物（水面など）は点にならない。
+- 一度たまった点は、範囲の外に出ても消さずに残す（地図のようにたまる）。モードを切っても残し、次に入れると続きからたまる。
+- 表示: 点群モード中はカメラの `cull_mask` を点群のレイヤー（19、値 `1 << 18`）と機体のレイヤー（2）だけにし、背景を黒にした環境をカメラに付ける。追いかけカメラはそのまま（ユーザーの判断）。機体は面を黒、部品ごとの外形の輪郭を青で描く（`material_override` に黒の unshaded、`next_pass` に裏返して膨らませた青。ユーザーの選択で、角の辺を線で描く案はやめた）。切ると全部元に戻す。
+- つまずいたこと:
+  - 自作のシェーダー（`use_point_size` と `POINT_SIZE`）では、GL Compatibility でエラーもなく何も描かれなかった。StandardMaterial3D の `use_point_size` にしたら描けた。
+  - `Environment.new()` の黒背景だと機体が真っ黒になった。機体は空からの反射で明るくなっているため。元の環境を複製して、背景だけ黒にし、`reflected_light_source` を空にしたら元の明るさになった。
+  - `codex exec` を走らせると、`.codex/config.toml` の godot 関係の MCP サーバーも立ち上がり、エディタにつなぎに来る。そのたびにエディタのログに「Remote debugger: Packet too large (1953394499 …)」（1953394499 は ASCII の「Cont」＝ `Content-Length` の頭）が出て、godot-mcp のゲームへの操作（exec や画面写真）が全部タイムアウトするようになった。エディタを再起動すると直る。ゲームを動かして確かめている間は Codex を呼ばない。
+  - スタート地点から +Z へ走ると z≈-102 で止まる（何かに引っかかる）。点群の確認と動画では、スタート地点から 45° の向き（約 66m 開けている）へ走らせた。
+- 動画は `tools/record_lidar_view.gd` を Movie Maker で流す（`--write-movie tmp/lidar_view.avi --fixed-fps 30`、16 秒）。普通の表示で 2 秒 → 点群モードで 7 秒走って 3 秒止まる → 普通の表示に戻す。メインのシーンを使うときは、先読み（ShaderWarmup）を途中で止めると `root.disable_3d` が true のまま残り 3D が映らないので、書き出し用スクリプトで false に戻している。
+
 ## まだやっていないこと
 
 - `wall_modern`・`wall_green_tile` を貼る号館の指定
