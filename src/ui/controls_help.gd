@@ -360,6 +360,7 @@ func _keyboard_items() -> Array:
         [make_key_icon(KeyBindings.get_key("drift"), key_height), "Drift"],
         [make_key_icon(KeyBindings.get_key("respawn"), key_height), RECOVER_LABEL],
         [make_key_icon(KeyBindings.get_key("map"), key_height), "Map"],
+        [make_key_icon(KeyBindings.get_key("lidar_view"), key_height), "LiDAR"],
     ]
 
 
