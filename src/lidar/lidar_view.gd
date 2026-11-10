@@ -13,6 +13,7 @@ var _enabled := false
 var _button_layer: CanvasLayer
 var _renderer: PointCloudRenderer
 var _jet_rings: LidarJetRings
+var _space_scan: LidarSpaceScan
 var _top_view := PointCloudTopView.new(Map.WORLD_RECT)
 var _lidar: SimulatedLidar
 var _car: VehicleBody3D
@@ -64,6 +65,9 @@ func set_enabled(on: bool) -> void:
 		if is_instance_valid(_jet_rings):
 			_jet_rings.hide()
 			_jet_rings.clear()
+		if is_instance_valid(_space_scan):
+			_space_scan.hide()
+			_space_scan.clear()
 		_restore_car_materials()
 		_restore_cameras()
 	enabled_changed.emit(on)
@@ -83,11 +87,13 @@ func get_map_texture() -> Texture2D:
 	return _top_view.get_texture()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _enabled:
 		return
 	_ensure_nodes()
 	_update_camera()
+	if is_instance_valid(_space_scan):
+		_space_scan.update_scan(_car, delta)
 
 
 # シーンの読み込み直しで描画ノードが消えた場合も、現在の世界に作り直す。
@@ -114,6 +120,13 @@ func _ensure_nodes() -> void:
 		_jet_rings = LidarJetRings.new()
 		scene.add_child(_jet_rings)
 		needs_setup = true
+	if not is_instance_valid(_space_scan):
+		var scene := get_tree().current_scene
+		if scene == null:
+			_lidar.enabled = false
+			return
+		_space_scan = LidarSpaceScan.new()
+		scene.add_child(_space_scan)
 	if not is_instance_valid(_car):
 		_restore_car_materials()
 		_car = get_tree().get_first_node_in_group("player") as VehicleBody3D
@@ -124,6 +137,7 @@ func _ensure_nodes() -> void:
 		_jet_rings.set_car(_car)
 	_renderer.visible = true
 	_jet_rings.visible = true
+	_space_scan.visible = true
 	_lidar.enabled = true
 
 
