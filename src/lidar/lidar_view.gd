@@ -12,9 +12,12 @@ const LIDAR_BUTTON := preload("res://src/lidar/lidar_button.gd")
 var _enabled := false
 var _button_layer: CanvasLayer
 var _renderer: PointCloudRenderer
+var _jet_rings: LidarJetRings
 var _top_view := PointCloudTopView.new(Map.WORLD_RECT)
 var _lidar: SimulatedLidar
 var _car: VehicleBody3D
+# 点群モード中に隠している普段のジェットの炎と煙。輪で見せるので隠す
+var _hidden_exhaust: Node3D
 # カメラのインスタンス ID → 切り替え前の描画設定。
 var _cameras := {}
 # メッシュのインスタンス ID → 切り替え前のマテリアル。
@@ -58,6 +61,9 @@ func set_enabled(on: bool) -> void:
 			_lidar.enabled = false
 		if is_instance_valid(_renderer):
 			_renderer.visible = false
+		if is_instance_valid(_jet_rings):
+			_jet_rings.hide()
+			_jet_rings.clear()
 		_restore_car_materials()
 		_restore_cameras()
 	enabled_changed.emit(on)
@@ -69,7 +75,7 @@ func is_enabled() -> bool:
 
 # 点群モードで初めて使うマテリアル。起動時の先読みで一度描かせ、初めて切り替えたときの引っかかりをなくす。輪郭は next_pass なので先読み側でたどられる。
 func get_warmup_materials() -> Array[Material]:
-	return [PointCloudRenderer.create_material(), _car_material_for(1.0)]
+	return [PointCloudRenderer.create_material(), _car_material_for(1.0), LidarJetRings.create_material()]
 
 
 # 点群モード中にミニマップと全体マップが地図の画像の代わりに使う。
@@ -100,6 +106,14 @@ func _ensure_nodes() -> void:
 		_renderer.points_accepted.connect(_top_view.add_points)
 		scene.add_child(_renderer)
 		needs_setup = true
+	if not is_instance_valid(_jet_rings):
+		var scene := get_tree().current_scene
+		if scene == null:
+			_lidar.enabled = false
+			return
+		_jet_rings = LidarJetRings.new()
+		scene.add_child(_jet_rings)
+		needs_setup = true
 	if not is_instance_valid(_car):
 		_restore_car_materials()
 		_car = get_tree().get_first_node_in_group("player") as VehicleBody3D
@@ -107,7 +121,9 @@ func _ensure_nodes() -> void:
 	_apply_car_material()
 	if needs_setup:
 		_lidar.setup(_car, _renderer)
+		_jet_rings.set_car(_car)
 	_renderer.visible = true
+	_jet_rings.visible = true
 	_lidar.enabled = true
 
 
@@ -119,6 +135,8 @@ func _on_player_changed(player: VehicleBody3D) -> void:
 		_apply_car_material()
 	if is_instance_valid(_lidar) and is_instance_valid(_renderer):
 		_lidar.setup(_car, _renderer)
+	if is_instance_valid(_jet_rings):
+		_jet_rings.set_car(_car)
 
 
 func _car_material_for(scale: float) -> StandardMaterial3D:
@@ -155,6 +173,10 @@ func _apply_car_material() -> void:
 		var mesh_scale := mesh.global_basis.get_scale()
 		var scale := (mesh_scale.x + mesh_scale.y + mesh_scale.z) / 3.0
 		mesh.material_override = _car_material_for(scale)
+	var exhaust := _car.get_node_or_null("JetExhaust") as Node3D
+	if exhaust != null and exhaust != _hidden_exhaust:
+		exhaust.visible = false
+		_hidden_exhaust = exhaust
 
 
 func _restore_car_materials() -> void:
@@ -164,6 +186,9 @@ func _restore_car_materials() -> void:
 			continue
 		mesh.material_override = _car_materials[id]
 	_car_materials.clear()
+	if is_instance_valid(_hidden_exhaust):
+		_hidden_exhaust.visible = true
+	_hidden_exhaust = null
 
 
 func _update_camera() -> void:
