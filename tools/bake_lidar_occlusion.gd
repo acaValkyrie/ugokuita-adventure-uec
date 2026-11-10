@@ -7,21 +7,26 @@ func _initialize() -> void:
 
 
 func _bake() -> void:
+	var game_settings := root.get_node("GameSettings")
+	# 途中で設定が保存されると、遊ぶときの機体まで変わってしまうため戻す。
+	var original_model: String = game_settings.get("robot_model")
 	for pair in [["res://src/vehicle/car.tscn", SimulatedLidar.NEO_OCCLUSION_PATH], ["res://src/vehicle/car_classic.tscn", SimulatedLidar.CLASSIC_OCCLUSION_PATH]]:
 		var scene_path: String = pair[0]
 		var path: String = pair[1]
 		var packed := load(scene_path) as PackedScene
 		if packed == null:
 			push_error("機体のシーンを読み込めません: " + scene_path)
+			game_settings.set("robot_model", original_model)
 			quit(1)
 			return
 		var car := packed.instantiate() as VehicleBody3D
 		if car == null:
 			push_error("機体のシーンが VehicleBody3D ではありません: " + scene_path)
+			game_settings.set("robot_model", original_model)
 			quit(1)
 			return
 		car.freeze = true
-		root.get_node("GameSettings").set("robot_model", car.get("robot_key"))
+		game_settings.set("robot_model", car.get("robot_key"))
 		root.add_child(car)
 		var lidar := SimulatedLidar.new()
 		root.add_child(lidar)
@@ -31,6 +36,7 @@ func _bake() -> void:
 			push_error("遮蔽表を作れません: " + scene_path)
 			lidar.free()
 			car.queue_free()
+			game_settings.set("robot_model", original_model)
 			quit(1)
 			return
 		var table := LidarOcclusionTable.new()
@@ -47,6 +53,8 @@ func _bake() -> void:
 		await process_frame
 		if error != OK:
 			push_error("遮蔽表を保存できません: %s (error=%d)" % [path, error])
+			game_settings.set("robot_model", original_model)
 			quit(1)
 			return
+	game_settings.set("robot_model", original_model)
 	quit()
