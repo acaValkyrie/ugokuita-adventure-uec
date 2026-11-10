@@ -8,7 +8,7 @@ extends RefCounted
 const ACTIONS := [
     "up", "down", "left", "right",
     "view_up", "view_down", "view_left", "view_right",
-    "jump", "boost", "drift", "respawn", "map", "interact",
+    "jump", "boost", "drift", "respawn", "map", "lidar_view", "interact",
 ]
 # メニューに出す操作の名前
 const ACTION_NAMES := {
@@ -25,6 +25,7 @@ const ACTION_NAMES := {
     "drift": "ドリフト",
     "respawn": "復帰",
     "map": "マップ",
+    "lidar_view": "LiDAR モード",
     "interact": "看板を開く",
 }
 # 使えないキー（F1〜F12 は is_allowed で範囲として除く）
@@ -37,7 +38,7 @@ const SECTION := "keys"
 
 # ゲームパッドのボタンの割り当てを変えられる操作（メニューに並べる順）。名前は ACTION_NAMES を使う。
 # 決定・キャンセル・看板を開く（interact）・menu は、表記ごとの標準のボタンで決まるので変えられない
-const PAD_ACTIONS := ["jump", "boost", "drift", "respawn", "map"]
+const PAD_ACTIONS := ["jump", "boost", "drift", "respawn", "map", "lidar_view"]
 # 使えるボタン（A・B・X・Y・BACK・スティックの押し込み・肩のボタン・十字キー）。
 # START はメニューを開くボタン、GUIDE・MISC1・パドル・タッチパッドは持っていないコントローラが多いので使えない
 const PAD_ALLOWED := [
@@ -210,6 +211,9 @@ static func load_from(config: ConfigFile) -> void:
     _ensure_pad_defaults()
     if config.has_section(SECTION):
         var seen := {}
+        # LiDAR の無い古い設定では、既定キーを他の保存値との交換から守る
+        if not config.has_section_key(SECTION, "lidar_view"):
+            seen[_defaults["lidar_view"]] = true
         for action in ACTIONS:
             var value: Variant = config.get_value(SECTION, action, null)
             if typeof(value) != TYPE_INT or value == 0:
@@ -221,6 +225,9 @@ static func load_from(config: ConfigFile) -> void:
             set_key(action, physical)
     if config.has_section(PAD_SECTION):
         var seen_buttons := {}
+        # ボタンも古い設定との競合では LiDAR の既定値を残す
+        if not config.has_section_key(PAD_SECTION, "lidar_view"):
+            seen_buttons[_pad_defaults["lidar_view"]] = true
         for action in PAD_ACTIONS:
             var value: Variant = config.get_value(PAD_SECTION, action, null)
             if typeof(value) != TYPE_INT:
