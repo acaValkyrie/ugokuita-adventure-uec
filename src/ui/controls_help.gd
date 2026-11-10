@@ -312,6 +312,7 @@ func _items_for(mode: Mode) -> Array:
         [make_button_icon(KeyBindings.get_button("drift"), button_height), "Drift"],
         [make_button_icon(KeyBindings.get_button("respawn"), button_height), RECOVER_LABEL],
         [make_button_icon(KeyBindings.get_button("map"), button_height), "Map"],
+        [make_button_icon(KeyBindings.get_button("lidar_view"), button_height), "LiDAR"],
     ]
 
 
