@@ -1,6 +1,6 @@
 extends SceneTree
 
-# 点群モードで走るところを流す。実行: Godot --path . --script res://tools/record_lidar_view.gd --write-movie tmp/lidar_view.avi --fixed-fps 30
+# 点群モードで7秒走り、停止後3秒、全体マップを2秒、閉じて1秒見せる。実行: Godot --path . --script res://tools/record_lidar_view.gd --write-movie tmp/lidar_map.avi --fixed-fps 30
 const STAGE := "res://src/main/main_scene.tscn"
 
 
@@ -38,6 +38,11 @@ func _record() -> void:
 	await create_timer(7.0).timeout
 	Input.action_release("up")
 	await create_timer(3.0).timeout
+	var map := root.get_node("Map")
+	map.open()
+	await create_timer(2.0, true).timeout
+	map.close()
+	await create_timer(1.0).timeout
 	lidar_view.set_enabled(false)
 	await create_timer(2.0).timeout
 	quit()
