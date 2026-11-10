@@ -12,6 +12,8 @@ const CLASSIC_MAX_DISTANCE := 90.0
 const OCCLUSION_U_BINS := 360
 const OCCLUSION_V_BINS := 64
 const OCCLUSION_RAY_LENGTH := 2.0
+const NEO_OCCLUSION_PATH := "res://src/lidar/occlusion_neo.res"
+const CLASSIC_OCCLUSION_PATH := "res://src/lidar/occlusion_classic.res"
 
 var enabled := false
 var _car: VehicleBody3D
@@ -22,7 +24,6 @@ var _ray_index := 0
 var _query := PhysicsRayQueryParameters3D.new()
 var _sensor: Node
 var _occluded := PackedByteArray()
-var _occlusion_pending := false
 
 
 func _init() -> void:
@@ -34,7 +35,6 @@ func _init() -> void:
 func setup(car: VehicleBody3D, renderer: PointCloudRenderer) -> void:
 	_sensor = null
 	_occluded = PackedByteArray()
-	_occlusion_pending = false
 	_car = car
 	_renderer = renderer
 	_local_offset = Vector3(0.0, 0.3, 0.0)
@@ -42,7 +42,6 @@ func setup(car: VehicleBody3D, renderer: PointCloudRenderer) -> void:
 	_query.exclude = []
 	if not is_instance_valid(_car):
 		return
-	_occlusion_pending = true
 	_query.exclude = [_car.get_rid()]
 	var sensors := _car.find_children("*mid-360-asm*", "", true, false)
 	if sensors.is_empty():
@@ -66,6 +65,13 @@ func setup(car: VehicleBody3D, renderer: PointCloudRenderer) -> void:
 		stack.append_array(node.get_children())
 	if found:
 		_local_offset = _car.to_local(bounds.get_center())
+	var path := CLASSIC_OCCLUSION_PATH if _classic else NEO_OCCLUSION_PATH
+	if ResourceLoader.exists(path):
+		var table := load(path) as LidarOcclusionTable
+		if table != null and table.u_bins == OCCLUSION_U_BINS and table.v_bins == OCCLUSION_V_BINS and table.occluded.size() == OCCLUSION_U_BINS * OCCLUSION_V_BINS:
+			_occluded = table.occluded
+			return
+	push_warning("LiDAR の遮蔽表が無いか大きさが違います: " + path)
 
 
 func _physics_process(_delta: float) -> void:
@@ -73,8 +79,6 @@ func _physics_process(_delta: float) -> void:
 		return
 	if not _car.is_inside_tree():
 		return
-	if _occlusion_pending:
-		_build_occlusion()
 	var origin := _car.global_transform * _local_offset
 	var basis := _car.global_basis.orthonormalized()
 	var max_distance := CLASSIC_MAX_DISTANCE if _classic else NEO_MAX_DISTANCE
@@ -95,10 +99,9 @@ func _physics_process(_delta: float) -> void:
 	_renderer.add_points(points)
 
 
-# 機体の描画メッシュでセンサーから遮られる方向を一度だけ調べる。
+# 機体の描画メッシュでセンサーから遮られる方向を調べる。重いので tools/bake_lidar_occlusion.gd で前もって作り、ゲーム中は setup で読むだけにする。
 # 専用空間を使い、通常の走行用コリジョンやレイの除外設定には影響させない。
-func _build_occlusion() -> void:
-	_occlusion_pending = false
+func build_occlusion() -> PackedByteArray:
 	var faces := PackedVector3Array()
 	var car_inverse := _car.global_transform.affine_inverse()
 	for node in _car.find_children("*", "MeshInstance3D", true, false):
@@ -111,7 +114,7 @@ func _build_occlusion() -> void:
 		for vertex in mesh_instance.mesh.get_faces():
 			faces.append(transform * vertex)
 	if faces.is_empty():
-		return
+		return PackedByteArray()
 	var shape := ConcavePolygonShape3D.new()
 	shape.backface_collision = false
 	shape.set_faces(faces)
@@ -126,16 +129,18 @@ func _build_occlusion() -> void:
 	var query := PhysicsRayQueryParameters3D.new()
 	query.from = _local_offset
 	query.hit_from_inside = false
-	_occluded.resize(OCCLUSION_U_BINS * OCCLUSION_V_BINS)
+	var occluded := PackedByteArray()
+	occluded.resize(OCCLUSION_U_BINS * OCCLUSION_V_BINS)
 	for v_index in OCCLUSION_V_BINS:
 		var v := (v_index + 0.5) / OCCLUSION_V_BINS
 		for u_index in OCCLUSION_U_BINS:
 			var u := (u_index + 0.5) / OCCLUSION_U_BINS
 			query.to = _local_offset + _sample_direction(u, v) * OCCLUSION_RAY_LENGTH
 			if not direct_state.intersect_ray(query).is_empty():
-				_occluded[v_index * OCCLUSION_U_BINS + u_index] = 1
+				occluded[v_index * OCCLUSION_U_BINS + u_index] = 1
 	PhysicsServer3D.free_rid(body)
 	PhysicsServer3D.free_rid(space)
+	return occluded
 
 
 func _is_occluded(u: float, v: float) -> bool:
