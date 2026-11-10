@@ -7,8 +7,10 @@ signal enabled_changed(on: bool)
 const ROBOT_RENDER_LAYER := 2
 const OUTLINE_COLOR := Color(0.2, 0.6, 1.0)
 const OUTLINE_WIDTH := 0.004
+const LIDAR_BUTTON := preload("res://src/lidar/lidar_button.gd")
 
 var _enabled := false
+var _button_layer: CanvasLayer
 var _renderer: PointCloudRenderer
 var _top_view := PointCloudTopView.new(Map.WORLD_RECT)
 var _lidar: SimulatedLidar
@@ -24,6 +26,14 @@ var _car_materials_by_scale := {}
 
 func _ready() -> void:
 	PlayerSwitch.player_changed.connect(_on_player_changed)
+	# 左上のマップボタンの右に置く切り替えボタン
+	_button_layer = LIDAR_BUTTON.new()
+	add_child(_button_layer)
+
+
+# タッチ運転の除外領域に使う
+func get_button_rect() -> Rect2:
+	return _button_layer.get_button_rect()
 
 
 func _input(event: InputEvent) -> void:
