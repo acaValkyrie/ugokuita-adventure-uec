@@ -17,7 +17,9 @@ var _car: VehicleBody3D
 var _cameras := {}
 # メッシュのインスタンス ID → 切り替え前のマテリアル。
 var _car_materials := {}
-var _car_material: StandardMaterial3D
+# メッシュのワールドスケール → 黒い面と輪郭のマテリアル。
+# grow はメッシュのローカル単位なので、スケールで割って輪郭幅を揃える。
+var _car_materials_by_scale := {}
 
 
 func _ready() -> void:
@@ -104,22 +106,29 @@ func _on_player_changed(player: VehicleBody3D) -> void:
 		_lidar.setup(_car, _renderer)
 
 
+func _car_material_for(scale: float) -> StandardMaterial3D:
+	var key := snappedf(scale, 0.0001)
+	if _car_materials_by_scale.has(key):
+		return _car_materials_by_scale[key]
+	var outline := StandardMaterial3D.new()
+	outline.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	outline.albedo_color = OUTLINE_COLOR
+	outline.cull_mode = BaseMaterial3D.CULL_FRONT
+	outline.grow = true
+	outline.grow_amount = OUTLINE_WIDTH / maxf(scale, 0.0001)
+	outline.disable_fog = true
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = Color.BLACK
+	material.disable_fog = true
+	material.next_pass = outline
+	_car_materials_by_scale[key] = material
+	return material
+
+
 func _apply_car_material() -> void:
 	if not is_instance_valid(_car):
 		return
-	if _car_material == null:
-		var outline := StandardMaterial3D.new()
-		outline.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		outline.albedo_color = OUTLINE_COLOR
-		outline.cull_mode = BaseMaterial3D.CULL_FRONT
-		outline.grow = true
-		outline.grow_amount = OUTLINE_WIDTH
-		outline.disable_fog = true
-		_car_material = StandardMaterial3D.new()
-		_car_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_car_material.albedo_color = Color.BLACK
-		_car_material.disable_fog = true
-		_car_material.next_pass = outline
 	for node in _car.find_children("*", "MeshInstance3D", true, false):
 		var mesh := node as MeshInstance3D
 		if mesh.top_level:
@@ -128,7 +137,9 @@ func _apply_car_material() -> void:
 		if _car_materials.has(id):
 			continue
 		_car_materials[id] = mesh.material_override
-		mesh.material_override = _car_material
+		var mesh_scale := mesh.global_basis.get_scale()
+		var scale := (mesh_scale.x + mesh_scale.y + mesh_scale.z) / 3.0
+		mesh.material_override = _car_material_for(scale)
 
 
 func _restore_car_materials() -> void:
