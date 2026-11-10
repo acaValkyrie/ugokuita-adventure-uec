@@ -1396,6 +1396,16 @@ codex exec --skip-git-repo-check --sandbox workspace-write \
   - `Environment.new()` の黒背景だと機体が真っ黒になった。機体は空からの反射で明るくなっているため。元の環境を複製して、背景だけ黒にし、`reflected_light_source` を空にしたら元の明るさになった。
   - `codex exec` を走らせると、`.codex/config.toml` の godot 関係の MCP サーバーも立ち上がり、エディタにつなぎに来る。そのたびにエディタのログに「Remote debugger: Packet too large (1953394499 …)」（1953394499 は ASCII の「Cont」＝ `Content-Length` の頭）が出て、godot-mcp のゲームへの操作（exec や画面写真）が全部タイムアウトするようになった。エディタを再起動すると直る。ゲームを動かして確かめている間は Codex を呼ばない。
   - スタート地点から +Z へ走ると z≈-102 で止まる（何かに引っかかる）。点群の確認と動画では、スタート地点から 45° の向き（約 66m 開けている）へ走らせた。
+- Web 版の重さ（2026-11-11、ユーザーの依頼）: `export_bench.ps1 -Script lidar_probe.gd` で書き出し、`python -m http.server` で配信、`uv run --with websockets python tools/web_bench/cdp_run.py --robot neo|classic` で測った（既定の Python には websockets が無い）。同じ場所から 6 秒走った値。どちらも 60fps（垂直同期で頭打ち）のまま。
+
+  | | 物理の1回 普通→点群 | 描画の CPU 普通→点群 | 遅いほうから5% 普通→点群 | 光線を投げて点を足す1回 | 光線1本 | 地図の画像を送る1回 |
+  |---|---|---|---|---|---|---|
+  | Neo | 1.43→2.77ms | 4.30→1.12ms | 17.6→19.6ms | 1.0ms | 15µs | 1.5ms |
+  | Classic | 1.78→5.62ms | 4.20→0.99ms | 17.9→20.0ms | 2.5ms | 13µs | 1.5ms |
+
+  - 光線1本の時間は PC（13µs）とほぼ同じで、Web だから遅いということはなかった。Neo は機体にさえぎられる方向（59%）を飛ばすので Classic の半分以下。描画が軽くなるぶん、物理と描画の合計は普通の表示とほぼ同じ。
+  - Neo の回では、点群モードに入った直後に 300ms と 267ms の長いフレームが出た（新しいプロファイルで初めて点群のマテリアルを使ったため、シェーダーのコンパイルとみられる）。同じプロファイルで続けて測った Classic の回では出なかった。
+  - 遅い端末では物理の1回が数倍になるので、Classic の点群モードはフレームが落ちるかもしれない（未計測）。
 - 動画は `tools/record_lidar_view.gd` を Movie Maker で流す（`--write-movie tmp/lidar_map.avi --fixed-fps 30`、約 19 秒）。普通の表示で 2 秒 → 点群モードで 7 秒走って 3 秒止まる → 全体マップを 2 秒開いて閉じ、1 秒 → 普通の表示に戻す。機体は設定（`user://settings.cfg` の `[robot] model`）のものが出る。
   - 遮蔽の表を作るツールや確認用のスクリプトで `GameSettings.robot_model` を書き換えたまま終わると、途中で設定が保存されたとき、遊ぶときの機体まで変わってしまう。ツールは終わるときに元に戻す。2026-11-11 には設定が `classic` になっていたが、どの実行で書き込まれたかは突き止められていない。メインのシーンを使うときは、先読み（ShaderWarmup）を途中で止めると `root.disable_3d` が true のまま残り 3D が映らないので、書き出し用スクリプトで false に戻している。
 
