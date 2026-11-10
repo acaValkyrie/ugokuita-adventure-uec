@@ -74,7 +74,7 @@ func setup(car: VehicleBody3D, renderer: PointCloudRenderer) -> void:
 		if table != null and table.u_bins == OCCLUSION_U_BINS and table.v_bins == OCCLUSION_V_BINS and table.occluded.size() == OCCLUSION_U_BINS * OCCLUSION_V_BINS:
 			_occluded = table.occluded
 			return
-	push_warning("LiDAR の遮蔽表が無いか大きさが違います: " + path)
+	push_warning("LiDAR occlusion table is missing or has a wrong size: " + path)
 
 
 func _physics_process(_delta: float) -> void:
