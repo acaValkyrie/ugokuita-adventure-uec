@@ -66,8 +66,8 @@ func set_enabled(on: bool) -> void:
 			_jet_rings.hide()
 			_jet_rings.clear()
 		if is_instance_valid(_space_scan):
+			# 地面の点群と同じく、切っても消さずに隠すだけにする。消すのは ED2 の高さより下に戻ったとき
 			_space_scan.hide()
-			_space_scan.clear()
 		_restore_car_materials()
 		_restore_cameras()
 	enabled_changed.emit(on)
@@ -88,6 +88,9 @@ func get_map_texture() -> Texture2D:
 
 
 func _process(delta: float) -> void:
+	# 点群モードを切っている間に ED2 の高さより下に戻ったら、宇宙の点群を消す（次に着いたら、その位置からスキャンし直す）
+	if is_instance_valid(_space_scan) and is_instance_valid(_car) and _car.global_position.y <= Ending.ENDING2_HEIGHT:
+		_space_scan.clear()
 	if not _enabled:
 		return
 	_ensure_nodes()
