@@ -4,6 +4,8 @@ extends Node
 
 # Web 版の負荷を見て調整する、物理フレームごとのレイ数。
 const RAYS_PER_TICK := 150
+# スマホは PC より遅いので、タッチ端末では光線を半分にする
+const TOUCH_RAYS_PER_TICK := 75
 const NEO_MIN_ELEVATION := -7.0
 const NEO_MAX_ELEVATION := 52.0
 const NEO_MAX_DISTANCE := 40.0
@@ -16,6 +18,7 @@ const NEO_OCCLUSION_PATH := "res://src/lidar/occlusion_neo.res"
 const CLASSIC_OCCLUSION_PATH := "res://src/lidar/occlusion_classic.res"
 
 var enabled := false
+var rays_per_tick := TOUCH_RAYS_PER_TICK if UiStyle.is_touch_device() else RAYS_PER_TICK
 var _car: VehicleBody3D
 var _renderer: PointCloudRenderer
 var _local_offset := Vector3(0.0, 0.3, 0.0)
@@ -85,7 +88,7 @@ func _physics_process(_delta: float) -> void:
 	var space := _car.get_world_3d().direct_space_state
 	var points := PackedVector3Array()
 	_query.from = origin
-	for _i in RAYS_PER_TICK:
+	for _i in rays_per_tick:
 		_ray_index += 1
 		var u := fposmod(_ray_index * 0.6180339887, 1.0)
 		var v := fposmod(_ray_index * 0.7548776662, 1.0)
