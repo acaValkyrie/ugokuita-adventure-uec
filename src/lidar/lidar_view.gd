@@ -57,6 +57,11 @@ func is_enabled() -> bool:
 	return _enabled
 
 
+# 点群モードで初めて使うマテリアル。起動時の先読みで一度描かせ、初めて切り替えたときの引っかかりをなくす。輪郭は next_pass なので先読み側でたどられる。
+func get_warmup_materials() -> Array[Material]:
+	return [PointCloudRenderer.create_material(), _car_material_for(1.0)]
+
+
 # 点群モード中にミニマップと全体マップが地図の画像の代わりに使う。
 func get_map_texture() -> Texture2D:
 	return _top_view.get_texture()

@@ -20,7 +20,7 @@ class PointChunk:
 	var instance: MeshInstance3D
 
 
-var _material := StandardMaterial3D.new()
+var _material: StandardMaterial3D
 var _chunks: Array[PointChunk] = []
 var _current: PointChunk
 var _voxels := {}
@@ -30,11 +30,18 @@ var _rebuild_elapsed := 0.0
 
 
 func _init() -> void:
-	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_material.use_point_size = true
-	_material.point_size = POINT_SIZE
-	_material.vertex_color_use_as_albedo = true
-	_material.disable_fog = true
+	_material = create_material()
+
+
+# 点のマテリアル。起動時の先読みでも同じ物を描かせるため、作り方をまとめる。
+static func create_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.use_point_size = true
+	material.point_size = POINT_SIZE
+	material.vertex_color_use_as_albedo = true
+	material.disable_fog = true
+	return material
 
 
 func add_points(points: PackedVector3Array, colors: PackedColorArray = PackedColorArray()) -> void:

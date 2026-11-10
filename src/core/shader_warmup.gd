@@ -198,7 +198,11 @@ func _start() -> void:
 func _build_views() -> void:
 	_views.clear()
 	_kind_materials.clear()
-	_collect_scene_materials(get_tree().current_scene, {})
+	var kinds := {}
+	_collect_scene_materials(get_tree().current_scene, kinds)
+	# 点群モードのマテリアルは L キーを押すまでシーンに無いので、ここで足す
+	for material in LidarView.get_warmup_materials():
+		_collect_material_chain(material, kinds)
 	var ground_pos: Vector3
 	var kind_transform: Transform3D
 	if is_instance_valid(_prev_camera):
