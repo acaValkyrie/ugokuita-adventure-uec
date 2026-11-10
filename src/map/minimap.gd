@@ -117,11 +117,13 @@ func _on_draw() -> void:
 		var f := -camera.global_basis.z
 		_angle = -PI / 2.0 - atan2(f.z, f.x)
 
-	_view.draw_rect(Rect2(Vector2.ZERO, _view.size), BACK_COLOR)
+	var lidar_enabled := LidarView.is_enabled()
+	_view.draw_rect(Rect2(Vector2.ZERO, _view.size), Color.BLACK if lidar_enabled else BACK_COLOR)
 
 	# 地図の画像（自分の位置が中心に来るよう回して置く）
 	_view.draw_set_transform(center, _angle, Vector2(k, k))
-	_view.draw_texture_rect(MAP_TEXTURE, Rect2(Map.WORLD_RECT.position - p, Map.WORLD_RECT.size), false)
+	var texture := LidarView.get_map_texture() if lidar_enabled else MAP_TEXTURE
+	_view.draw_texture_rect(texture, Rect2(Map.WORLD_RECT.position - p, Map.WORLD_RECT.size), false)
 	_view.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# 看板（オレンジの丸）

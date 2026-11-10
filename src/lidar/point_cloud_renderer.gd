@@ -2,6 +2,9 @@ class_name PointCloudRenderer
 extends Node3D
 # ワールド座標の点と色だけを受け取り、ボクセルで間引いて描く。
 
+# ボクセルで間引いた後に新しく足した点。
+signal points_accepted(points: PackedVector3Array, colors: PackedColorArray)
+
 const RENDER_LAYER := 1 << 18
 const POINT_SIZE := 3.0
 const VOXEL_SIZE := 0.1
@@ -38,6 +41,8 @@ func add_points(points: PackedVector3Array, colors: PackedColorArray = PackedCol
 	if not colors.is_empty() and colors.size() != points.size():
 		push_error("点と色の数が一致していません")
 		return
+	var accepted_points := PackedVector3Array()
+	var accepted_colors := PackedColorArray()
 	for i in points.size():
 		var point := points[i]
 		var key := Vector3i((point / VOXEL_SIZE).floor())
@@ -46,8 +51,11 @@ func add_points(points: PackedVector3Array, colors: PackedColorArray = PackedCol
 		if _current == null:
 			_start_chunk()
 		_voxels[key] = true
+		var color := height_color(point.y) if colors.is_empty() else colors[i]
 		_current.points.append(point)
-		_current.colors.append(height_color(point.y) if colors.is_empty() else colors[i])
+		_current.colors.append(color)
+		accepted_points.append(point)
+		accepted_colors.append(color)
 		_current.keys.append(key)
 		_point_count += 1
 		_dirty = true
@@ -57,6 +65,8 @@ func add_points(points: PackedVector3Array, colors: PackedColorArray = PackedCol
 		# 上限を超えたら、古いチャンクごとに点とボクセルの記録を捨てる。
 		while _point_count > MAX_POINTS:
 			_remove_oldest_chunk()
+	if not accepted_points.is_empty():
+		points_accepted.emit(accepted_points, accepted_colors)
 
 
 func clear() -> void:

@@ -10,6 +10,7 @@ const OUTLINE_WIDTH := 0.004
 
 var _enabled := false
 var _renderer: PointCloudRenderer
+var _top_view := PointCloudTopView.new(Map.WORLD_RECT)
 var _lidar: SimulatedLidar
 var _car: VehicleBody3D
 # カメラのインスタンス ID → 切り替え前の描画設定。
@@ -54,6 +55,11 @@ func is_enabled() -> bool:
 	return _enabled
 
 
+# 点群モード中にミニマップと全体マップが地図の画像の代わりに使う。
+func get_map_texture() -> Texture2D:
+	return _top_view.get_texture()
+
+
 func _process(_delta: float) -> void:
 	if not _enabled:
 		return
@@ -73,6 +79,8 @@ func _ensure_nodes() -> void:
 			_lidar.enabled = false
 			return
 		_renderer = PointCloudRenderer.new()
+		_top_view.clear()
+		_renderer.points_accepted.connect(_top_view.add_points)
 		scene.add_child(_renderer)
 		needs_setup = true
 	if not is_instance_valid(_car):

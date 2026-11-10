@@ -101,6 +101,8 @@ func open() -> void:
 	_hint_unseen = false
 	if _button_icon != null:
 		_button_icon.queue_redraw()
+	# 開いている間はゲームが止まり点は増えないので、開くときに決めれば足りる。
+	_texture_rect.texture = LidarView.get_map_texture() if LidarView.is_enabled() else MAP_TEXTURE
 	_layout()
 	_rebuild_labels()
 	# カーソルは自分の位置に置き、方向の入力があるまで隠す
