@@ -1,7 +1,7 @@
 extends CanvasLayer
 # スマホ用タッチ操作。
-# 一本指スワイプで運転（既存アクション up/down/left/right）、
-# 二本指スワイプで視点移動（既存アクション view_*）、
+# 左半分で始めたスワイプで運転（既存アクション up/down/left/right）、
+# 右半分で始めたスワイプで視点移動（既存アクション view_*）。左右を独立して同時に操作できる。
 # 右下の JUMP / DRIFT ボタンを押している間、ジャンプ / ドリフト（アクション jump / drift）を押し続ける。
 
 # この距離（px）ドラッグしたときの強さが1.0
@@ -24,17 +24,16 @@ const BUTTON_RING_INSET := 4.0
 # 右上のリセットボタンの一辺（px）
 const RESET_BUTTON_SIZE := 72.0
 
-enum Mode { NONE, DRIVE, VIEW, LOCKED }
-
 const DRIVE_ACTIONS := ["up", "down", "left", "right"]
 const VIEW_ACTIONS := ["view_up", "view_down", "view_left", "view_right"]
 
-# 押下中の指: index -> 現在位置
-var _touches: Dictionary = {}
-var _mode: Mode = Mode.NONE
-var _origin: Vector2 = Vector2.ZERO
-# VIEW の中点計算に使っている2本の指のindex
-var _pair: Array = []
+# 左右それぞれのスティックを操作する指と、開始位置・現在位置（指が無いときは -1）
+var _drive_index: int = -1
+var _drive_origin: Vector2 = Vector2.ZERO
+var _drive_position: Vector2 = Vector2.ZERO
+var _view_index: int = -1
+var _view_origin: Vector2 = Vector2.ZERO
+var _view_position: Vector2 = Vector2.ZERO
 var _overlay: Control
 var _reset_button: TextureButton
 # リセットボタンに付ける金色の縁取り（動けなくなっていそうなとき）
@@ -230,7 +229,18 @@ func _input(event: InputEvent) -> void:
             if _is_on_button(event.position):
                 _button_touches[event.index] = true
                 return
-            _touches[event.index] = event.position
+            if event.position.x < get_viewport().get_visible_rect().size.x * 0.5:
+                if _drive_index != -1:
+                    return
+                _drive_index = event.index
+                _drive_origin = event.position
+                _drive_position = event.position
+            else:
+                if _view_index != -1:
+                    return
+                _view_index = event.index
+                _view_origin = event.position
+                _view_position = event.position
         else:
             if _held_buttons.has(event.index):
                 var released_action: String = _held_buttons[event.index]
@@ -240,72 +250,32 @@ func _input(event: InputEvent) -> void:
                     Input.action_release(released_action)
             if _button_touches.erase(event.index):
                 return
-            _touches.erase(event.index)
+            if event.index == _drive_index:
+                _drive_index = -1
+                _release_actions(DRIVE_ACTIONS)
+            elif event.index == _view_index:
+                _view_index = -1
+                _release_actions(VIEW_ACTIONS)
+            else:
+                return
     elif event is InputEventScreenDrag:
-        if _button_touches.has(event.index) or not _touches.has(event.index):
+        if _button_touches.has(event.index):
             return
-        _touches[event.index] = event.position
+        if event.index == _drive_index:
+            _drive_position = event.position
+        elif event.index == _view_index:
+            _view_position = event.position
+        else:
+            return
     else:
         return
-    _update_mode()
     _update_actions()
     _overlay.queue_redraw()
 
 
-# 指の本数に応じてモードを遷移させる
-func _update_mode() -> void:
-    var count := _touches.size()
-    if count == 0:
-        _release_all()
-        _mode = Mode.NONE
-        _pair = []
-        return
-    match _mode:
-        Mode.NONE:
-            if count >= 2:
-                _enter_view()
-            else:
-                _mode = Mode.DRIVE
-                _origin = _touches.values()[0]
-        Mode.DRIVE:
-            if count >= 2:
-                _release_actions(DRIVE_ACTIONS)
-                _enter_view()
-        Mode.VIEW:
-            if count < 2:
-                _release_actions(VIEW_ACTIONS)
-                _mode = Mode.LOCKED
-                _pair = []
-            else:
-                var keys := _touches.keys()
-                var new_pair := [keys[0], keys[1]]
-                if new_pair != _pair:
-                    # 中点に使う指が変わったら基準点をリセット（ジャンプ防止）
-                    _pair = new_pair
-                    _origin = _pair_center()
-
-
-func _enter_view() -> void:
-    var keys := _touches.keys()
-    _pair = [keys[0], keys[1]]
-    _origin = _pair_center()
-    _mode = Mode.VIEW
-
-
-func _pair_center() -> Vector2:
-    return (_touches[_pair[0]] + _touches[_pair[1]]) * 0.5
-
-
-# 現在のスティック位置（モードごと）
-func _stick_position() -> Vector2:
-    if _mode == Mode.DRIVE:
-        return _touches.values()[0]
-    return _pair_center()
-
-
 # 長さ1にクランプしたスティックベクトル
-func _clamped_vector() -> Vector2:
-    return ((_stick_position() - _origin) / STICK_RADIUS).limit_length(1.0)
+func _clamped_vector(origin: Vector2, position: Vector2) -> Vector2:
+    return ((position - origin) / STICK_RADIUS).limit_length(1.0)
 
 
 # デッドゾーンを超えた分を0〜1に再スケール
@@ -317,12 +287,16 @@ func _apply_deadzone(value: float) -> float:
 
 
 func _update_actions() -> void:
-    if _mode != Mode.DRIVE and _mode != Mode.VIEW:
-        return
-    var v := _clamped_vector()
+    if _drive_index != -1:
+        _update_stick_actions(_drive_origin, _drive_position, DRIVE_ACTIONS)
+    if _view_index != -1:
+        _update_stick_actions(_view_origin, _view_position, VIEW_ACTIONS)
+
+
+func _update_stick_actions(origin: Vector2, position: Vector2, names: Array) -> void:
+    var v := _clamped_vector(origin, position)
     var x := _apply_deadzone(v.x)
     var y := _apply_deadzone(v.y)
-    var names: Array = DRIVE_ACTIONS if _mode == Mode.DRIVE else VIEW_ACTIONS
     # names の順: up, down, left, right（view_* も同じ並び）
     _set_action(names[0], maxf(-y, 0.0))
     _set_action(names[1], maxf(y, 0.0))
@@ -356,11 +330,14 @@ func _release_all() -> void:
 
 # フォーカス喪失時など：全指と全アクションをリセット
 func _reset() -> void:
-    _touches.clear()
+    _drive_index = -1
+    _drive_origin = Vector2.ZERO
+    _drive_position = Vector2.ZERO
+    _view_index = -1
+    _view_origin = Vector2.ZERO
+    _view_position = Vector2.ZERO
     _button_touches.clear()
     _release_held_buttons()
-    _pair = []
-    _mode = Mode.NONE
     _release_all()
     if _overlay:
         _overlay.queue_redraw()
@@ -368,10 +345,16 @@ func _reset() -> void:
 
 func _on_overlay_draw() -> void:
     _draw_buttons()
-    if _mode != Mode.DRIVE and _mode != Mode.VIEW:
-        return
-    _overlay.draw_circle(_origin, STICK_RADIUS, Color(1, 1, 1, 0.25))
-    _overlay.draw_circle(_origin + _clamped_vector() * STICK_RADIUS, KNOB_RADIUS, Color(1, 1, 1, 0.5))
+    if _drive_index != -1:
+        _draw_stick(_drive_origin, _drive_position)
+    if _view_index != -1:
+        _draw_stick(_view_origin, _view_position)
+
+
+func _draw_stick(origin: Vector2, position: Vector2) -> void:
+    _overlay.draw_circle(origin, STICK_RADIUS, Color(1, 1, 1, 0.25))
+    _overlay.draw_circle(origin + _clamped_vector(origin, position) * STICK_RADIUS,
+        KNOB_RADIUS, Color(1, 1, 1, 0.5))
 
 
 # JUMP / DRIFT ボタンを、ブーストのゲージと同じ見た目で描く（押している間はリングを赤にする）
