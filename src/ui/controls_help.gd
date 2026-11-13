@@ -11,7 +11,6 @@ const ICON_STICK_RIGHT := preload("res://assets/ui/controls/stick_right.png")
 const ICON_TRIGGER_LT := preload("res://assets/ui/controls/trigger_lt.png")
 const ICON_TRIGGER_RT := preload("res://assets/ui/controls/trigger_rt.png")
 const ICON_SWIPE_ONE := preload("res://assets/ui/controls/swipe_one_finger.png")
-const ICON_SWIPE_TWO := preload("res://assets/ui/controls/swipe_two_fingers.png")
 const ICON_KEY_R := preload("res://assets/ui/controls/key_r.png")
 const ICON_KEY_E := preload("res://assets/ui/controls/key_e.png")
 const ICON_BUTTON_BACK := preload("res://assets/ui/controls/button_back.png")
@@ -108,8 +107,8 @@ const RECOVER_BLINK_PERIOD := 0.8
 # キーボードは割り当てを変えられるので、_keyboard_items で毎回組み立てる
 const ITEMS := {
     Mode.TOUCH: [
-        [ICON_SWIPE_ONE, "Drive"],
-        [ICON_SWIPE_TWO, "Camera"],
+        [ICON_SWIPE_ONE, "Drive (Left)"],
+        [ICON_SWIPE_ONE, "Camera (Right)"],
     ],
 }
 
